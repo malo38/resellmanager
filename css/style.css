@@ -196,4 +196,3 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .checklist-item label { font-size: 13px; color: var(--text); cursor: pointer; flex: 1; }
 .checklist-item label.done { text-decoration: line-through; color: var(--muted); }
 .sell-time { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 2px; }
-
