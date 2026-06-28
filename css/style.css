@@ -1,415 +1,198 @@
-const SUPABASE_URL = 'https://iprrnmrndjfdlozxjbsu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcnJubXJuZGpmZGxvenhqYnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NjUxOTksImV4cCI6MjA5ODA0MTE5OX0.JAteIwydCEoOe6S3z-Isq6-TwRLBdGpU8akn_1FvQb0';
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-let currentUser = null;
-let allArticles = [];
-let currentFilter = { stock: 'Tous', vendus: 'Tous' };
-let selectedPhotoFile = null;
-let deleteTargetId = null;
-const PAGE_TITLES = { dashboard: 'Tableau de bord', stock: 'Stock', expedition: 'À expédier', vendus: 'Vendus', analytics: 'Statistiques', objectif: 'Objectifs' };
-
-// ── AUTH ──
-window.switchTab = (tab) => {
-  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
-  document.getElementById('authError').textContent = '';
-};
-
-window.doLogin = async () => {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPwd').value;
-  if (!email || !password) { showError('Remplissez tous les champs.'); return; }
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { showError('Email ou mot de passe incorrect.'); return; }
-  loginAs(data.user);
-};
-
-window.doRegister = async () => {
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPwd').value;
-  if (!name || !email || !password) { showError('Remplissez tous les champs.'); return; }
-  if (password.length < 6) { showError('Mot de passe trop court (6 car. min).'); return; }
-  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
-  if (error) { showError(error.message); return; }
-  loginAs(data.user);
-};
-
-window.doLogout = async () => {
-  await sb.auth.signOut();
-  currentUser = null; allArticles = [];
-  document.getElementById('authScreen').style.display = 'flex';
-  document.getElementById('mainApp').style.display = 'none';
-};
-
-function showError(msg) { document.getElementById('authError').textContent = msg; }
-
-function loginAs(user) {
-  currentUser = user;
-  const name = user.user_metadata?.name || user.email.split('@')[0];
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'flex';
-  document.getElementById('userName').textContent = name;
-  document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
-  loadArticles();
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #222222;
+  --border: #2e2e2e;
+  --border2: #3a3a3a;
+  --text: #f0f0f0;
+  --muted: #888;
+  --accent: #00e5a0;
+  --accent-dim: rgba(0,229,160,0.12);
+  --danger: #ff5c5c;
+  --warning: #f5a623;
+  --warning-dim: rgba(245,166,35,0.12);
+  --radius: 10px;
+  --radius-lg: 14px;
+  font-family: 'Inter', -apple-system, sans-serif;
 }
 
-// ── NAVIGATION ──
-window.goPage = (id, btn) => {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  btn.classList.add('active');
-  document.getElementById('topbarTitle').textContent = PAGE_TITLES[id] || '';
-  if (document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
-};
-window.toggleSidebar = () => document.querySelector('.sidebar').classList.toggle('open');
+body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
 
-// ── DATES ──
-window.toggleDates = () => {
-  const status = document.getElementById('mStatus').value;
-  const sellField = document.getElementById('sellDateField');
-  sellField.style.display = (status === 'expedition' || status === 'vendu') ? 'block' : 'none';
-};
+/* ── AUTH ── */
+.auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; background: var(--bg); }
+.auth-wrap { width: 100%; max-width: 400px; }
+.auth-brand { text-align: center; margin-bottom: 2rem; }
+.brand-icon { width: 52px; height: 52px; background: var(--accent); color: #000; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; margin: 0 auto 12px; }
+.brand-name { font-size: 22px; font-weight: 700; color: var(--text); }
+.brand-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; }
+.tab-row { display: flex; gap: 4px; background: var(--bg); border-radius: 8px; padding: 4px; margin-bottom: 1.5rem; }
+.tab { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--muted); font-family: inherit; transition: all 0.15s; }
+.tab.active { background: var(--surface2); color: var(--text); font-weight: 600; }
+.field { margin-bottom: 14px; }
+.field label, .field-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; }
+.field input, .field select { width: 100%; padding: 10px 12px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface2); color: var(--text); font-size: 14px; font-family: inherit; transition: border-color 0.15s; outline: none; }
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.field select option { background: var(--surface2); }
+.btn-primary { width: 100%; padding: 11px; background: var(--accent); color: #000; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.15s; letter-spacing: 0.01em; }
+.btn-primary:hover { opacity: 0.88; }
+.error-msg { color: var(--danger); font-size: 12px; margin-top: 10px; text-align: center; min-height: 18px; }
 
-function today() { return new Date().toISOString().split('T')[0]; }
+/* ── LAYOUT ── */
+.main { display: flex; height: 100vh; overflow: hidden; }
 
-function daysBetween(d1, d2) {
-  if (!d1 || !d2) return null;
-  const diff = new Date(d2) - new Date(d1);
-  return Math.round(diff / (1000 * 60 * 60 * 24));
+/* ── SIDEBAR ── */
+.sidebar { width: 220px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 0; }
+.sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 20px 16px 16px; font-size: 16px; font-weight: 700; color: var(--text); border-bottom: 1px solid var(--border); }
+.brand-icon-sm { width: 28px; height: 28px; background: var(--accent); color: #000; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.sidebar-nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.nav-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border: none; background: transparent; border-radius: var(--radius); font-size: 13px; cursor: pointer; color: var(--muted); font-family: inherit; text-align: left; transition: all 0.15s; }
+.nav-btn:hover { background: var(--surface2); color: var(--text); }
+.nav-btn.active { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.user-pill { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); overflow: hidden; }
+.user-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.logout-btn { background: none; border: 1px solid var(--border2); color: var(--muted); cursor: pointer; padding: 5px 9px; border-radius: 8px; font-size: 14px; transition: all 0.15s; flex-shrink: 0; }
+.logout-btn:hover { color: var(--text); border-color: var(--border2); background: var(--surface2); }
+
+/* ── APP BODY ── */
+.app-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.topbar-title { font-size: 16px; font-weight: 600; }
+.mobile-menu-btn { display: none; background: none; border: none; color: var(--text); font-size: 20px; cursor: pointer; }
+.add-btn-top { padding: 8px 16px; background: var(--accent); color: #000; border: none; border-radius: var(--radius); font-size: 13px; cursor: pointer; font-weight: 700; font-family: inherit; transition: opacity 0.15s; }
+.add-btn-top:hover { opacity: 0.88; }
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── KPI ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+.kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.kpi-val { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+.kpi-val.green { color: var(--accent); }
+.kpi-val.red { color: var(--danger); }
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── DASHBOARD COLS ── */
+.dash-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .dash-cols { grid-template-columns: 1fr; } }
+
+/* ── SECTION HEADER ── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-header h2 { font-size: 15px; font-weight: 600; color: var(--text); }
+.count-label { font-size: 13px; color: var(--muted); }
+
+/* ── ARTICLE CARDS ── */
+.article-list { display: flex; flex-direction: column; gap: 8px; }
+.article-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; display: flex; align-items: center; gap: 14px; transition: border-color 0.15s; }
+.article-card:hover { border-color: var(--border2); }
+.article-photo { width: 54px; height: 54px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.article-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.article-info { flex: 1; min-width: 0; }
+.article-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.article-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.article-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.article-right { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.article-profit { font-size: 15px; font-weight: 700; }
+.profit-pos { color: var(--accent); }
+.profit-neg { color: var(--danger); }
+.article-actions { display: flex; gap: 4px; }
+.btn-edit { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; font-size: 11px; color: var(--muted); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.btn-edit:hover { color: var(--text); border-color: var(--accent); }
+
+/* ── BADGES ── */
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; display: inline-block; font-weight: 500; }
+.badge-stock { background: var(--warning-dim); color: var(--warning); }
+.badge-expedition { background: rgba(100,100,255,0.12); color: #8b9eff; }
+.badge-vendu { background: var(--accent-dim); color: var(--accent); }
+.badge-vinted { background: rgba(30,140,255,0.12); color: #60a5fa; }
+.badge-ebay { background: rgba(255,120,0,0.12); color: #fb923c; }
+.badge-leboncoin { background: rgba(245,166,35,0.12); color: var(--warning); }
+.badge-autre { background: var(--surface2); color: var(--muted); }
+
+/* ── FILTERS ── */
+.page-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.pf-btn { padding: 5px 14px; border: 1px solid var(--border2); border-radius: 20px; background: transparent; font-size: 12px; cursor: pointer; color: var(--muted); font-family: inherit; transition: all 0.15s; }
+.pf-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
+/* ── CHART ── */
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+.chart-card.big { margin-top: 0; }
+.chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
+.bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--accent); min-height: 4px; transition: height 0.4s; }
+.bar.negative { background: var(--danger); opacity: 0.6; }
+.chart-labels { display: flex; gap: 8px; margin-top: 8px; }
+.chart-label { flex: 1; text-align: center; font-size: 10px; color: var(--muted); }
+.chart-label strong { display: block; color: var(--accent); font-size: 11px; }
+
+/* ── GOAL ── */
+.goal-hero { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 16px; }
+.goal-big { font-size: 48px; font-weight: 700; color: var(--accent); line-height: 1; }
+.goal-label { font-size: 13px; color: var(--muted); margin-top: 6px; margin-bottom: 20px; }
+.progress-track { height: 8px; background: var(--surface2); border-radius: 10px; overflow: hidden; }
+.progress-bar { height: 100%; background: var(--accent); border-radius: 10px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+.goal-limits { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
+.goal-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+.goal-row { display: flex; gap: 8px; margin-top: 8px; }
+.goal-row input { flex: 1; padding: 10px 12px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface2); color: var(--text); font-size: 14px; font-family: inherit; outline: none; }
+.goal-row input:focus { border-color: var(--accent); }
+
+/* ── MODAL ── */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
+.modal-bg.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-lg); width: 100%; max-width: 480px; max-height: 90vh; display: flex; flex-direction: column; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 0; }
+.modal-header h3 { font-size: 16px; font-weight: 700; }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; padding: 4px; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.form-grid .field.full { grid-column: 1 / -1; }
+.modal-actions { display: flex; gap: 10px; padding: 16px 20px; border-top: 1px solid var(--border); }
+.btn-cancel { flex: 1; padding: 10px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); font-size: 13px; cursor: pointer; color: var(--muted); font-family: inherit; transition: all 0.15s; }
+.btn-cancel:hover { color: var(--text); }
+.btn-confirm { flex: 1; padding: 10px; background: var(--accent); color: #000; border: none; border-radius: var(--radius); font-size: 13px; cursor: pointer; font-weight: 700; font-family: inherit; transition: opacity 0.15s; }
+.btn-confirm:hover { opacity: 0.88; }
+.btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── PHOTO ── */
+.photo-upload-area { border: 2px dashed var(--border2); border-radius: 10px; height: 110px; cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; transition: border-color 0.15s; text-align: center; font-size: 13px; color: var(--muted); }
+.photo-upload-area:hover { border-color: var(--accent); }
+
+/* ── INFO BANNER ── */
+.info-banner { background: rgba(100,100,255,0.08); border: 1px solid rgba(100,100,255,0.2); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: #8b9eff; margin-bottom: 16px; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 14px; }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+/* ── MOBILE ── */
+@media (max-width: 700px) {
+  .sidebar { position: fixed; left: -220px; top: 0; bottom: 0; z-index: 200; transition: left 0.25s; }
+  .sidebar.open { left: 0; }
+  .mobile-menu-btn { display: block; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .content { padding: 16px; }
+  .topbar { padding: 12px 16px; }
 }
 
-function sellTimeLabel(a) {
-  if (a.status === 'stock') return '';
-  const days = daysBetween(a.buy_date, a.sell_date || a.created_at?.split('T')[0]);
-  if (days === null) return '';
-  if (days === 0) return 'Vendu le jour même';
-  if (days === 1) return 'Vendu en 1 jour';
-  return `Vendu en ${days} jours`;
-}
-
-// ── PHOTO ──
-window.previewPhoto = (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  selectedPhotoFile = file;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const preview = document.getElementById('photoPreview');
-    preview.src = e.target.result;
-    preview.style.display = 'block';
-    document.getElementById('photoPlaceholder').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-};
-
-async function uploadPhoto(file, articleId) {
-  const ext = file.name.split('.').pop();
-  const path = `${currentUser.id}/${articleId}.${ext}`;
-  const { error } = await sb.storage.from('photos').upload(path, file, { upsert: true });
-  if (error) return null;
-  const { data } = sb.storage.from('photos').getPublicUrl(path);
-  return data.publicUrl;
-}
-
-// ── LOAD ──
-async function loadArticles() {
-  const { data } = await sb.from('articles').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-  allArticles = data || [];
-  renderAll();
-}
-
-// ── MODAL ──
-window.openModal = (article = null) => {
-  selectedPhotoFile = null;
-  document.getElementById('photoPreview').style.display = 'none';
-  document.getElementById('photoPlaceholder').style.display = 'flex';
-  document.getElementById('mPhoto').value = '';
-  document.getElementById('mId').value = article?.id || '';
-  document.getElementById('mName').value = article?.name || '';
-  document.getElementById('mBuy').value = article?.buy_price || '';
-  document.getElementById('mSell').value = article?.sell_price || '';
-  document.getElementById('mPlatform').value = article?.platform || 'Vinted';
-  document.getElementById('mStatus').value = article?.status || 'stock';
-  document.getElementById('mBuyDate').value = article?.buy_date || today();
-  document.getElementById('mSellDate').value = article?.sell_date || today();
-  document.getElementById('modalTitle').textContent = article ? "Modifier l'article" : 'Ajouter un article';
-  document.getElementById('btnSave').textContent = article ? 'Enregistrer' : 'Ajouter';
-  toggleDates();
-  if (article?.photo_url) {
-    const preview = document.getElementById('photoPreview');
-    preview.src = article.photo_url;
-    preview.style.display = 'block';
-    document.getElementById('photoPlaceholder').style.display = 'none';
-  }
-  document.getElementById('modalBg').classList.add('open');
-};
-
-window.closeModal = () => document.getElementById('modalBg').classList.remove('open');
-window.handleModalBgClick = (e) => { if (e.target === document.getElementById('modalBg')) closeModal(); };
-
-window.saveArticle = async () => {
-  const id = document.getElementById('mId').value;
-  const name = document.getElementById('mName').value.trim();
-  const buy = parseFloat(document.getElementById('mBuy').value.replace(',', '.')) || 0;
-  const sell = parseFloat(document.getElementById('mSell').value.replace(',', '.')) || 0;
-  const platform = document.getElementById('mPlatform').value;
-  const status = document.getElementById('mStatus').value;
-  const buy_date = document.getElementById('mBuyDate').value || today();
-  const sell_date = (status !== 'stock') ? (document.getElementById('mSellDate').value || today()) : null;
-  if (!name) return;
-
-  const btn = document.getElementById('btnSave');
-  btn.textContent = '...'; btn.disabled = true;
-
-  let photoUrl = id ? allArticles.find(a => a.id === id)?.photo_url : null;
-  const articleId = id || crypto.randomUUID();
-  if (selectedPhotoFile) photoUrl = await uploadPhoto(selectedPhotoFile, articleId);
-
-  const payload = { name, buy_price: buy, sell_price: sell, platform, status, buy_date, sell_date, photo_url: photoUrl };
-
-  if (id) {
-    const { data } = await sb.from('articles').update(payload).eq('id', id).eq('user_id', currentUser.id).select();
-    if (data) { const idx = allArticles.findIndex(a => a.id === id); if (idx >= 0) allArticles[idx] = data[0]; }
-  } else {
-    const { data } = await sb.from('articles').insert([{ id: articleId, user_id: currentUser.id, ...payload }]).select();
-    if (data) allArticles.unshift(data[0]);
-  }
-
-  btn.textContent = id ? 'Enregistrer' : 'Ajouter'; btn.disabled = false;
-  closeModal();
-  renderAll();
-};
-
-// ── DELETE ──
-window.confirmDelete = (id) => {
-  deleteTargetId = id;
-  document.getElementById('confirmBg').classList.add('open');
-  document.getElementById('btnConfirmDelete').onclick = async () => {
-    await sb.from('articles').delete().eq('id', deleteTargetId).eq('user_id', currentUser.id);
-    allArticles = allArticles.filter(a => a.id !== deleteTargetId);
-    closeConfirm();
-    renderAll();
-  };
-};
-window.closeConfirm = () => { document.getElementById('confirmBg').classList.remove('open'); deleteTargetId = null; };
-
-// ── FILTERS ──
-window.filterPlatform = (p, btn, section) => {
-  currentFilter[section] = p;
-  btn.closest('.page-filters').querySelectorAll('.pf-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  if (section === 'stock') renderStock();
-  if (section === 'vendus') renderVendus();
-};
-
-// ── HELPERS ──
-function calcProfit(a) { return (parseFloat(a.sell_price) || 0) - (parseFloat(a.buy_price) || 0); }
-function fmtPrice(v) { return parseFloat(v || 0).toFixed(2).replace('.', ',') + '€'; }
-function platformBadgeClass(p) { return { Vinted: 'badge-vinted', eBay: 'badge-ebay', Leboncoin: 'badge-leboncoin' }[p] || 'badge-autre'; }
-function statusBadge(s) {
-  if (s === 'stock') return '<span class="badge badge-stock">En stock</span>';
-  if (s === 'expedition') return '<span class="badge badge-expedition">À expédier</span>';
-  return '<span class="badge badge-vendu">Expédié</span>';
-}
-function photoEl(a) {
-  if (a.photo_url) return `<div class="article-photo"><img src="${a.photo_url}" alt="${a.name}" /></div>`;
-  return `<div class="article-photo">📦</div>`;
-}
-
-function articleHTML(a, opts = {}) {
-  const profit = calcProfit(a);
-  const sellTime = sellTimeLabel(a);
-  const editBtn = `<button class="btn-edit" onclick='openModal(${JSON.stringify(a)})'>✎</button>`;
-  const deleteBtn = opts.showDelete ? `<button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="confirmDelete('${a.id}')">✕</button>` : '';
-  return `<div class="article-card">
-    ${photoEl(a)}
-    <div class="article-info">
-      <div class="article-name">${a.name}</div>
-      <div class="article-meta">Achat ${fmtPrice(a.buy_price)} · Vente ${fmtPrice(a.sell_price)}</div>
-      ${sellTime ? `<div class="sell-time">${sellTime}</div>` : ''}
-      <div class="article-badges">
-        <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
-        ${statusBadge(a.status)}
-      </div>
-    </div>
-    <div class="article-right">
-      <div class="article-profit ${profit >= 0 ? 'profit-pos' : 'profit-neg'}">${profit >= 0 ? '+' : ''}${fmtPrice(profit)}</div>
-      <div class="article-actions">${editBtn}${deleteBtn}</div>
-    </div>
-  </div>`;
-}
-
-function emptyState(msg) { return `<div class="empty-state"><div class="empty-icon">📭</div>${msg}</div>`; }
-
-// ── RENDER ALL ──
-function renderAll() { renderDashboard(); renderStock(); renderExpedition(); renderVendus(); renderAnalytics(); renderObjectif(); }
-
-function renderDashboard() {
-  const vendus = allArticles.filter(a => a.status === 'vendu');
-  const stock = allArticles.filter(a => a.status === 'stock');
-  const expedition = allArticles.filter(a => a.status === 'expedition');
-  const totalProfit = vendus.reduce((s, a) => s + calcProfit(a), 0);
-  const investi = stock.reduce((s, a) => s + (parseFloat(a.buy_price) || 0), 0);
-  const roi = investi > 0 ? (totalProfit / investi * 100) : 0;
-  const now = new Date();
-  const profitMois = allArticles.filter(a => a.status === 'vendu').filter(a => {
-    const d = new Date(a.sell_date || a.created_at);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).reduce((s, a) => s + calcProfit(a), 0);
-
-  document.getElementById('kpiGrid').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">Profit total</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Profit ce mois</div><div class="kpi-val ${profitMois>=0?'green':'red'}">${fmtPrice(profitMois)}</div><div class="kpi-sub">Automatique</div></div>
-    <div class="kpi-card"><div class="kpi-label">En stock</div><div class="kpi-val">${stock.length}</div><div class="kpi-sub">${fmtPrice(investi)} investis</div></div>
-    <div class="kpi-card"><div class="kpi-label">À expédier</div><div class="kpi-val" style="color:var(--warning)">${expedition.length}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>
-    <div class="kpi-card"><div class="kpi-label">ROI</div><div class="kpi-val ${roi>=0?'green':'red'}">${roi.toFixed(0)}%</div></div>
-  `;
-  const recent = allArticles.slice(0, 4);
-  document.getElementById('recentList').innerHTML = recent.length
-    ? `<div class="article-list">${recent.map(a => articleHTML(a)).join('')}</div>`
-    : emptyState('Aucun article encore.');
-  renderMiniChart('dashChartBars', 'dashChartLabels');
-}
-
-function renderStock() {
-  let arts = allArticles.filter(a => a.status === 'stock');
-  if (currentFilter.stock !== 'Tous') arts = arts.filter(a => a.platform === currentFilter.stock);
-  document.getElementById('stockCount').textContent = arts.length + ' article(s) en stock';
-  document.getElementById('stockList').innerHTML = arts.length
-    ? `<div class="article-list">${arts.map(a => articleHTML(a, { showDelete: true })).join('')}</div>`
-    : emptyState('Aucun article en stock.');
-}
-
-function renderExpedition() {
-  const arts = allArticles.filter(a => a.status === 'expedition');
-  document.getElementById('expeditionCount').textContent = arts.length + ' article(s) à expédier';
-
-  // Checklist
-  const stored = JSON.parse(localStorage.getItem('checklist_' + currentUser.id) || '{}');
-  const checklistHTML = arts.length ? `
-    <div class="checklist-card">
-      <div class="checklist-title">✅ Checklist d'expédition</div>
-      ${arts.map(a => `
-        <div class="checklist-item">
-          <input type="checkbox" id="chk_${a.id}" ${stored[a.id] ? 'checked' : ''} onchange="toggleCheck('${a.id}', this)" />
-          <label for="chk_${a.id}" class="${stored[a.id] ? 'done' : ''}">${a.name} — ${a.platform}</label>
-        </div>
-      `).join('')}
-    </div>` : '';
-  document.getElementById('checklistWrap').innerHTML = checklistHTML;
-  document.getElementById('expeditionList').innerHTML = arts.length
-    ? `<div class="article-list">${arts.map(a => articleHTML(a)).join('')}</div>`
-    : emptyState('Aucun article en attente d\'expédition 🎉');
-}
-
-window.toggleCheck = (id, el) => {
-  const stored = JSON.parse(localStorage.getItem('checklist_' + currentUser.id) || '{}');
-  stored[id] = el.checked;
-  localStorage.setItem('checklist_' + currentUser.id, JSON.stringify(stored));
-  const label = el.nextElementSibling;
-  if (label) label.classList.toggle('done', el.checked);
-};
-
-function renderVendus() {
-  let arts = allArticles.filter(a => a.status === 'vendu');
-  if (currentFilter.vendus !== 'Tous') arts = arts.filter(a => a.platform === currentFilter.vendus);
-  document.getElementById('vendusCount').textContent = arts.length + ' article(s) vendu(s)';
-  document.getElementById('vendusList').innerHTML = arts.length
-    ? `<div class="article-list">${arts.map(a => articleHTML(a)).join('')}</div>`
-    : emptyState('Aucun article vendu encore.');
-}
-
-function getMonths() {
-  const now = new Date();
-  return Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-    return { label: d.toLocaleString('fr', { month: 'short' }), profit: 0, month: d.getMonth(), year: d.getFullYear() };
-  });
-}
-
-function renderMiniChart(barsId, labelsId) {
-  const months = getMonths();
-  allArticles.filter(a => a.status === 'vendu').forEach(a => {
-    const d = new Date(a.sell_date || a.created_at);
-    const m = months.find(m => m.month === d.getMonth() && m.year === d.getFullYear());
-    if (m) m.profit += calcProfit(a);
-  });
-  const maxP = Math.max(...months.map(m => Math.abs(m.profit)), 1);
-  document.getElementById(barsId).innerHTML = months.map(m => {
-    const h = Math.max(4, Math.abs(m.profit) / maxP * 110);
-    return `<div class="bar-wrap"><div class="bar ${m.profit < 0 ? 'negative' : ''}" style="height:${h}px;"></div></div>`;
-  }).join('');
-  document.getElementById(labelsId).innerHTML = months.map(m =>
-    `<div class="chart-label">${m.label}<strong>${m.profit >= 0 ? '+' : ''}${fmtPrice(m.profit)}</strong></div>`
-  ).join('');
-}
-
-function renderAnalytics() {
-  const months = getMonths();
-  allArticles.filter(a => a.status === 'vendu').forEach(a => {
-    const d = new Date(a.sell_date || a.created_at);
-    const m = months.find(m => m.month === d.getMonth() && m.year === d.getFullYear());
-    if (m) m.profit += calcProfit(a);
-  });
-  const vendus = allArticles.filter(a => a.status === 'vendu');
-  const totalP = vendus.reduce((s, a) => s + calcProfit(a), 0);
-  const avgP = vendus.length ? totalP / vendus.length : 0;
-  const bestMonth = Math.max(0, ...months.map(m => m.profit));
-  const now = new Date();
-  const profitMois = months.find(m => m.month === now.getMonth() && m.year === now.getFullYear())?.profit || 0;
-
-  // Temps moyen de vente
-  const avecDates = vendus.filter(a => a.buy_date && a.sell_date);
-  const avgDays = avecDates.length ? Math.round(avecDates.reduce((s, a) => s + daysBetween(a.buy_date, a.sell_date), 0) / avecDates.length) : null;
-
-  document.getElementById('analyticsKpi').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">Ce mois</div><div class="kpi-val green">${fmtPrice(profitMois)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Meilleur mois</div><div class="kpi-val green">${fmtPrice(bestMonth)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Marge moyenne</div><div class="kpi-val">${fmtPrice(avgP)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Temps vente moy.</div><div class="kpi-val">${avgDays !== null ? avgDays + 'j' : '—'}</div></div>
-  `;
-  const maxP = Math.max(...months.map(m => Math.abs(m.profit)), 1);
-  document.getElementById('chartBars').innerHTML = months.map(m => {
-    const h = Math.max(4, Math.abs(m.profit) / maxP * 110);
-    return `<div class="bar-wrap"><div class="bar ${m.profit < 0 ? 'negative' : ''}" style="height:${h}px;"></div></div>`;
-  }).join('');
-  document.getElementById('chartLabels').innerHTML = months.map(m =>
-    `<div class="chart-label">${m.label}<strong>${m.profit >= 0 ? '+' : ''}${fmtPrice(m.profit)}</strong></div>`
-  ).join('');
-}
-
-function renderObjectif() {
-  const goal = parseFloat(localStorage.getItem('goal_' + currentUser.id) || '500');
-  const now = new Date();
-  const profitMois = allArticles.filter(a => a.status === 'vendu').filter(a => {
-    const d = new Date(a.sell_date || a.created_at);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).reduce((s, a) => s + calcProfit(a), 0);
-  const pct = Math.min(100, goal > 0 ? profitMois / goal * 100 : 0);
-  document.getElementById('goalHero').innerHTML = `
-    <div class="kpi-label">Profit ce mois · Calculé automatiquement</div>
-    <div class="goal-big">${fmtPrice(profitMois)}</div>
-    <div class="goal-label">sur ${fmtPrice(goal)} d'objectif — ${pct.toFixed(0)}% atteint</div>
-    <div class="progress-track"><div class="progress-bar" style="width:${pct}%"></div></div>
-    <div class="goal-limits"><span>0€</span><span>${fmtPrice(goal)}</span></div>
-  `;
-  document.getElementById('goalInput').value = goal;
-}
-
-window.saveGoal = () => {
-  const v = parseFloat(document.getElementById('goalInput').value);
-  if (isNaN(v) || v <= 0) return;
-  localStorage.setItem('goal_' + currentUser.id, v);
-  renderObjectif();
-};
-
-sb.auth.onAuthStateChange((event, session) => {
-  if (session?.user) loginAs(session.user);
-});
+/* ── EXTRA ── */
+.btn-danger { flex: 1; padding: 10px; background: var(--danger); color: #fff; border: none; border-radius: var(--radius); font-size: 13px; cursor: pointer; font-weight: 700; font-family: inherit; }
+.btn-danger:hover { opacity: 0.88; }
+.checklist-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px; }
+.checklist-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--accent); }
+.checklist-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.checklist-item:last-child { border-bottom: none; }
+.checklist-item input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.checklist-item label { font-size: 13px; color: var(--text); cursor: pointer; flex: 1; }
+.checklist-item label.done { text-decoration: line-through; color: var(--muted); }
+.sell-time { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 2px; }
