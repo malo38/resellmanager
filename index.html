@@ -48,24 +48,12 @@
       <span>ResellManager</span>
     </div>
     <nav class="sidebar-nav">
-      <button class="nav-btn active" onclick="goPage('dashboard',this)" data-page="dashboard">
-        <span class="nav-icon">⬡</span> Tableau de bord
-      </button>
-      <button class="nav-btn" onclick="goPage('stock',this)" data-page="stock">
-        <span class="nav-icon">◫</span> Stock
-      </button>
-      <button class="nav-btn" onclick="goPage('expedition',this)" data-page="expedition">
-        <span class="nav-icon">◎</span> À expédier
-      </button>
-      <button class="nav-btn" onclick="goPage('vendus',this)" data-page="vendus">
-        <span class="nav-icon">✓</span> Vendus
-      </button>
-      <button class="nav-btn" onclick="goPage('analytics',this)" data-page="analytics">
-        <span class="nav-icon">◈</span> Statistiques
-      </button>
-      <button class="nav-btn" onclick="goPage('objectif',this)" data-page="objectif">
-        <span class="nav-icon">◉</span> Objectifs
-      </button>
+      <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon">⬡</span> Tableau de bord</button>
+      <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon">◫</span> Stock</button>
+      <button class="nav-btn" onclick="goPage('expedition',this)"><span class="nav-icon">◎</span> À expédier</button>
+      <button class="nav-btn" onclick="goPage('vendus',this)"><span class="nav-icon">✓</span> Vendus</button>
+      <button class="nav-btn" onclick="goPage('analytics',this)"><span class="nav-icon">◈</span> Statistiques</button>
+      <button class="nav-btn" onclick="goPage('objectif',this)"><span class="nav-icon">◉</span> Objectifs</button>
     </nav>
     <div class="sidebar-footer">
       <div class="user-pill">
@@ -82,7 +70,6 @@
       <div class="topbar-title" id="topbarTitle">Tableau de bord</div>
       <button class="add-btn-top" onclick="openModal()">+ Ajouter</button>
     </header>
-
     <main class="content">
 
       <!-- DASHBOARD -->
@@ -112,18 +99,14 @@
           <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'stock')">Leboncoin</button>
           <button class="pf-btn" onclick="filterPlatform('Autre',this,'stock')">Autre</button>
         </div>
-        <div class="section-header">
-          <span class="count-label" id="stockCount"></span>
-        </div>
+        <div class="section-header"><span class="count-label" id="stockCount"></span></div>
         <div id="stockList"></div>
       </section>
 
       <!-- À EXPÉDIER -->
       <section class="page" id="page-expedition">
-        <div class="info-banner">📦 Articles vendus en attente d'expédition</div>
-        <div class="section-header">
-          <span class="count-label" id="expeditionCount"></span>
-        </div>
+        <div class="section-header"><span class="count-label" id="expeditionCount"></span></div>
+        <div id="checklistWrap"></div>
         <div id="expeditionList"></div>
       </section>
 
@@ -136,9 +119,7 @@
           <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'vendus')">Leboncoin</button>
           <button class="pf-btn" onclick="filterPlatform('Autre',this,'vendus')">Autre</button>
         </div>
-        <div class="section-header">
-          <span class="count-label" id="vendusCount"></span>
-        </div>
+        <div class="section-header"><span class="count-label" id="vendusCount"></span></div>
         <div id="vendusList"></div>
       </section>
 
@@ -168,7 +149,7 @@
   </div>
 </div>
 
-<!-- MODAL AJOUTER / MODIFIER -->
+<!-- MODAL -->
 <div class="modal-bg" id="modalBg" onclick="handleModalBgClick(event)">
   <div class="modal">
     <div class="modal-header">
@@ -179,27 +160,26 @@
       <input type="hidden" id="mId" />
       <div class="form-grid">
         <div class="field full"><label>Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" /></div>
-        <div class="field"><label>Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0" /></div>
-        <div class="field"><label>Prix de vente (€)</label><input type="number" id="mSell" placeholder="0" /></div>
+        <div class="field"><label>Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" /></div>
+        <div class="field"><label>Prix de vente (€)</label><input type="number" id="mSell" placeholder="0,00" step="0.01" /></div>
         <div class="field"><label>Plateforme</label>
           <select id="mPlatform"><option>Vinted</option><option>eBay</option><option>Leboncoin</option><option>Autre</option></select>
         </div>
         <div class="field"><label>Statut</label>
-          <select id="mStatus">
+          <select id="mStatus" onchange="toggleDates()">
             <option value="stock">En stock</option>
             <option value="expedition">Vendu — à expédier</option>
             <option value="vendu">Vendu — expédié</option>
           </select>
         </div>
+        <div class="field"><label>Date d'achat</label><input type="date" id="mBuyDate" /></div>
+        <div class="field" id="sellDateField" style="display:none"><label>Date de vente</label><input type="date" id="mSellDate" /></div>
       </div>
-      <div class="field full">
-        <label>Photo de l'article</label>
+      <div class="field full" style="margin-top:8px;">
+        <label>Photo</label>
         <div class="photo-upload-area" id="photoUploadArea" onclick="document.getElementById('mPhoto').click()">
           <img id="photoPreview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;" />
-          <div id="photoPlaceholder">
-            <div style="font-size:32px;margin-bottom:6px;">📷</div>
-            <div>Cliquez pour ajouter une photo</div>
-          </div>
+          <div id="photoPlaceholder">📷</div>
         </div>
         <input type="file" id="mPhoto" accept="image/*" style="display:none" onchange="previewPhoto(event)" />
       </div>
@@ -207,6 +187,18 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Annuler</button>
       <button class="btn-confirm" id="btnSave" onclick="saveArticle()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="modal-bg" id="confirmBg">
+  <div class="modal" style="max-width:340px;">
+    <div class="modal-header"><h3>Supprimer l'article ?</h3></div>
+    <div class="modal-body"><p style="color:var(--muted);font-size:14px;">Cette action est irréversible.</p></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeConfirm()">Annuler</button>
+      <button class="btn-danger" id="btnConfirmDelete">Supprimer</button>
     </div>
   </div>
 </div>
