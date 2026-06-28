@@ -8,13 +8,14 @@ let currentUser = null;
 let allArticles = [];
 let currentFilter = { stock: 'Tous', vendus: 'Tous' };
 let selectedPhotoFile = null;
+let deleteTargetId = null;
 const PAGE_TITLES = { dashboard: 'Tableau de bord', stock: 'Stock', expedition: 'À expédier', vendus: 'Vendus', analytics: 'Statistiques', objectif: 'Objectifs' };
 
 // ── AUTH ──
 window.switchTab = (tab) => {
   document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1)));
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
   document.getElementById('authError').textContent = '';
 };
 
@@ -66,8 +67,31 @@ window.goPage = (id, btn) => {
   document.getElementById('topbarTitle').textContent = PAGE_TITLES[id] || '';
   if (document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
-
 window.toggleSidebar = () => document.querySelector('.sidebar').classList.toggle('open');
+
+// ── DATES ──
+window.toggleDates = () => {
+  const status = document.getElementById('mStatus').value;
+  const sellField = document.getElementById('sellDateField');
+  sellField.style.display = (status === 'expedition' || status === 'vendu') ? 'block' : 'none';
+};
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function daysBetween(d1, d2) {
+  if (!d1 || !d2) return null;
+  const diff = new Date(d2) - new Date(d1);
+  return Math.round(diff / (1000 * 60 * 60 * 24));
+}
+
+function sellTimeLabel(a) {
+  if (a.status === 'stock') return '';
+  const days = daysBetween(a.buy_date, a.sell_date || a.created_at?.split('T')[0]);
+  if (days === null) return '';
+  if (days === 0) return 'Vendu le jour même';
+  if (days === 1) return 'Vendu en 1 jour';
+  return `Vendu en ${days} jours`;
+}
 
 // ── PHOTO ──
 window.previewPhoto = (event) => {
@@ -93,13 +117,14 @@ async function uploadPhoto(file, articleId) {
   return data.publicUrl;
 }
 
-// ── ARTICLES CRUD ──
+// ── LOAD ──
 async function loadArticles() {
   const { data } = await sb.from('articles').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   allArticles = data || [];
   renderAll();
 }
 
+// ── MODAL ──
 window.openModal = (article = null) => {
   selectedPhotoFile = null;
   document.getElementById('photoPreview').style.display = 'none';
@@ -111,8 +136,11 @@ window.openModal = (article = null) => {
   document.getElementById('mSell').value = article?.sell_price || '';
   document.getElementById('mPlatform').value = article?.platform || 'Vinted';
   document.getElementById('mStatus').value = article?.status || 'stock';
-  document.getElementById('modalTitle').textContent = article ? 'Modifier l\'article' : 'Ajouter un article';
+  document.getElementById('mBuyDate').value = article?.buy_date || today();
+  document.getElementById('mSellDate').value = article?.sell_date || today();
+  document.getElementById('modalTitle').textContent = article ? "Modifier l'article" : 'Ajouter un article';
   document.getElementById('btnSave').textContent = article ? 'Enregistrer' : 'Ajouter';
+  toggleDates();
   if (article?.photo_url) {
     const preview = document.getElementById('photoPreview');
     preview.src = article.photo_url;
@@ -128,30 +156,28 @@ window.handleModalBgClick = (e) => { if (e.target === document.getElementById('m
 window.saveArticle = async () => {
   const id = document.getElementById('mId').value;
   const name = document.getElementById('mName').value.trim();
-  const buy = parseFloat(document.getElementById('mBuy').value) || 0;
-  const sell = parseFloat(document.getElementById('mSell').value) || 0;
+  const buy = parseFloat(document.getElementById('mBuy').value.replace(',', '.')) || 0;
+  const sell = parseFloat(document.getElementById('mSell').value.replace(',', '.')) || 0;
   const platform = document.getElementById('mPlatform').value;
   const status = document.getElementById('mStatus').value;
+  const buy_date = document.getElementById('mBuyDate').value || today();
+  const sell_date = (status !== 'stock') ? (document.getElementById('mSellDate').value || today()) : null;
   if (!name) return;
 
   const btn = document.getElementById('btnSave');
   btn.textContent = '...'; btn.disabled = true;
 
   let photoUrl = id ? allArticles.find(a => a.id === id)?.photo_url : null;
-  if (selectedPhotoFile) {
-    const articleId = id || crypto.randomUUID();
-    photoUrl = await uploadPhoto(selectedPhotoFile, articleId);
-  }
+  const articleId = id || crypto.randomUUID();
+  if (selectedPhotoFile) photoUrl = await uploadPhoto(selectedPhotoFile, articleId);
+
+  const payload = { name, buy_price: buy, sell_price: sell, platform, status, buy_date, sell_date, photo_url: photoUrl };
 
   if (id) {
-    // MODIFIER
-    const { data } = await sb.from('articles').update({ name, buy_price: buy, sell_price: sell, platform, status, photo_url: photoUrl }).eq('id', id).eq('user_id', currentUser.id).select();
+    const { data } = await sb.from('articles').update(payload).eq('id', id).eq('user_id', currentUser.id).select();
     if (data) { const idx = allArticles.findIndex(a => a.id === id); if (idx >= 0) allArticles[idx] = data[0]; }
   } else {
-    // AJOUTER
-    const newId = crypto.randomUUID();
-    if (selectedPhotoFile) photoUrl = await uploadPhoto(selectedPhotoFile, newId);
-    const { data } = await sb.from('articles').insert([{ id: newId, user_id: currentUser.id, name, buy_price: buy, sell_price: sell, platform, status, photo_url: photoUrl }]).select();
+    const { data } = await sb.from('articles').insert([{ id: articleId, user_id: currentUser.id, ...payload }]).select();
     if (data) allArticles.unshift(data[0]);
   }
 
@@ -159,6 +185,19 @@ window.saveArticle = async () => {
   closeModal();
   renderAll();
 };
+
+// ── DELETE ──
+window.confirmDelete = (id) => {
+  deleteTargetId = id;
+  document.getElementById('confirmBg').classList.add('open');
+  document.getElementById('btnConfirmDelete').onclick = async () => {
+    await sb.from('articles').delete().eq('id', deleteTargetId).eq('user_id', currentUser.id);
+    allArticles = allArticles.filter(a => a.id !== deleteTargetId);
+    closeConfirm();
+    renderAll();
+  };
+};
+window.closeConfirm = () => { document.getElementById('confirmBg').classList.remove('open'); deleteTargetId = null; };
 
 // ── FILTERS ──
 window.filterPlatform = (p, btn, section) => {
@@ -169,40 +208,39 @@ window.filterPlatform = (p, btn, section) => {
   if (section === 'vendus') renderVendus();
 };
 
-// ── RENDER HELPERS ──
+// ── HELPERS ──
 function calcProfit(a) { return (parseFloat(a.sell_price) || 0) - (parseFloat(a.buy_price) || 0); }
-
-function platformBadgeClass(p) {
-  return { Vinted: 'badge-vinted', eBay: 'badge-ebay', Leboncoin: 'badge-leboncoin' }[p] || 'badge-autre';
-}
-
+function fmtPrice(v) { return parseFloat(v || 0).toFixed(2).replace('.', ',') + '€'; }
+function platformBadgeClass(p) { return { Vinted: 'badge-vinted', eBay: 'badge-ebay', Leboncoin: 'badge-leboncoin' }[p] || 'badge-autre'; }
 function statusBadge(s) {
   if (s === 'stock') return '<span class="badge badge-stock">En stock</span>';
   if (s === 'expedition') return '<span class="badge badge-expedition">À expédier</span>';
   return '<span class="badge badge-vendu">Expédié</span>';
 }
-
 function photoEl(a) {
   if (a.photo_url) return `<div class="article-photo"><img src="${a.photo_url}" alt="${a.name}" /></div>`;
   return `<div class="article-photo">📦</div>`;
 }
 
-function articleHTML(a, showEdit = true) {
+function articleHTML(a, opts = {}) {
   const profit = calcProfit(a);
-  const editBtn = showEdit ? `<button class="btn-edit" onclick='openModal(${JSON.stringify(a)})'>✎ Modifier</button>` : '';
+  const sellTime = sellTimeLabel(a);
+  const editBtn = `<button class="btn-edit" onclick='openModal(${JSON.stringify(a)})'>✎</button>`;
+  const deleteBtn = opts.showDelete ? `<button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="confirmDelete('${a.id}')">✕</button>` : '';
   return `<div class="article-card">
     ${photoEl(a)}
     <div class="article-info">
       <div class="article-name">${a.name}</div>
-      <div class="article-meta">Achat ${(+a.buy_price).toFixed(0)}€ · Vente ${(+a.sell_price).toFixed(0)}€</div>
+      <div class="article-meta">Achat ${fmtPrice(a.buy_price)} · Vente ${fmtPrice(a.sell_price)}</div>
+      ${sellTime ? `<div class="sell-time">${sellTime}</div>` : ''}
       <div class="article-badges">
         <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
         ${statusBadge(a.status)}
       </div>
     </div>
     <div class="article-right">
-      <div class="article-profit ${profit >= 0 ? 'profit-pos' : 'profit-neg'}">${profit >= 0 ? '+' : ''}${profit.toFixed(0)}€</div>
-      <div class="article-actions">${editBtn}</div>
+      <div class="article-profit ${profit >= 0 ? 'profit-pos' : 'profit-neg'}">${profit >= 0 ? '+' : ''}${fmtPrice(profit)}</div>
+      <div class="article-actions">${editBtn}${deleteBtn}</div>
     </div>
   </div>`;
 }
@@ -219,28 +257,24 @@ function renderDashboard() {
   const totalProfit = vendus.reduce((s, a) => s + calcProfit(a), 0);
   const investi = stock.reduce((s, a) => s + (parseFloat(a.buy_price) || 0), 0);
   const roi = investi > 0 ? (totalProfit / investi * 100) : 0;
-
-  // Profit du mois automatique
   const now = new Date();
-  const profitMois = allArticles
-    .filter(a => a.status === 'vendu')
-    .filter(a => { const d = new Date(a.created_at); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
-    .reduce((s, a) => s + calcProfit(a), 0);
+  const profitMois = allArticles.filter(a => a.status === 'vendu').filter(a => {
+    const d = new Date(a.sell_date || a.created_at);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).reduce((s, a) => s + calcProfit(a), 0);
 
   document.getElementById('kpiGrid').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">Profit total</div><div class="kpi-val ${totalProfit >= 0 ? 'green' : 'red'}">${totalProfit.toFixed(0)}€</div></div>
-    <div class="kpi-card"><div class="kpi-label">Profit ce mois</div><div class="kpi-val ${profitMois >= 0 ? 'green' : 'red'}">${profitMois.toFixed(0)}€</div><div class="kpi-sub">Calculé automatiquement</div></div>
-    <div class="kpi-card"><div class="kpi-label">En stock</div><div class="kpi-val">${stock.length}</div><div class="kpi-sub">${investi.toFixed(0)}€ investis</div></div>
+    <div class="kpi-card"><div class="kpi-label">Profit total</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Profit ce mois</div><div class="kpi-val ${profitMois>=0?'green':'red'}">${fmtPrice(profitMois)}</div><div class="kpi-sub">Automatique</div></div>
+    <div class="kpi-card"><div class="kpi-label">En stock</div><div class="kpi-val">${stock.length}</div><div class="kpi-sub">${fmtPrice(investi)} investis</div></div>
     <div class="kpi-card"><div class="kpi-label">À expédier</div><div class="kpi-val" style="color:var(--warning)">${expedition.length}</div></div>
     <div class="kpi-card"><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>
-    <div class="kpi-card"><div class="kpi-label">ROI</div><div class="kpi-val ${roi >= 0 ? 'green' : 'red'}">${roi.toFixed(0)}%</div></div>
+    <div class="kpi-card"><div class="kpi-label">ROI</div><div class="kpi-val ${roi>=0?'green':'red'}">${roi.toFixed(0)}%</div></div>
   `;
-
   const recent = allArticles.slice(0, 4);
   document.getElementById('recentList').innerHTML = recent.length
-    ? `<div class="article-list">${recent.map(a => articleHTML(a, false)).join('')}</div>`
+    ? `<div class="article-list">${recent.map(a => articleHTML(a)).join('')}</div>`
     : emptyState('Aucun article encore.');
-
   renderMiniChart('dashChartBars', 'dashChartLabels');
 }
 
@@ -249,17 +283,39 @@ function renderStock() {
   if (currentFilter.stock !== 'Tous') arts = arts.filter(a => a.platform === currentFilter.stock);
   document.getElementById('stockCount').textContent = arts.length + ' article(s) en stock';
   document.getElementById('stockList').innerHTML = arts.length
-    ? `<div class="article-list">${arts.map(a => articleHTML(a)).join('')}</div>`
+    ? `<div class="article-list">${arts.map(a => articleHTML(a, { showDelete: true })).join('')}</div>`
     : emptyState('Aucun article en stock.');
 }
 
 function renderExpedition() {
   const arts = allArticles.filter(a => a.status === 'expedition');
   document.getElementById('expeditionCount').textContent = arts.length + ' article(s) à expédier';
+
+  // Checklist
+  const stored = JSON.parse(localStorage.getItem('checklist_' + currentUser.id) || '{}');
+  const checklistHTML = arts.length ? `
+    <div class="checklist-card">
+      <div class="checklist-title">✅ Checklist d'expédition</div>
+      ${arts.map(a => `
+        <div class="checklist-item">
+          <input type="checkbox" id="chk_${a.id}" ${stored[a.id] ? 'checked' : ''} onchange="toggleCheck('${a.id}', this)" />
+          <label for="chk_${a.id}" class="${stored[a.id] ? 'done' : ''}">${a.name} — ${a.platform}</label>
+        </div>
+      `).join('')}
+    </div>` : '';
+  document.getElementById('checklistWrap').innerHTML = checklistHTML;
   document.getElementById('expeditionList').innerHTML = arts.length
     ? `<div class="article-list">${arts.map(a => articleHTML(a)).join('')}</div>`
-    : emptyState('Aucun article en attente d\'expédition. 🎉');
+    : emptyState('Aucun article en attente d\'expédition 🎉');
 }
+
+window.toggleCheck = (id, el) => {
+  const stored = JSON.parse(localStorage.getItem('checklist_' + currentUser.id) || '{}');
+  stored[id] = el.checked;
+  localStorage.setItem('checklist_' + currentUser.id, JSON.stringify(stored));
+  const label = el.nextElementSibling;
+  if (label) label.classList.toggle('done', el.checked);
+};
 
 function renderVendus() {
   let arts = allArticles.filter(a => a.status === 'vendu');
@@ -281,7 +337,7 @@ function getMonths() {
 function renderMiniChart(barsId, labelsId) {
   const months = getMonths();
   allArticles.filter(a => a.status === 'vendu').forEach(a => {
-    const d = new Date(a.created_at);
+    const d = new Date(a.sell_date || a.created_at);
     const m = months.find(m => m.month === d.getMonth() && m.year === d.getFullYear());
     if (m) m.profit += calcProfit(a);
   });
@@ -291,14 +347,14 @@ function renderMiniChart(barsId, labelsId) {
     return `<div class="bar-wrap"><div class="bar ${m.profit < 0 ? 'negative' : ''}" style="height:${h}px;"></div></div>`;
   }).join('');
   document.getElementById(labelsId).innerHTML = months.map(m =>
-    `<div class="chart-label">${m.label}<strong>${m.profit >= 0 ? '+' : ''}${m.profit.toFixed(0)}€</strong></div>`
+    `<div class="chart-label">${m.label}<strong>${m.profit >= 0 ? '+' : ''}${fmtPrice(m.profit)}</strong></div>`
   ).join('');
 }
 
 function renderAnalytics() {
   const months = getMonths();
   allArticles.filter(a => a.status === 'vendu').forEach(a => {
-    const d = new Date(a.created_at);
+    const d = new Date(a.sell_date || a.created_at);
     const m = months.find(m => m.month === d.getMonth() && m.year === d.getFullYear());
     if (m) m.profit += calcProfit(a);
   });
@@ -309,38 +365,40 @@ function renderAnalytics() {
   const now = new Date();
   const profitMois = months.find(m => m.month === now.getMonth() && m.year === now.getFullYear())?.profit || 0;
 
-  document.getElementById('analyticsKpi').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">Ce mois</div><div class="kpi-val green">${profitMois.toFixed(0)}€</div><div class="kpi-sub">Calculé automatiquement</div></div>
-    <div class="kpi-card"><div class="kpi-label">Meilleur mois</div><div class="kpi-val green">${bestMonth.toFixed(0)}€</div></div>
-    <div class="kpi-card"><div class="kpi-label">Marge moyenne</div><div class="kpi-val">${avgP.toFixed(0)}€</div></div>
-    <div class="kpi-card"><div class="kpi-label">Total profit</div><div class="kpi-val ${totalP >= 0 ? 'green' : 'red'}">${totalP.toFixed(0)}€</div></div>
-  `;
+  // Temps moyen de vente
+  const avecDates = vendus.filter(a => a.buy_date && a.sell_date);
+  const avgDays = avecDates.length ? Math.round(avecDates.reduce((s, a) => s + daysBetween(a.buy_date, a.sell_date), 0) / avecDates.length) : null;
 
+  document.getElementById('analyticsKpi').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Ce mois</div><div class="kpi-val green">${fmtPrice(profitMois)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Meilleur mois</div><div class="kpi-val green">${fmtPrice(bestMonth)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Marge moyenne</div><div class="kpi-val">${fmtPrice(avgP)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Temps vente moy.</div><div class="kpi-val">${avgDays !== null ? avgDays + 'j' : '—'}</div></div>
+  `;
   const maxP = Math.max(...months.map(m => Math.abs(m.profit)), 1);
   document.getElementById('chartBars').innerHTML = months.map(m => {
     const h = Math.max(4, Math.abs(m.profit) / maxP * 110);
     return `<div class="bar-wrap"><div class="bar ${m.profit < 0 ? 'negative' : ''}" style="height:${h}px;"></div></div>`;
   }).join('');
   document.getElementById('chartLabels').innerHTML = months.map(m =>
-    `<div class="chart-label">${m.label}<strong>${m.profit >= 0 ? '+' : ''}${m.profit.toFixed(0)}€</strong></div>`
+    `<div class="chart-label">${m.label}<strong>${m.profit >= 0 ? '+' : ''}${fmtPrice(m.profit)}</strong></div>`
   ).join('');
 }
 
 function renderObjectif() {
   const goal = parseFloat(localStorage.getItem('goal_' + currentUser.id) || '500');
   const now = new Date();
-  const profitMois = allArticles
-    .filter(a => a.status === 'vendu')
-    .filter(a => { const d = new Date(a.created_at); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
-    .reduce((s, a) => s + calcProfit(a), 0);
+  const profitMois = allArticles.filter(a => a.status === 'vendu').filter(a => {
+    const d = new Date(a.sell_date || a.created_at);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).reduce((s, a) => s + calcProfit(a), 0);
   const pct = Math.min(100, goal > 0 ? profitMois / goal * 100 : 0);
-
   document.getElementById('goalHero').innerHTML = `
     <div class="kpi-label">Profit ce mois · Calculé automatiquement</div>
-    <div class="goal-big">${profitMois.toFixed(0)}€</div>
-    <div class="goal-label">sur ${goal.toFixed(0)}€ d'objectif — ${pct.toFixed(0)}% atteint</div>
+    <div class="goal-big">${fmtPrice(profitMois)}</div>
+    <div class="goal-label">sur ${fmtPrice(goal)} d'objectif — ${pct.toFixed(0)}% atteint</div>
     <div class="progress-track"><div class="progress-bar" style="width:${pct}%"></div></div>
-    <div class="goal-limits"><span>0€</span><span>${goal.toFixed(0)}€</span></div>
+    <div class="goal-limits"><span>0€</span><span>${fmtPrice(goal)}</span></div>
   `;
   document.getElementById('goalInput').value = goal;
 }
@@ -352,7 +410,6 @@ window.saveGoal = () => {
   renderObjectif();
 };
 
-// ── AUTO-LOGIN ──
 sb.auth.onAuthStateChange((event, session) => {
   if (session?.user) loginAs(session.user);
 });
