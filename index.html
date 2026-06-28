@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ResellManager — Gérez votre business de resell</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-brand">
+      <div class="brand-icon">↗</div>
+      <div class="brand-name">ResellManager</div>
+      <p class="brand-sub">Gérez votre business de resell</p>
+    </div>
+    <div class="auth-card">
+      <div class="tab-row">
+        <button class="tab active" onclick="switchTab('login')">Connexion</button>
+        <button class="tab" onclick="switchTab('register')">Créer un compte</button>
+      </div>
+      <div id="loginForm">
+        <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="vous@exemple.com" /></div>
+        <div class="field"><label>Mot de passe</label><input type="password" id="loginPwd" placeholder="••••••••" /></div>
+        <button class="btn-primary" onclick="doLogin()">Se connecter</button>
+      </div>
+      <div id="registerForm" style="display:none">
+        <div class="field"><label>Prénom</label><input type="text" id="regName" placeholder="Alex" /></div>
+        <div class="field"><label>Email</label><input type="email" id="regEmail" placeholder="vous@exemple.com" /></div>
+        <div class="field"><label>Mot de passe</label><input type="password" id="regPwd" placeholder="••••••••" /></div>
+        <button class="btn-primary" onclick="doRegister()">Créer mon compte</button>
+      </div>
+      <p id="authError" class="error-msg"></p>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="mainApp" class="main" style="display:none">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon-sm">↗</div>
+      <span>ResellManager</span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" onclick="goPage('dashboard',this)" data-page="dashboard">
+        <span class="nav-icon">⬡</span> Tableau de bord
+      </button>
+      <button class="nav-btn" onclick="goPage('stock',this)" data-page="stock">
+        <span class="nav-icon">◫</span> Stock
+      </button>
+      <button class="nav-btn" onclick="goPage('expedition',this)" data-page="expedition">
+        <span class="nav-icon">◎</span> À expédier
+      </button>
+      <button class="nav-btn" onclick="goPage('vendus',this)" data-page="vendus">
+        <span class="nav-icon">✓</span> Vendus
+      </button>
+      <button class="nav-btn" onclick="goPage('analytics',this)" data-page="analytics">
+        <span class="nav-icon">◈</span> Statistiques
+      </button>
+      <button class="nav-btn" onclick="goPage('objectif',this)" data-page="objectif">
+        <span class="nav-icon">◉</span> Objectifs
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="avatar" id="userAvatar">?</div>
+        <span id="userName"></span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">↩</button>
+    </div>
+  </aside>
+
+  <div class="app-body">
+    <header class="topbar">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title" id="topbarTitle">Tableau de bord</div>
+      <button class="add-btn-top" onclick="openModal()">+ Ajouter</button>
+    </header>
+
+    <main class="content">
+
+      <!-- DASHBOARD -->
+      <section class="page active" id="page-dashboard">
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="dash-cols">
+          <div>
+            <div class="section-header"><h2>Derniers articles</h2></div>
+            <div id="recentList"></div>
+          </div>
+          <div>
+            <div class="section-header"><h2>Profit mensuel</h2></div>
+            <div class="chart-card">
+              <div class="chart-bars" id="dashChartBars"></div>
+              <div class="chart-labels" id="dashChartLabels"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STOCK -->
+      <section class="page" id="page-stock">
+        <div class="page-filters">
+          <button class="pf-btn active" onclick="filterPlatform('Tous',this,'stock')">Tous</button>
+          <button class="pf-btn" onclick="filterPlatform('Vinted',this,'stock')">Vinted</button>
+          <button class="pf-btn" onclick="filterPlatform('eBay',this,'stock')">eBay</button>
+          <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'stock')">Leboncoin</button>
+          <button class="pf-btn" onclick="filterPlatform('Autre',this,'stock')">Autre</button>
+        </div>
+        <div class="section-header">
+          <span class="count-label" id="stockCount"></span>
+        </div>
+        <div id="stockList"></div>
+      </section>
+
+      <!-- À EXPÉDIER -->
+      <section class="page" id="page-expedition">
+        <div class="info-banner">📦 Articles vendus en attente d'expédition</div>
+        <div class="section-header">
+          <span class="count-label" id="expeditionCount"></span>
+        </div>
+        <div id="expeditionList"></div>
+      </section>
+
+      <!-- VENDUS -->
+      <section class="page" id="page-vendus">
+        <div class="page-filters">
+          <button class="pf-btn active" onclick="filterPlatform('Tous',this,'vendus')">Tous</button>
+          <button class="pf-btn" onclick="filterPlatform('Vinted',this,'vendus')">Vinted</button>
+          <button class="pf-btn" onclick="filterPlatform('eBay',this,'vendus')">eBay</button>
+          <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'vendus')">Leboncoin</button>
+          <button class="pf-btn" onclick="filterPlatform('Autre',this,'vendus')">Autre</button>
+        </div>
+        <div class="section-header">
+          <span class="count-label" id="vendusCount"></span>
+        </div>
+        <div id="vendusList"></div>
+      </section>
+
+      <!-- ANALYTICS -->
+      <section class="page" id="page-analytics">
+        <div class="kpi-grid" id="analyticsKpi"></div>
+        <div class="section-header"><h2>Profit par mois</h2></div>
+        <div class="chart-card big">
+          <div class="chart-bars" id="chartBars"></div>
+          <div class="chart-labels" id="chartLabels"></div>
+        </div>
+      </section>
+
+      <!-- OBJECTIFS -->
+      <section class="page" id="page-objectif">
+        <div class="goal-hero" id="goalHero"></div>
+        <div class="goal-card">
+          <label class="field-label">Modifier l'objectif mensuel (€)</label>
+          <div class="goal-row">
+            <input type="number" id="goalInput" placeholder="ex: 500" />
+            <button class="btn-confirm" onclick="saveGoal()">Enregistrer</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL AJOUTER / MODIFIER -->
+<div class="modal-bg" id="modalBg" onclick="handleModalBgClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Ajouter un article</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mId" />
+      <div class="form-grid">
+        <div class="field full"><label>Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" /></div>
+        <div class="field"><label>Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0" /></div>
+        <div class="field"><label>Prix de vente (€)</label><input type="number" id="mSell" placeholder="0" /></div>
+        <div class="field"><label>Plateforme</label>
+          <select id="mPlatform"><option>Vinted</option><option>eBay</option><option>Leboncoin</option><option>Autre</option></select>
+        </div>
+        <div class="field"><label>Statut</label>
+          <select id="mStatus">
+            <option value="stock">En stock</option>
+            <option value="expedition">Vendu — à expédier</option>
+            <option value="vendu">Vendu — expédié</option>
+          </select>
+        </div>
+      </div>
+      <div class="field full">
+        <label>Photo de l'article</label>
+        <div class="photo-upload-area" id="photoUploadArea" onclick="document.getElementById('mPhoto').click()">
+          <img id="photoPreview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;" />
+          <div id="photoPlaceholder">
+            <div style="font-size:32px;margin-bottom:6px;">📷</div>
+            <div>Cliquez pour ajouter une photo</div>
+          </div>
+        </div>
+        <input type="file" id="mPhoto" accept="image/*" style="display:none" onchange="previewPhoto(event)" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-confirm" id="btnSave" onclick="saveArticle()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
