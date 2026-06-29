@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ResellManager — Gérez votre business de resell</title>
+  <title>Vinted Manager — Gérez votre business de resell</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css" />
@@ -16,7 +16,7 @@
 <div id="authScreen" class="auth-screen">
   <div class="auth-wrap">
     <div class="auth-brand">
-      <img id="authLogo" src="" alt="ResellManager" class="auth-logo" />
+      <img src="" alt="Vinted Manager" class="auth-logo app-logo" />
       <p class="brand-sub">Gérez votre business de resell</p>
     </div>
     <div class="auth-card">
@@ -52,13 +52,15 @@
 <div id="mainApp" class="main" style="display:none">
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <img id="sidebarLogo" src="" alt="ResellManager" class="sidebar-logo" />
+      <img src="" alt="Vinted Manager" class="sidebar-logo app-logo" />
     </div>
     <nav class="sidebar-nav">
       <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon">⬡</span> Tableau de bord</button>
+      <button class="nav-btn" onclick="goPage('preparation',this)"><span class="nav-icon">📦</span> Mode préparation</button>
       <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon">◫</span> Stock</button>
-      <button class="nav-btn" onclick="goPage('expedition',this)"><span class="nav-icon">◎</span> À expédier</button>
+      <button class="nav-btn" onclick="goPage('expedition',this)"><span class="nav-icon">🚚</span> À expédier</button>
       <button class="nav-btn" onclick="goPage('vendus',this)"><span class="nav-icon">✓</span> Vendus</button>
+      <button class="nav-btn" onclick="goPage('replay',this)"><span class="nav-icon">▶</span> Resell Replay</button>
       <button class="nav-btn" onclick="goPage('analytics',this)"><span class="nav-icon">◈</span> Statistiques</button>
       <button class="nav-btn" onclick="goPage('objectif',this)"><span class="nav-icon">◉</span> Objectifs</button>
       <button class="nav-btn" onclick="goPage('settings',this)"><span class="nav-icon">⚙</span> Paramètres</button>
@@ -83,6 +85,7 @@
       <!-- DASHBOARD -->
       <section class="page active" id="page-dashboard">
         <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="coach-card" id="coachBox"></div>
         <div class="dash-cols">
           <div>
             <div class="section-header"><h2>Derniers articles</h2></div>
@@ -96,6 +99,19 @@
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- MODE PREPARATION -->
+      <section class="page" id="page-preparation">
+        <div id="prepStats" class="prep-stats"></div>
+        <div class="prep-filters">
+          <button class="prep-filter-btn active" onclick="filterPrep('all',this)">Tous</button>
+          <button class="prep-filter-btn" onclick="filterPrep('laver',this)">🧺 À laver</button>
+          <button class="prep-filter-btn" onclick="filterPrep('photo',this)">📸 À photographier</button>
+          <button class="prep-filter-btn" onclick="filterPrep('publier',this)">✍️ À publier</button>
+          <button class="prep-filter-btn" onclick="filterPrep('stock',this)">📦 En stock</button>
+        </div>
+        <div id="prepList"></div>
       </section>
 
       <!-- STOCK -->
@@ -129,6 +145,12 @@
         </div>
         <div class="section-header"><span class="count-label" id="vendusCount"></span></div>
         <div id="vendusList"></div>
+      </section>
+
+      <!-- RESELL REPLAY -->
+      <section class="page" id="page-replay">
+        <div class="info-banner">▶ Revivez le parcours complet de chaque article vendu</div>
+        <div id="replayList"></div>
       </section>
 
       <!-- ANALYTICS -->
@@ -208,15 +230,19 @@
         <div class="field"><label>Plateforme</label>
           <select id="mPlatform"><option>Vinted</option><option>eBay</option><option>Leboncoin</option><option>Autre</option></select>
         </div>
-        <div class="field"><label>Statut</label>
+        <div class="field"><label>Statut / Étape</label>
           <select id="mStatus" onchange="toggleDates()">
-            <option value="stock">En stock</option>
-            <option value="expedition">Vendu — à expédier</option>
-            <option value="vendu">Vendu — expédié</option>
+            <option value="laver">🧺 À laver</option>
+            <option value="photo">📸 À photographier</option>
+            <option value="publier">✍️ À publier</option>
+            <option value="stock">📦 En stock</option>
+            <option value="expedition">🚚 Vendu — à expédier</option>
+            <option value="vendu">💰 Vendu — expédié</option>
           </select>
         </div>
         <div class="field"><label>Date d'achat</label><input type="date" id="mBuyDate" /></div>
         <div class="field" id="sellDateField" style="display:none"><label>Date de vente</label><input type="date" id="mSellDate" /></div>
+        <div class="field full"><label>📍 Emplacement</label><input type="text" id="mLocation" placeholder="ex: Bac 3 · Étagère 2 · Sac bleu" /></div>
       </div>
       <div class="field full" style="margin-top:8px;">
         <label>Photo</label>
@@ -249,3 +275,4 @@
 <script src="js/app.js"></script>
 </body>
 </html>
+
