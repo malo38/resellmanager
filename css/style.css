@@ -237,3 +237,37 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 
 /* ── SIDEBAR BRAND LIGHT ── */
 .sidebar-brand { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+
+/* ── COACH ── */
+.coach-card { background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 20px; }
+.coach-msg { font-size: 13px; color: var(--text); padding: 6px 0; border-bottom: 1px solid var(--border); }
+.coach-msg:last-child { border-bottom: none; }
+
+/* ── PREP ── */
+.prep-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
+.prep-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; border-top: 3px solid; }
+.prep-stat-num { font-size: 28px; font-weight: 700; }
+.prep-stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.prep-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.prep-filter-btn { padding: 5px 14px; border: 1px solid var(--border2); border-radius: 20px; background: transparent; font-size: 12px; cursor: pointer; color: var(--muted); font-family: inherit; transition: all 0.15s; }
+.prep-filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
+/* ── REPLAY ── */
+.replay-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
+.replay-header { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
+.replay-photo { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.replay-name { font-size: 15px; font-weight: 700; }
+.replay-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.replay-profit { font-size: 16px; font-weight: 700; margin-top: 4px; }
+.replay-timeline { display: flex; gap: 0; overflow-x: auto; padding-bottom: 4px; }
+.replay-step { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+.replay-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.replay-dot.done { background: var(--accent); }
+.replay-line { width: 100%; height: 2px; background: var(--accent); margin: 5px 0; opacity: 0.4; }
+.replay-step-info { text-align: center; margin-top: 6px; }
+.replay-step-label { font-size: 11px; font-weight: 600; color: var(--text); }
+.replay-step-date { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.replay-step-val { font-size: 11px; color: var(--accent); margin-top: 2px; }
+
+@media (max-width: 700px) { .prep-stats { grid-template-columns: repeat(2,1fr); } }
+
