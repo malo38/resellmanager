@@ -215,7 +215,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 
 /* ── AUTH LOGO ── */
 .auth-logo { width: 180px; height: auto; margin: 0 auto 8px; display: block; }
-.sidebar-logo { width: 100px; height: auto; display: block; }
+.sidebar-logo { width: 130px; height: auto; display: block; }
 
 /* ── FORGOT BTN ── */
 .btn-forgot { width: 100%; background: none; border: none; color: var(--muted); font-size: 12px; cursor: pointer; margin-top: 10px; font-family: inherit; text-decoration: underline; }
