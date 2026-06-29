@@ -171,6 +171,7 @@ async function loadArticles(){
 }
 
 // ── MODAL ──
+window.editArticle=(id)=>{ openModal(allArticles.find(a=>a.id===id)||null); };
 window.openModal=(article=null)=>{
   selectedPhotoFile=null;
   document.getElementById('photoPreview').style.display='none';
@@ -313,7 +314,7 @@ function articleHTML(a, opts={}) {
       <div class="article-profit ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div>
       <div class="article-actions">
         ${moveBtn}
-        <button class="btn-edit" onclick='openModal(${JSON.stringify(a)})'>✎</button>
+        <button class="btn-edit" onclick="editArticle('${a.id}')">✎</button>
         <button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="confirmDelete('${a.id}')">✕</button>
       </div>
     </div>
