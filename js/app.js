@@ -1,7 +1,7 @@
 const SUPABASE_URL = 'https://iprrnmrndjfdlozxjbsu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcnJubXJuZGpmZGxvenhqYnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NjUxOTksImV4cCI6MjA5ODA0MTE5OX0.JAteIwydCEoOe6S3z-Isq6-TwRLBdGpU8akn_1FvQb0';
 
-const LOGO_DARK = 'https://iprrnmrndjfdlozxjbsu.supabase.co/storage/v1/object/public/assets/6de8d09a-13c6-416f-a564-bfc9ab4ca62e.png';
+const LOGO_DARK = 'https://iprrnmrndjfdlozxjbsu.supabase.co/storage/v1/object/public/assets/logo.dark.png';
 const LOGO_LIGHT = 'https://iprrnmrndjfdlozxjbsu.supabase.co/storage/v1/object/public/assets/ChatGPT%20Image%2028%20juin%202026,%2016_31_42.png';
 
 const { createClient } = supabase;
@@ -392,6 +392,59 @@ function renderAnalytics() {
   });
   const vendus = allArticles.filter(a => a.status === 'vendu');
   const totalP = vendus.reduce((s, a) => s + calcProfit(a), 0);
+  const avgP = vendus.length ? totalP / vendus.length : 0;
+  const bestMonth = Math.max(0, ...months.map(m => m.profit));
+  const now = new Date();
+  const profitMois = months.find(m => m.month === now.getMonth() && m.year === now.getFullYear())?.profit || 0;
+  const avecDates = vendus.filter(a => a.buy_date && a.sell_date);
+  const avgDays = avecDates.length ? Math.round(avecDates.reduce((s, a) => s + daysBetween(a.buy_date, a.sell_date), 0) / avecDates.length) : null;
+
+  document.getElementById('analyticsKpi').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Ce mois</div><div class="kpi-val green">${fmtPrice(profitMois)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Meilleur mois</div><div class="kpi-val green">${fmtPrice(bestMonth)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Marge moyenne</div><div class="kpi-val">${fmtPrice(avgP)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Temps vente moy.</div><div class="kpi-val">${avgDays !== null ? avgDays + 'j' : '—'}</div></div>
+  `;
+  const maxP = Math.max(...months.map(m => Math.abs(m.profit)), 1);
+  document.getElementById('chartBars').innerHTML = months.map(m => {
+    const h = Math.max(4, Math.abs(m.profit) / maxP * 110);
+    return `<div class="bar-wrap"><div class="bar ${m.profit < 0 ? 'negative' : ''}" style="height:${h}px;"></div></div>`;
+  }).join('');
+  document.getElementById('chartLabels').innerHTML = months.map(m =>
+    `<div class="chart-label">${m.label}<strong>${m.profit >= 0 ? '+' : ''}${fmtPrice(m.profit)}</strong></div>`
+  ).join('');
+}
+
+function renderObjectif() {
+  const goal = parseFloat(localStorage.getItem('goal_' + currentUser.id) || '500');
+  const now = new Date();
+  const profitMois = allArticles.filter(a => a.status === 'vendu').filter(a => {
+    const d = new Date(a.sell_date || a.created_at);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).reduce((s, a) => s + calcProfit(a), 0);
+  const pct = Math.min(100, goal > 0 ? profitMois / goal * 100 : 0);
+  document.getElementById('goalHero').innerHTML = `
+    <div class="kpi-label">Profit ce mois · Calculé automatiquement</div>
+    <div class="goal-big">${fmtPrice(profitMois)}</div>
+    <div class="goal-label">sur ${fmtPrice(goal)} d'objectif — ${pct.toFixed(0)}% atteint</div>
+    <div class="progress-track"><div class="progress-bar" style="width:${pct}%"></div></div>
+    <div class="goal-limits"><span>0€</span><span>${fmtPrice(goal)}</span></div>
+  `;
+  document.getElementById('goalInput').value = goal;
+}
+
+window.saveGoal = () => {
+  const v = parseFloat(document.getElementById('goalInput').value);
+  if (isNaN(v) || v <= 0) return;
+  localStorage.setItem('goal_' + currentUser.id, v);
+  renderObjectif();
+};
+
+// ── INIT ──
+initTheme();
+sb.auth.onAuthStateChange((event, session) => {
+  if (session?.user) loginAs(session.user);
+});
   const avgP = vendus.length ? totalP / vendus.length : 0;
   const bestMonth = Math.max(0, ...months.map(m => m.profit));
   const now = new Date();
