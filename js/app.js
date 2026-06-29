@@ -1,6 +1,9 @@
 const SUPABASE_URL = 'https://iprrnmrndjfdlozxjbsu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcnJubXJuZGpmZGxvenhqYnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NjUxOTksImV4cCI6MjA5ODA0MTE5OX0.JAteIwydCEoOe6S3z-Isq6-TwRLBdGpU8akn_1FvQb0';
 
+const LOGO_DARK = 'https://iprrnmrndjfdlozxjbsu.supabase.co/storage/v1/object/public/assets/6de8d09a-13c6-416f-a564-bfc9ab4ca62e.png';
+const LOGO_LIGHT = 'https://iprrnmrndjfdlozxjbsu.supabase.co/storage/v1/object/public/assets/ChatGPT%20Image%2028%20juin%202026,%2016_31_42.png';
+
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -9,14 +12,33 @@ let allArticles = [];
 let currentFilter = { stock: 'Tous', vendus: 'Tous' };
 let selectedPhotoFile = null;
 let deleteTargetId = null;
-const PAGE_TITLES = { dashboard: 'Tableau de bord', stock: 'Stock', expedition: 'À expédier', vendus: 'Vendus', analytics: 'Statistiques', objectif: 'Objectifs' };
+const PAGE_TITLES = { dashboard: 'Tableau de bord', stock: 'Stock', expedition: 'À expédier', vendus: 'Vendus', analytics: 'Statistiques', objectif: 'Objectifs', settings: 'Paramètres' };
+
+// ── THEME ──
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  const isDark = theme === 'dark';
+  const logo = isDark ? LOGO_DARK : LOGO_LIGHT;
+  document.querySelectorAll('#authLogo, #sidebarLogo').forEach(el => { if(el) el.src = logo; });
+  document.getElementById('btnDark')?.classList.toggle('active', isDark);
+  document.getElementById('btnLight')?.classList.toggle('active', !isDark);
+}
+
+window.setTheme = setTheme;
+
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  setTheme(saved);
+}
 
 // ── AUTH ──
 window.switchTab = (tab) => {
-  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+  ['loginForm','registerForm','forgotForm'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById(tab + 'Form').style.display = 'block';
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
   document.getElementById('authError').textContent = '';
+  document.getElementById('authSuccess').textContent = '';
 };
 
 window.doLogin = async () => {
@@ -39,6 +61,25 @@ window.doRegister = async () => {
   loginAs(data.user);
 };
 
+window.doForgot = async () => {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) { showError('Entrez votre email.'); return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin
+  });
+  if (error) { showError(error.message); return; }
+  document.getElementById('authSuccess').textContent = '✓ Email envoyé ! Vérifiez votre boîte mail.';
+  document.getElementById('authError').textContent = '';
+};
+
+window.sendResetEmail = async () => {
+  const { error } = await sb.auth.resetPasswordForEmail(currentUser.email, {
+    redirectTo: window.location.origin
+  });
+  const msg = document.getElementById('settingsMsg');
+  msg.textContent = error ? 'Erreur : ' + error.message : '✓ Email de réinitialisation envoyé !';
+};
+
 window.doLogout = async () => {
   await sb.auth.signOut();
   currentUser = null; allArticles = [];
@@ -55,6 +96,9 @@ function loginAs(user) {
   document.getElementById('mainApp').style.display = 'flex';
   document.getElementById('userName').textContent = name;
   document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+  const theme = localStorage.getItem('theme') || 'dark';
+  document.getElementById('btnDark')?.classList.toggle('active', theme === 'dark');
+  document.getElementById('btnLight')?.classList.toggle('active', theme === 'light');
   loadArticles();
 }
 
@@ -72,18 +116,14 @@ window.toggleSidebar = () => document.querySelector('.sidebar').classList.toggle
 // ── DATES ──
 window.toggleDates = () => {
   const status = document.getElementById('mStatus').value;
-  const sellField = document.getElementById('sellDateField');
-  sellField.style.display = (status === 'expedition' || status === 'vendu') ? 'block' : 'none';
+  document.getElementById('sellDateField').style.display = (status !== 'stock') ? 'block' : 'none';
 };
 
 function today() { return new Date().toISOString().split('T')[0]; }
-
 function daysBetween(d1, d2) {
   if (!d1 || !d2) return null;
-  const diff = new Date(d2) - new Date(d1);
-  return Math.round(diff / (1000 * 60 * 60 * 24));
+  return Math.round((new Date(d2) - new Date(d1)) / 86400000);
 }
-
 function sellTimeLabel(a) {
   if (a.status === 'stock') return '';
   const days = daysBetween(a.buy_date, a.sell_date || a.created_at?.split('T')[0]);
@@ -100,9 +140,8 @@ window.previewPhoto = (event) => {
   selectedPhotoFile = file;
   const reader = new FileReader();
   reader.onload = (e) => {
-    const preview = document.getElementById('photoPreview');
-    preview.src = e.target.result;
-    preview.style.display = 'block';
+    document.getElementById('photoPreview').src = e.target.result;
+    document.getElementById('photoPreview').style.display = 'block';
     document.getElementById('photoPlaceholder').style.display = 'none';
   };
   reader.readAsDataURL(file);
@@ -113,8 +152,7 @@ async function uploadPhoto(file, articleId) {
   const path = `${currentUser.id}/${articleId}.${ext}`;
   const { error } = await sb.storage.from('photos').upload(path, file, { upsert: true });
   if (error) return null;
-  const { data } = sb.storage.from('photos').getPublicUrl(path);
-  return data.publicUrl;
+  return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 }
 
 // ── LOAD ──
@@ -142,9 +180,8 @@ window.openModal = (article = null) => {
   document.getElementById('btnSave').textContent = article ? 'Enregistrer' : 'Ajouter';
   toggleDates();
   if (article?.photo_url) {
-    const preview = document.getElementById('photoPreview');
-    preview.src = article.photo_url;
-    preview.style.display = 'block';
+    document.getElementById('photoPreview').src = article.photo_url;
+    document.getElementById('photoPreview').style.display = 'block';
     document.getElementById('photoPlaceholder').style.display = 'none';
   }
   document.getElementById('modalBg').classList.add('open');
@@ -161,7 +198,7 @@ window.saveArticle = async () => {
   const platform = document.getElementById('mPlatform').value;
   const status = document.getElementById('mStatus').value;
   const buy_date = document.getElementById('mBuyDate').value || today();
-  const sell_date = (status !== 'stock') ? (document.getElementById('mSellDate').value || today()) : null;
+  const sell_date = status !== 'stock' ? (document.getElementById('mSellDate').value || today()) : null;
   if (!name) return;
 
   const btn = document.getElementById('btnSave');
@@ -222,11 +259,9 @@ function photoEl(a) {
   return `<div class="article-photo">📦</div>`;
 }
 
-function articleHTML(a, opts = {}) {
+function articleHTML(a) {
   const profit = calcProfit(a);
   const sellTime = sellTimeLabel(a);
-  const editBtn = `<button class="btn-edit" onclick='openModal(${JSON.stringify(a)})'>✎</button>`;
-  const deleteBtn = opts.showDelete ? `<button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="confirmDelete('${a.id}')">✕</button>` : '';
   return `<div class="article-card">
     ${photoEl(a)}
     <div class="article-info">
@@ -240,14 +275,17 @@ function articleHTML(a, opts = {}) {
     </div>
     <div class="article-right">
       <div class="article-profit ${profit >= 0 ? 'profit-pos' : 'profit-neg'}">${profit >= 0 ? '+' : ''}${fmtPrice(profit)}</div>
-      <div class="article-actions">${editBtn}${deleteBtn}</div>
+      <div class="article-actions">
+        <button class="btn-edit" onclick='openModal(${JSON.stringify(a)})'>✎</button>
+        <button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="confirmDelete('${a.id}')">✕</button>
+      </div>
     </div>
   </div>`;
 }
 
 function emptyState(msg) { return `<div class="empty-state"><div class="empty-icon">📭</div>${msg}</div>`; }
 
-// ── RENDER ALL ──
+// ── RENDER ──
 function renderAll() { renderDashboard(); renderStock(); renderExpedition(); renderVendus(); renderAnalytics(); renderObjectif(); }
 
 function renderDashboard() {
@@ -271,9 +309,8 @@ function renderDashboard() {
     <div class="kpi-card"><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>
     <div class="kpi-card"><div class="kpi-label">ROI</div><div class="kpi-val ${roi>=0?'green':'red'}">${roi.toFixed(0)}%</div></div>
   `;
-  const recent = allArticles.slice(0, 4);
-  document.getElementById('recentList').innerHTML = recent.length
-    ? `<div class="article-list">${recent.map(a => articleHTML(a)).join('')}</div>`
+  document.getElementById('recentList').innerHTML = allArticles.slice(0,4).length
+    ? `<div class="article-list">${allArticles.slice(0,4).map(articleHTML).join('')}</div>`
     : emptyState('Aucun article encore.');
   renderMiniChart('dashChartBars', 'dashChartLabels');
 }
@@ -283,38 +320,33 @@ function renderStock() {
   if (currentFilter.stock !== 'Tous') arts = arts.filter(a => a.platform === currentFilter.stock);
   document.getElementById('stockCount').textContent = arts.length + ' article(s) en stock';
   document.getElementById('stockList').innerHTML = arts.length
-    ? `<div class="article-list">${arts.map(a => articleHTML(a, { showDelete: true })).join('')}</div>`
+    ? `<div class="article-list">${arts.map(articleHTML).join('')}</div>`
     : emptyState('Aucun article en stock.');
 }
 
 function renderExpedition() {
   const arts = allArticles.filter(a => a.status === 'expedition');
   document.getElementById('expeditionCount').textContent = arts.length + ' article(s) à expédier';
-
-  // Checklist
   const stored = JSON.parse(localStorage.getItem('checklist_' + currentUser.id) || '{}');
-  const checklistHTML = arts.length ? `
+  document.getElementById('checklistWrap').innerHTML = arts.length ? `
     <div class="checklist-card">
       <div class="checklist-title">✅ Checklist d'expédition</div>
       ${arts.map(a => `
         <div class="checklist-item">
           <input type="checkbox" id="chk_${a.id}" ${stored[a.id] ? 'checked' : ''} onchange="toggleCheck('${a.id}', this)" />
           <label for="chk_${a.id}" class="${stored[a.id] ? 'done' : ''}">${a.name} — ${a.platform}</label>
-        </div>
-      `).join('')}
+        </div>`).join('')}
     </div>` : '';
-  document.getElementById('checklistWrap').innerHTML = checklistHTML;
   document.getElementById('expeditionList').innerHTML = arts.length
-    ? `<div class="article-list">${arts.map(a => articleHTML(a)).join('')}</div>`
-    : emptyState('Aucun article en attente d\'expédition 🎉');
+    ? `<div class="article-list">${arts.map(articleHTML).join('')}</div>`
+    : emptyState('Aucun article en attente 🎉');
 }
 
 window.toggleCheck = (id, el) => {
   const stored = JSON.parse(localStorage.getItem('checklist_' + currentUser.id) || '{}');
   stored[id] = el.checked;
   localStorage.setItem('checklist_' + currentUser.id, JSON.stringify(stored));
-  const label = el.nextElementSibling;
-  if (label) label.classList.toggle('done', el.checked);
+  el.nextElementSibling?.classList.toggle('done', el.checked);
 };
 
 function renderVendus() {
@@ -322,7 +354,7 @@ function renderVendus() {
   if (currentFilter.vendus !== 'Tous') arts = arts.filter(a => a.platform === currentFilter.vendus);
   document.getElementById('vendusCount').textContent = arts.length + ' article(s) vendu(s)';
   document.getElementById('vendusList').innerHTML = arts.length
-    ? `<div class="article-list">${arts.map(a => articleHTML(a)).join('')}</div>`
+    ? `<div class="article-list">${arts.map(articleHTML).join('')}</div>`
     : emptyState('Aucun article vendu encore.');
 }
 
@@ -364,8 +396,6 @@ function renderAnalytics() {
   const bestMonth = Math.max(0, ...months.map(m => m.profit));
   const now = new Date();
   const profitMois = months.find(m => m.month === now.getMonth() && m.year === now.getFullYear())?.profit || 0;
-
-  // Temps moyen de vente
   const avecDates = vendus.filter(a => a.buy_date && a.sell_date);
   const avgDays = avecDates.length ? Math.round(avecDates.reduce((s, a) => s + daysBetween(a.buy_date, a.sell_date), 0) / avecDates.length) : null;
 
@@ -410,6 +440,9 @@ window.saveGoal = () => {
   renderObjectif();
 };
 
+// ── INIT ──
+initTheme();
 sb.auth.onAuthStateChange((event, session) => {
   if (session?.user) loginAs(session.user);
 });
+
