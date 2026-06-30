@@ -101,6 +101,9 @@ window.goPage = (id, btn) => {
   btn.classList.add('active');
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
   if(id==='replay') renderReplay();
+  if(id==='calendrier') renderCalendar();
+  if(id==='favoris') renderFavoris();
+  if(id==='republier') renderRepublier();
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
 window.toggleSidebar=()=>document.querySelector('.sidebar').classList.toggle('open');
@@ -186,6 +189,7 @@ window.openModal=(article=null)=>{
   document.getElementById('mBuyDate').value=article?.buy_date||today();
   document.getElementById('mSellDate').value=article?.sell_date||today();
   document.getElementById('mLocation').value=article?.location||'';
+  document.getElementById('mSource').value=article?.source||'Vinted';
   document.getElementById('modalTitle').textContent=article?"Modifier l'article":'Ajouter un article';
   document.getElementById('btnSave').textContent=article?'Enregistrer':'Ajouter';
   toggleDates();
@@ -209,6 +213,7 @@ window.saveArticle=async()=>{
   const buy_date=document.getElementById('mBuyDate').value||today();
   const sell_date=!['stock','laver','photo','publier'].includes(status)?(document.getElementById('mSellDate').value||today()):null;
   const location=document.getElementById('mLocation').value.trim();
+  const source=document.getElementById('mSource').value;
   if(!name)return;
 
   const btn=document.getElementById('btnSave');
@@ -218,7 +223,7 @@ window.saveArticle=async()=>{
   const articleId=id||crypto.randomUUID();
   if(selectedPhotoFile) photoUrl=await uploadPhoto(selectedPhotoFile,articleId);
 
-  const payload={name,buy_price:buy,sell_price:sell,platform,status,buy_date,sell_date,photo_url:photoUrl,location};
+  const payload={name,buy_price:buy,sell_price:sell,platform,status,buy_date,sell_date,photo_url:photoUrl,location,source};
 
   if(id){
     const {data}=await sb.from('articles').update(payload).eq('id',id).eq('user_id',currentUser.id).select();
@@ -564,6 +569,98 @@ window.saveGoal=()=>{
   localStorage.setItem('goal_'+currentUser.id,v);
   renderObjectif();
 };
+
+// ── CALENDRIER ──
+function renderCalendar() {
+  const now = new Date();
+  document.getElementById('calendarHeader').innerHTML = `
+    <div class="calendar-date">${now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
+    <div class="calendar-sub">Voici ce qu'il vous reste à faire aujourd'hui</div>
+  `;
+  const expedition = allArticles.filter(a=>a.status==='expedition');
+  const publier = allArticles.filter(a=>a.status==='publier');
+  const photo = allArticles.filter(a=>a.status==='photo');
+  const laver = allArticles.filter(a=>a.status==='laver');
+  const goal = parseFloat(localStorage.getItem('goal_'+currentUser.id)||'500');
+  const profitMois = allArticles.filter(a=>a.status==='vendu').filter(a=>{
+    const d=new Date(a.sell_date||a.created_at);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  }).reduce((s,a)=>s+calcProfit(a),0);
+
+  const groups = [
+    {title:'🚚 Colis à envoyer', items:expedition},
+    {title:'✍️ Articles à publier', items:publier},
+    {title:'📸 Articles à photographier', items:photo},
+    {title:'🧺 Articles à laver', items:laver},
+  ];
+  let html = groups.map(g => g.items.length ? `
+    <div class="task-group">
+      <div class="task-group-title">${g.title} <span class="task-count-badge">${g.items.length}</span></div>
+      <div class="article-list">${g.items.map(a=>articleHTML(a,{showMove:true})).join('')}</div>
+    </div>` : '').join('');
+
+  if (!expedition.length && !publier.length && !photo.length && !laver.length) {
+    html = emptyState('Rien à faire aujourd\'hui, tout est à jour ! 🎉');
+  }
+
+  html += `<div class="task-group"><div class="task-group-title">🎯 Objectif du mois</div>
+    <div class="goal-card"><div class="goal-label">${fmtPrice(profitMois)} sur ${fmtPrice(goal)} (${Math.min(100,(profitMois/goal*100)).toFixed(0)}%)</div>
+    <div class="progress-track"><div class="progress-bar" style="width:${Math.min(100,goal>0?profitMois/goal*100:0)}%"></div></div></div></div>`;
+
+  document.getElementById('calendarTasks').innerHTML = html;
+}
+
+// ── MESSAGES FAVORIS ──
+window.saveFavMessage = () => {
+  const msg = document.getElementById('favMessage').value;
+  localStorage.setItem('favMessage_'+currentUser.id, msg);
+  document.getElementById('favMsgSaved').textContent = '✓ Modèle enregistré !';
+};
+
+window.copyFavMessage = (btn) => {
+  const msg = document.getElementById('favMessage').value;
+  navigator.clipboard.writeText(msg).then(() => {
+    const original = btn.textContent;
+    btn.textContent = '✓ Copié !';
+    setTimeout(() => btn.textContent = original, 1500);
+  });
+};
+
+function renderFavoris() {
+  const saved = localStorage.getItem('favMessage_'+currentUser.id) || '';
+  document.getElementById('favMessage').value = saved;
+  const stock = allArticles.filter(a=>a.status==='stock');
+  document.getElementById('favorisList').innerHTML = stock.length ? stock.map(a => `
+    <div class="fav-card">
+      ${photoEl(a)}
+      <div class="article-info">
+        <div class="article-name">${a.name}</div>
+        <div class="article-meta">${a.platform} · ${fmtPrice(a.sell_price)}</div>
+      </div>
+      <button class="fav-copy-btn" onclick="copyFavMessage(this)">📋 Copier le message</button>
+    </div>`).join('') : emptyState('Aucun article en stock pour le moment.');
+}
+
+// ── REPUBLICATION ──
+window.saveRepublishDays = () => {
+  const v = parseInt(document.getElementById('republishDays').value);
+  if (isNaN(v) || v <= 0) return;
+  localStorage.setItem('republishDays_'+currentUser.id, v);
+  renderRepublier();
+};
+
+function renderRepublier() {
+  const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
+  document.getElementById('republishDays').value = days;
+  const stock = allArticles.filter(a => a.status==='stock' && a.platform==='Vinted');
+  const toRepublish = stock.filter(a => {
+    const d = daysBetween(a.buy_date || a.created_at?.split('T')[0], today());
+    return d !== null && d >= days;
+  });
+  document.getElementById('republierList').innerHTML = toRepublish.length
+    ? `<div class="article-list">${toRepublish.map(a=>articleHTML(a)).join('')}</div>`
+    : emptyState('Aucun article à republier pour le moment.');
+}
 
 // ── INIT ──
 initTheme();
