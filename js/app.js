@@ -664,5 +664,15 @@ function renderRepublier() {
 
 // ── INIT ──
 initTheme();
-sb.auth.onAuthStateChange((event,session)=>{if(session?.user)loginAs(session.user);});
-
+// ── GESTION RESET MOT DE PASSE ──
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    const newPassword = prompt('Entrez votre nouveau mot de passe (6 caractères min) :');
+    if (newPassword && newPassword.length >= 6) {
+      const { error } = await sb.auth.updateUser({ password: newPassword });
+      if (error) alert('Erreur : ' + error.message);
+      else alert('✓ Mot de passe modifié avec succès !');
+    }
+  }
+  if (session?.user) loginAs(session.user);
+});
