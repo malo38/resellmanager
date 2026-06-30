@@ -56,10 +56,13 @@
     </div>
     <nav class="sidebar-nav">
       <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon">⬡</span> Tableau de bord</button>
+      <button class="nav-btn" onclick="goPage('calendrier',this)"><span class="nav-icon">📅</span> Calendrier</button>
       <button class="nav-btn" onclick="goPage('preparation',this)"><span class="nav-icon">📦</span> Mode préparation</button>
       <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon">◫</span> Stock</button>
       <button class="nav-btn" onclick="goPage('expedition',this)"><span class="nav-icon">🚚</span> À expédier</button>
       <button class="nav-btn" onclick="goPage('vendus',this)"><span class="nav-icon">✓</span> Vendus</button>
+      <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon">❤️</span> Messages favoris</button>
+      <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon">🔄</span> Republication</button>
       <button class="nav-btn" onclick="goPage('replay',this)"><span class="nav-icon">▶</span> Resell Replay</button>
       <button class="nav-btn" onclick="goPage('analytics',this)"><span class="nav-icon">◈</span> Statistiques</button>
       <button class="nav-btn" onclick="goPage('objectif',this)"><span class="nav-icon">◉</span> Objectifs</button>
@@ -99,6 +102,12 @@
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- CALENDRIER -->
+      <section class="page" id="page-calendrier">
+        <div class="calendar-header" id="calendarHeader"></div>
+        <div id="calendarTasks"></div>
       </section>
 
       <!-- MODE PREPARATION -->
@@ -151,6 +160,37 @@
       <section class="page" id="page-replay">
         <div class="info-banner">▶ Revivez le parcours complet de chaque article vendu</div>
         <div id="replayList"></div>
+      </section>
+
+      <!-- MESSAGES FAVORIS -->
+      <section class="page" id="page-favoris">
+        <div class="info-banner">❤️ Préparez un message à envoyer aux personnes qui ont mis vos articles en favoris sur Vinted. Copiez-le et collez-le directement dans la conversation Vinted.</div>
+        <div class="settings-card">
+          <h2 class="settings-title">Modèle de message</h2>
+          <div class="field full">
+            <label>Votre message</label>
+            <textarea id="favMessage" rows="4" placeholder="Bonjour ! J'ai vu que mon article vous intéresse 😊 N'hésitez pas si vous avez des questions, et je peux faire un geste sur le prix si vous l'achetez rapidement !"></textarea>
+          </div>
+          <button class="btn-confirm" onclick="saveFavMessage()">Enregistrer le modèle</button>
+          <p id="favMsgSaved" class="success-msg"></p>
+        </div>
+        <div class="section-header" style="margin-top:20px;"><h2>Vos articles en stock — à relancer</h2></div>
+        <div id="favorisList"></div>
+      </section>
+
+      <!-- REPUBLICATION -->
+      <section class="page" id="page-republier">
+        <div class="info-banner">🔄 Republier régulièrement vos annonces Vinted les remet en avant dans les résultats de recherche.</div>
+        <div class="settings-card">
+          <h2 class="settings-title">Fréquence de republication</h2>
+          <p class="setting-sub" style="margin-bottom:12px;">Tous les combien de jours voulez-vous être rappelé de republier vos articles ?</p>
+          <div class="goal-row">
+            <input type="number" id="republishDays" placeholder="ex: 3" min="1" />
+            <button class="btn-confirm" onclick="saveRepublishDays()">Enregistrer</button>
+          </div>
+        </div>
+        <div class="section-header" style="margin-top:20px;"><h2>Articles à republier maintenant</h2></div>
+        <div id="republierList"></div>
       </section>
 
       <!-- ANALYTICS -->
@@ -243,6 +283,15 @@
         <div class="field"><label>Date d'achat</label><input type="date" id="mBuyDate" /></div>
         <div class="field" id="sellDateField" style="display:none"><label>Date de vente</label><input type="date" id="mSellDate" /></div>
         <div class="field full"><label>📍 Emplacement</label><input type="text" id="mLocation" placeholder="ex: Bac 3 · Étagère 2 · Sac bleu" /></div>
+        <div class="field full"><label>🛍️ Source d'achat</label>
+          <select id="mSource">
+            <option value="Vinted">Vinted</option>
+            <option value="Bot">Bot</option>
+            <option value="Brocante">Brocante</option>
+            <option value="Grossiste">Grossiste</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
       </div>
       <div class="field full" style="margin-top:8px;">
         <label>Photo</label>
