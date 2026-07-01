@@ -252,71 +252,38 @@
             </div>
           </div>
 
-          <!-- Onglets méthodes -->
-          <div style="display:flex;gap:8px;margin-bottom:16px;">
-            <button class="theme-btn active" id="tabExt" onclick="switchVintedTab('ext')">⚡ Extension Chrome</button>
-            <button class="theme-btn" id="tabCookie" onclick="switchVintedTab('cookie')">🍪 Cookie manuel</button>
-          </div>
-
-          <!-- Option 1 : Extension -->
-          <div id="vinted-tab-ext">
-            <div style="background:var(--surface2);border-radius:var(--radius);padding:14px;font-size:13px;line-height:1.7;color:var(--text);">
-              <div style="font-weight:700;margin-bottom:10px;">✅ Méthode recommandée — synchronisation automatique toutes les 5 min</div>
-              <div style="display:flex;flex-direction:column;gap:10px;">
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                  <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">1</span>
-                  <div>Téléchargez le ZIP de l'extension <strong>Vinted Manager</strong> depuis le lien envoyé par votre administrateur, dézippez-le sur votre bureau.</div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                  <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">2</span>
-                  <div>Dans Chrome, allez sur <strong>chrome://extensions</strong>, activez le <strong>Mode développeur</strong> (en haut à droite), puis cliquez <strong>"Charger l'extension non empaquetée"</strong> et sélectionnez le dossier dézippé.</div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                  <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">3</span>
-                  <div>Cliquez sur l'icône 🔗 Vinted Manager dans Chrome, connectez-vous avec votre email/mot de passe <strong>Vinted Manager</strong> (pas Vinted), puis ouvrez un onglet <strong>vinted.fr</strong>.</div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                  <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">4</span>
-                  <div>Cliquez <strong>"Synchroniser maintenant"</strong> dans l'extension. Vos articles Vinted apparaîtront automatiquement sur ce site !</div>
-                </div>
+          <!-- Instructions cookie -->
+          <div style="background:var(--surface2);border-radius:var(--radius);padding:14px;font-size:13px;line-height:1.7;color:var(--text);margin-bottom:14px;">
+            <div style="font-weight:700;margin-bottom:10px;">Comment connecter votre compte Vinted ?</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">1</span>
+                <div>Ouvrez <strong>vinted.fr</strong> dans Chrome et connectez-vous à votre compte Vinted.</div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">2</span>
+                <div>Appuyez sur <strong>F12</strong> (ou <strong>Cmd+Option+I</strong> sur Mac) pour ouvrir les outils développeur.</div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">3</span>
+                <div>Cliquez sur l'onglet <strong>"Application"</strong> → dans le menu gauche <strong>"Cookies"</strong> → <strong>"https://www.vinted.fr"</strong>.</div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">4</span>
+                <div>Trouvez le cookie nommé <strong>_vinted_fr_session</strong>, cliquez dessus et copiez toute la valeur (très longue).</div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">5</span>
+                <div>Collez la valeur ci-dessous et cliquez <strong>"Synchroniser"</strong>. À répéter tous les 7-14 jours quand le cookie expire.</div>
               </div>
             </div>
           </div>
-
-          <!-- Option 2 : Cookie -->
-          <div id="vinted-tab-cookie" style="display:none;">
-            <div style="background:var(--surface2);border-radius:var(--radius);padding:14px;font-size:13px;line-height:1.7;color:var(--text);margin-bottom:14px;">
-              <div style="font-weight:700;margin-bottom:10px;">⚠️ Méthode manuelle — le cookie expire tous les 7-14 jours</div>
-              <div style="display:flex;flex-direction:column;gap:10px;">
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                  <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">1</span>
-                  <div>Ouvrez <strong>vinted.fr</strong> dans Chrome et connectez-vous à votre compte Vinted.</div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                  <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">2</span>
-                  <div>Appuyez sur <strong>F12</strong> (ou Cmd+Option+I sur Mac) pour ouvrir les outils développeur.</div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                  <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">3</span>
-                  <div>Cliquez sur l'onglet <strong>"Application"</strong> → dans le menu gauche <strong>"Cookies"</strong> → <strong>"https://www.vinted.fr"</strong>.</div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                  <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">4</span>
-                  <div>Trouvez le cookie nommé <strong>_vinted_fr_session</strong>, cliquez dessus et copiez toute la valeur (très longue).</div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                  <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">5</span>
-                  <div>Collez la valeur ci-dessous et cliquez <strong>"Enregistrer"</strong>.</div>
-                </div>
-              </div>
-            </div>
-            <div class="field full">
-              <label>Cookie _vinted_fr_session</label>
-              <textarea id="vintedCookieInput" rows="3" placeholder="Collez ici la valeur du cookie _vinted_fr_session..."></textarea>
-            </div>
-            <button class="btn-confirm" onclick="saveVintedCookie()" style="margin-top:8px;">Enregistrer et tester</button>
-            <p id="cookieMsg" style="font-size:12px;margin-top:8px;"></p>
+          <div class="field full">
+            <label>Cookie _vinted_fr_session</label>
+            <textarea id="vintedCookieInput" rows="3" placeholder="Collez ici la valeur du cookie _vinted_fr_session..."></textarea>
           </div>
+          <button class="btn-confirm" onclick="saveVintedCookie()" style="margin-top:8px;">🔄 Synchroniser avec Vinted</button>
+          <p id="cookieMsg" style="font-size:12px;margin-top:8px;"></p>
         </div>
         <div class="settings-card" style="margin-top:16px;">
           <h2 class="settings-title">Compte</h2>
