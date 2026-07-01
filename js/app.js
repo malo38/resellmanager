@@ -100,6 +100,7 @@ window.goPage = (id, btn) => {
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
+  if(id==='settings') renderVintedConnectionStatus();
   if(id==='replay') renderReplay();
   if(id==='calendrier') renderCalendar();
   if(id==='favoris') renderFavoris();
@@ -662,17 +663,85 @@ function renderRepublier() {
     : emptyState('Aucun article à republier pour le moment.');
 }
 
+// ── CONNEXION VINTED ──
+window.switchVintedTab = (tab) => {
+  document.getElementById('vinted-tab-ext').style.display = tab==='ext' ? 'block' : 'none';
+  document.getElementById('vinted-tab-cookie').style.display = tab==='cookie' ? 'block' : 'none';
+  document.getElementById('tabExt').classList.toggle('active', tab==='ext');
+  document.getElementById('tabCookie').classList.toggle('active', tab==='cookie');
+};
+
+window.saveVintedCookie = async () => {
+  const cookie = document.getElementById('vintedCookieInput').value.trim();
+  const msgEl = document.getElementById('cookieMsg');
+  if (!cookie || cookie.length < 50) {
+    msgEl.style.color = '#ef4444';
+    msgEl.textContent = '⚠️ Cookie invalide ou trop court.';
+    return;
+  }
+  msgEl.style.color = 'var(--muted)';
+  msgEl.textContent = 'Test en cours...';
+
+  try {
+    // Vérifier le cookie via le backend Railway
+    const BACKEND = 'https://web-production-662dc1.up.railway.app';
+    const token = (await sb.auth.getSession()).data.session?.access_token;
+    const r = await fetch(`${BACKEND}/api/extension/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        vinted_cookie: cookie,
+        vinted_user_id: '',
+        vinted_login: '',
+        ventes: [], annonces: [], messages: [],
+      }),
+    });
+    if (r.ok) {
+      msgEl.style.color = '#00e5a0';
+      msgEl.textContent = '✓ Cookie enregistré avec succès !';
+      renderVintedConnectionStatus();
+    } else {
+      msgEl.style.color = '#ef4444';
+      msgEl.textContent = '✗ Cookie invalide ou expiré. Recommencez depuis vinted.fr.';
+    }
+  } catch(e) {
+    msgEl.style.color = '#ef4444';
+    msgEl.textContent = '✗ Erreur de connexion au serveur.';
+  }
+};
+
+async function renderVintedConnectionStatus() {
+  const statusEl = document.getElementById('vintedStatus');
+  const badgeEl = document.getElementById('vintedStatusBadge');
+  const loginEl = document.getElementById('vintedLogin');
+  const lastSyncEl = document.getElementById('vintedLastSync');
+  if (!statusEl) return;
+
+  try {
+    const { data } = await sb.from('vinted_accounts')
+      .select('*').eq('user_id', currentUser.id).single();
+
+    if (!data) {
+      statusEl.textContent = 'Aucun compte connecté';
+      badgeEl.innerHTML = '<span style="color:#ef4444;">● Déconnecté</span>';
+      return;
+    }
+    if (data.connected) {
+      statusEl.textContent = 'Extension Chrome active';
+      badgeEl.innerHTML = '<span style="color:#00e5a0;">● Connecté</span>';
+      loginEl.textContent = '@' + (data.vinted_login || '—');
+      lastSyncEl.textContent = data.last_sync
+        ? new Date(data.last_sync).toLocaleDateString('fr-FR') : '—';
+      document.getElementById('vintedLoginRow').style.display = 'flex';
+    } else {
+      statusEl.textContent = 'Compte enregistré mais extension inactive';
+      badgeEl.innerHTML = '<span style="color:#f59e0b;">● Inactif</span>';
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = 'Erreur de chargement';
+  }
+}
+
 // ── INIT ──
 initTheme();
-// ── GESTION RESET MOT DE PASSE ──
-sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    const newPassword = prompt('Entrez votre nouveau mot de passe (6 caractères min) :');
-    if (newPassword && newPassword.length >= 6) {
-      const { error } = await sb.auth.updateUser({ password: newPassword });
-      if (error) alert('Erreur : ' + error.message);
-      else alert('✓ Mot de passe modifié avec succès !');
-    }
-  }
-  if (session?.user) loginAs(session.user);
-});
+sb.auth.onAuthStateChange((event,session)=>{if(session?.user)loginAs(session.user);});
