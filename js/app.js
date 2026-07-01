@@ -664,12 +664,6 @@ function renderRepublier() {
 }
 
 // ── CONNEXION VINTED ──
-window.switchVintedTab = (tab) => {
-  document.getElementById('vinted-tab-ext').style.display = tab==='ext' ? 'block' : 'none';
-  document.getElementById('vinted-tab-cookie').style.display = tab==='cookie' ? 'block' : 'none';
-  document.getElementById('tabExt').classList.toggle('active', tab==='ext');
-  document.getElementById('tabCookie').classList.toggle('active', tab==='cookie');
-};
 
 window.saveVintedCookie = async () => {
   const cookie = document.getElementById('vintedCookieInput').value.trim();
