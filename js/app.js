@@ -2,6 +2,7 @@ const SUPABASE_URL = 'https://iprrnmrndjfdlozxjbsu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcnJubXJuZGpmZGxvenhqYnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NjUxOTksImV4cCI6MjA5ODA0MTE5OX0.JAteIwydCEoOe6S3z-Isq6-TwRLBdGpU8akn_1FvQb0';
 const LOGO_LIGHT = 'https://iprrnmrndjfdlozxjbsu.supabase.co/storage/v1/object/public/assets/light.png';
 const LOGO_DARK  = 'https://iprrnmrndjfdlozxjbsu.supabase.co/storage/v1/object/public/assets/dark.png';
+const BACKEND = 'https://web-production-662dc1.up.railway.app';
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -612,10 +613,27 @@ function renderCalendar() {
 }
 
 // ── MESSAGES FAVORIS ──
-window.saveFavMessage = () => {
-  const msg = document.getElementById('favMessage').value;
-  localStorage.setItem('favMessage_'+currentUser.id, msg);
-  document.getElementById('favMsgSaved').textContent = '✓ Modèle enregistré !';
+window.saveFavMessage = async () => {
+  const savedEl = document.getElementById('favMsgSaved');
+  const payload = {
+    enabled: document.getElementById('favAutoEnabled').checked,
+    template: document.getElementById('favMessage').value,
+    delay_min_sec: parseInt(document.getElementById('favDelayMin').value) || 60,
+    delay_max_sec: parseInt(document.getElementById('favDelayMax').value) || 180,
+    daily_limit: parseInt(document.getElementById('favDailyLimit').value) || 20,
+  };
+  localStorage.setItem('favMessage_'+currentUser.id, payload.template);
+  try {
+    const token = (await sb.auth.getSession()).data.session?.access_token;
+    const r = await fetch(`${BACKEND}/api/settings/automessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    savedEl.textContent = r.ok ? '✓ Réglages enregistrés !' : '✗ Erreur — réessayez.';
+  } catch (e) {
+    savedEl.textContent = '✗ Erreur de connexion au serveur.';
+  }
 };
 
 window.copyFavMessage = (btn) => {
@@ -627,7 +645,7 @@ window.copyFavMessage = (btn) => {
   });
 };
 
-function renderFavoris() {
+async function renderFavoris() {
   const saved = localStorage.getItem('favMessage_'+currentUser.id) || '';
   document.getElementById('favMessage').value = saved;
   const stock = allArticles.filter(a=>a.status==='stock');
@@ -640,6 +658,37 @@ function renderFavoris() {
       </div>
       <button class="fav-copy-btn" onclick="copyFavMessage(this)">📋 Copier le message</button>
     </div>`).join('') : emptyState('Aucun article en stock pour le moment.');
+
+  try {
+    const token = (await sb.auth.getSession()).data.session?.access_token;
+    const r = await fetch(`${BACKEND}/api/extension/automessage-config`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (r.ok) {
+      const config = await r.json();
+      document.getElementById('favAutoEnabled').checked = config.enabled;
+      if (config.template) document.getElementById('favMessage').value = config.template;
+      document.getElementById('favDelayMin').value = config.delay_min_sec;
+      document.getElementById('favDelayMax').value = config.delay_max_sec;
+      document.getElementById('favDailyLimit').value = config.daily_limit;
+    }
+
+    const histR = await fetch(`${BACKEND}/api/extension/sent-messages`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (histR.ok) {
+      const { messages } = await histR.json();
+      document.getElementById('favSentHistory').innerHTML = messages.length ? messages.map(m => `
+        <div class="fav-card">
+          <div class="article-info">
+            <div class="article-name">${m.recipient_login || 'Utilisateur'} — ${m.item_title || 'Article'}</div>
+            <div class="article-meta">${new Date(m.sent_at).toLocaleString('fr-FR')}</div>
+          </div>
+        </div>`).join('') : emptyState('Aucun message auto-envoyé pour le moment.');
+    }
+  } catch (e) {
+    // extension/backend non configurés : on garde juste le modèle local
+  }
 }
 
 // ── REPUBLICATION ──
@@ -677,7 +726,6 @@ window.saveVintedCookie = async () => {
   msgEl.textContent = '⏳ Connexion à Vinted en cours...';
 
   try {
-    const BACKEND = 'https://web-production-662dc1.up.railway.app';
     const token = (await sb.auth.getSession()).data.session?.access_token;
     const r = await fetch(`${BACKEND}/api/vinted/sync-cookie`, {
       method: 'POST',
@@ -736,3 +784,4 @@ async function renderVintedConnectionStatus() {
 // ── INIT ──
 initTheme();
 sb.auth.onAuthStateChange((event,session)=>{if(session?.user)loginAs(session.user);});
+
