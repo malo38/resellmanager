@@ -680,29 +680,26 @@ window.saveVintedCookie = async () => {
     return;
   }
   msgEl.style.color = 'var(--muted)';
-  msgEl.textContent = 'Test en cours...';
+  msgEl.textContent = '⏳ Connexion à Vinted en cours...';
 
   try {
-    // Vérifier le cookie via le backend Railway
     const BACKEND = 'https://web-production-662dc1.up.railway.app';
     const token = (await sb.auth.getSession()).data.session?.access_token;
-    const r = await fetch(`${BACKEND}/api/extension/sync`, {
+    const r = await fetch(`${BACKEND}/api/vinted/sync-cookie`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({
-        vinted_cookie: cookie,
-        vinted_user_id: '',
-        vinted_login: '',
-        ventes: [], annonces: [], messages: [],
-      }),
+      body: JSON.stringify({ cookie }),
     });
-    if (r.ok) {
+    const data = await r.json();
+    if (r.ok && data.ok) {
       msgEl.style.color = '#00e5a0';
-      msgEl.textContent = '✓ Cookie enregistré avec succès !';
+      msgEl.textContent = `✓ ${data.message}`;
+      document.getElementById('vintedCookieInput').value = '';
+      await loadArticles();
       renderVintedConnectionStatus();
     } else {
       msgEl.style.color = '#ef4444';
-      msgEl.textContent = '✗ Cookie invalide ou expiré. Recommencez depuis vinted.fr.';
+      msgEl.textContent = `✗ ${data.detail || 'Erreur — vérifiez votre cookie.'}`;
     }
   } catch(e) {
     msgEl.style.color = '#ef4444';
