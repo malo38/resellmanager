@@ -164,18 +164,41 @@
 
       <!-- MESSAGES FAVORIS -->
       <section class="page" id="page-favoris">
-        <div class="info-banner">❤️ Préparez un message à envoyer aux personnes qui ont mis vos articles en favoris sur Vinted. Copiez-le et collez-le directement dans la conversation Vinted.</div>
+        <div class="info-banner">❤️ Envoyez automatiquement un message aux personnes qui mettent vos articles en favoris sur Vinted, grâce à l'extension Chrome. Utilisez <code>{item}</code> dans votre message pour insérer le nom de l'article.</div>
         <div class="settings-card">
           <h2 class="settings-title">Modèle de message</h2>
           <div class="field full">
             <label>Votre message</label>
-            <textarea id="favMessage" rows="4" placeholder="Bonjour ! J'ai vu que mon article vous intéresse 😊 N'hésitez pas si vous avez des questions, et je peux faire un geste sur le prix si vous l'achetez rapidement !"></textarea>
+            <textarea id="favMessage" rows="4" placeholder="Bonjour ! J'ai vu que {item} vous intéresse 😊 N'hésitez pas si vous avez des questions, et je peux faire un geste sur le prix si vous l'achetez rapidement !"></textarea>
           </div>
-          <button class="btn-confirm" onclick="saveFavMessage()">Enregistrer le modèle</button>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;">
+              <input type="checkbox" id="favAutoEnabled" style="width:16px;height:16px;accent-color:var(--accent);" />
+              Activer l'envoi automatique via l'extension Chrome
+            </label>
+            <p class="setting-sub">Nécessite l'extension Vinted Manager installée et un onglet vinted.fr ouvert. Les envois sont espacés aléatoirement pour rester naturels.</p>
+          </div>
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field">
+              <label>Délai min. entre 2 messages (sec)</label>
+              <input type="number" id="favDelayMin" min="10" />
+            </div>
+            <div class="field">
+              <label>Délai max. entre 2 messages (sec)</label>
+              <input type="number" id="favDelayMax" min="10" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Limite quotidienne</label>
+            <input type="number" id="favDailyLimit" min="0" />
+          </div>
+          <button class="btn-confirm" onclick="saveFavMessage()">Enregistrer</button>
           <p id="favMsgSaved" class="success-msg"></p>
         </div>
         <div class="section-header" style="margin-top:20px;"><h2>Vos articles en stock — à relancer</h2></div>
         <div id="favorisList"></div>
+        <div class="section-header" style="margin-top:20px;"><h2>Historique des messages auto-envoyés</h2></div>
+        <div id="favSentHistory"></div>
       </section>
 
       <!-- REPUBLICATION -->
