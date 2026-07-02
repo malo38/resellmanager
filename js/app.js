@@ -1,7 +1,7 @@
 const SUPABASE_URL = 'https://iprrnmrndjfdlozxjbsu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcnJubXJuZGpmZGxvenhqYnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NjUxOTksImV4cCI6MjA5ODA0MTE5OX0.JAteIwydCEoOe6S3z-Isq6-TwRLBdGpU8akn_1FvQb0';
-const LOGO_LIGHT = 'https://iprrnmrndjfdlozxjbsu.supabase.co/storage/v1/object/public/assets/light.png';
-const LOGO_DARK  = 'https://iprrnmrndjfdlozxjbsu.supabase.co/storage/v1/object/public/assets/dark.png';
+const LOGO_LIGHT = 'img/logo-light.png';
+const LOGO_DARK  = 'img/logo-dark.png';
 const BACKEND = 'https://web-production-662dc1.up.railway.app';
 
 const { createClient } = supabase;
@@ -31,7 +31,7 @@ function setTheme(t) {
   document.getElementById('btnLight')?.classList.toggle('active', t==='light');
 }
 window.setTheme = setTheme;
-function initTheme() { setTheme(localStorage.getItem('theme') || 'dark'); }
+function initTheme() { setTheme(localStorage.getItem('theme') || 'light'); }
 
 // ── LANDING ──
 window.showAuth = (tab) => {
@@ -101,7 +101,7 @@ function loginAs(user) {
   document.getElementById('mainApp').style.display='flex';
   document.getElementById('userName').textContent=name;
   document.getElementById('userAvatar').textContent=name.charAt(0).toUpperCase();
-  const t=localStorage.getItem('theme')||'dark';
+  const t=localStorage.getItem('theme')||'light';
   document.getElementById('btnDark')?.classList.toggle('active',t==='dark');
   document.getElementById('btnLight')?.classList.toggle('active',t==='light');
   loadArticles();
