@@ -31,7 +31,16 @@ function setTheme(t) {
   document.getElementById('btnLight')?.classList.toggle('active', t==='light');
 }
 window.setTheme = setTheme;
-function initTheme() { setTheme(localStorage.getItem('theme') || 'light'); }
+function initTheme() {
+  // Bascule tout le monde une seule fois vers le nouveau défaut "clair" (même les
+  // visiteurs déjà passés sur le site avant ce changement, qui avaient "sombre"
+  // enregistré sans l'avoir choisi). Les choix faits après cette bascule sont respectés.
+  if (!localStorage.getItem('theme_default_migrated')) {
+    localStorage.setItem('theme_default_migrated', '1');
+    localStorage.setItem('theme', 'light');
+  }
+  setTheme(localStorage.getItem('theme') || 'light');
+}
 
 // ── LANDING ──
 window.showAuth = (tab) => {
