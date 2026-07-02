@@ -124,6 +124,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .article-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
 .article-right { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .article-profit { font-size: 15px; font-weight: 700; }
+.profit-neutral { color: var(--muted); }
 .profit-pos { color: var(--accent); }
 .profit-neg { color: var(--danger); }
 .article-actions { display: flex; gap: 4px; }

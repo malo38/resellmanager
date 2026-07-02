@@ -369,7 +369,7 @@ function articleHTML(a, opts={}) {
       </div>
     </div>
     <div class="article-right">
-      <div class="article-profit ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div>
+      <div class="article-profit ${a.status!=='vendu'?'profit-neutral':(profit>=0?'profit-pos':'profit-neg')}">${a.status==='vendu'&&profit>=0?'+':''}${fmtPrice(profit)}</div>
       <div class="article-actions">
         ${moveBtn}
         <button class="btn-edit" onclick="editArticle('${a.id}')">✎</button>
@@ -533,7 +533,10 @@ function generateCoach(){
   });
   if(sansVues.length>0) msgs.push(`👁️ <strong>${sansVues.length} articles</strong> n'ont eu <strong>aucune vue</strong> sur Vinted depuis plus d'une semaine. Republiez-les ou revoyez les photos/le prix.`);
   const tendance=allArticles.filter(isTrending);
-  if(tendance.length>0) msgs.push(`🔥 <strong>${tendance.length} article(s)</strong> reçoivent beaucoup de favoris rapidement — envisagez d'augmenter le prix ou de répondre vite si on vous contacte dessus.`);
+  if(tendance.length>0){
+    const noms=tendance.map(a=>a.name).join(', ');
+    msgs.push(`🔥 <strong>${noms}</strong> reçoi${tendance.length>1?'vent':'t'} beaucoup de favoris rapidement — envisagez d'augmenter le prix ou de répondre vite si on vous contacte dessus.`);
+  }
   const vendus=allArticles.filter(a=>a.status==='vendu');
   if(vendus.length>=3){
     const byPlatform={};
