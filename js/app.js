@@ -613,27 +613,10 @@ function renderCalendar() {
 }
 
 // ── MESSAGES FAVORIS ──
-window.saveFavMessage = async () => {
+window.saveFavMessage = () => {
   const savedEl = document.getElementById('favMsgSaved');
-  const payload = {
-    enabled: document.getElementById('favAutoEnabled').checked,
-    template: document.getElementById('favMessage').value,
-    delay_min_sec: parseInt(document.getElementById('favDelayMin').value) || 60,
-    delay_max_sec: parseInt(document.getElementById('favDelayMax').value) || 180,
-    daily_limit: parseInt(document.getElementById('favDailyLimit').value) || 20,
-  };
-  localStorage.setItem('favMessage_'+currentUser.id, payload.template);
-  try {
-    const token = (await sb.auth.getSession()).data.session?.access_token;
-    const r = await fetch(`${BACKEND}/api/settings/automessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(payload),
-    });
-    savedEl.textContent = r.ok ? '✓ Réglages enregistrés !' : '✗ Erreur — réessayez.';
-  } catch (e) {
-    savedEl.textContent = '✗ Erreur de connexion au serveur.';
-  }
+  localStorage.setItem('favMessage_'+currentUser.id, document.getElementById('favMessage').value);
+  savedEl.textContent = '✓ Modèle enregistré !';
 };
 
 window.copyFavMessage = (btn) => {
@@ -645,7 +628,7 @@ window.copyFavMessage = (btn) => {
   });
 };
 
-async function renderFavoris() {
+function renderFavoris() {
   const saved = localStorage.getItem('favMessage_'+currentUser.id) || '';
   document.getElementById('favMessage').value = saved;
   const stock = allArticles.filter(a=>a.status==='stock');
@@ -658,38 +641,8 @@ async function renderFavoris() {
       </div>
       <button class="fav-copy-btn" onclick="copyFavMessage(this)">📋 Copier le message</button>
     </div>`).join('') : emptyState('Aucun article en stock pour le moment.');
-
-  try {
-    const token = (await sb.auth.getSession()).data.session?.access_token;
-    const r = await fetch(`${BACKEND}/api/extension/automessage-config`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (r.ok) {
-      const config = await r.json();
-      document.getElementById('favAutoEnabled').checked = config.enabled;
-      if (config.template) document.getElementById('favMessage').value = config.template;
-      document.getElementById('favDelayMin').value = config.delay_min_sec;
-      document.getElementById('favDelayMax').value = config.delay_max_sec;
-      document.getElementById('favDailyLimit').value = config.daily_limit;
-    }
-
-    const histR = await fetch(`${BACKEND}/api/extension/sent-messages`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (histR.ok) {
-      const { messages } = await histR.json();
-      document.getElementById('favSentHistory').innerHTML = messages.length ? messages.map(m => `
-        <div class="fav-card">
-          <div class="article-info">
-            <div class="article-name">${m.recipient_login || 'Utilisateur'} — ${m.item_title || 'Article'}</div>
-            <div class="article-meta">${new Date(m.sent_at).toLocaleString('fr-FR')}</div>
-          </div>
-        </div>`).join('') : emptyState('Aucun message auto-envoyé pour le moment.');
-    }
-  } catch (e) {
-    // extension/backend non configurés : on garde juste le modèle local
-  }
 }
+
 
 // ── REPUBLICATION ──
 window.saveRepublishDays = () => {
