@@ -180,6 +180,10 @@
     <header class="topbar">
       <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
       <div class="topbar-title" id="topbarTitle">Tableau de bord</div>
+      <div class="topbar-search">
+        <input type="text" id="globalSearch" placeholder="🔎 Rechercher un article..." oninput="handleGlobalSearch(this.value)" onfocus="handleGlobalSearch(this.value)" />
+        <div class="search-results" id="searchResults" style="display:none"></div>
+      </div>
       <button class="add-btn-top" onclick="openModal()">+ Ajouter</button>
     </header>
     <main class="content">
@@ -188,6 +192,7 @@
       <section class="page active" id="page-dashboard">
         <div class="sync-banner" id="dashSyncBanner" style="display:none"></div>
         <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="weekly-card" id="weeklySummary"></div>
         <div class="coach-card" id="coachBox"></div>
         <div class="dash-cols">
           <div>
@@ -219,6 +224,19 @@
           <button class="prep-filter-btn" onclick="filterPrep('photo',this)">📸 À photographier</button>
           <button class="prep-filter-btn" onclick="filterPrep('publier',this)">✍️ À publier</button>
           <button class="prep-filter-btn" onclick="filterPrep('stock',this)">📦 En stock</button>
+          <button class="prep-filter-btn" style="margin-left:auto;" onclick="toggleSelectMode('prep')" id="selectModeBtn-prep">☑ Sélection multiple</button>
+        </div>
+        <div class="bulk-bar" id="bulkBar-prep" style="display:none">
+          <span id="bulkCount-prep">0 sélectionné(s)</span>
+          <select id="bulkTarget-prep">
+            <option value="laver">🧺 À laver</option>
+            <option value="photo">📸 À photographier</option>
+            <option value="publier">✍️ À publier</option>
+            <option value="stock">📦 En stock</option>
+            <option value="expedition">🚚 À expédier</option>
+            <option value="vendu">💰 Vendu</option>
+          </select>
+          <button class="btn-confirm" onclick="applyBulkMove('prep')">Appliquer</button>
         </div>
         <div id="prepList"></div>
       </section>
@@ -231,8 +249,21 @@
           <button class="pf-btn" onclick="filterPlatform('eBay',this,'stock')">eBay</button>
           <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'stock')">Leboncoin</button>
           <button class="pf-btn" onclick="filterPlatform('Autre',this,'stock')">Autre</button>
+          <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('stock')">⬇ Exporter CSV</button>
         </div>
-        <div class="section-header"><span class="count-label" id="stockCount"></span></div>
+        <div class="section-header"><span class="count-label" id="stockCount"></span><button class="btn-edit" onclick="toggleSelectMode('stock')" id="selectModeBtn-stock">☑ Sélection multiple</button></div>
+        <div class="bulk-bar" id="bulkBar-stock" style="display:none">
+          <span id="bulkCount-stock">0 sélectionné(s)</span>
+          <select id="bulkTarget-stock">
+            <option value="laver">🧺 À laver</option>
+            <option value="photo">📸 À photographier</option>
+            <option value="publier">✍️ À publier</option>
+            <option value="stock">📦 En stock</option>
+            <option value="expedition">🚚 À expédier</option>
+            <option value="vendu">💰 Vendu</option>
+          </select>
+          <button class="btn-confirm" onclick="applyBulkMove('stock')">Appliquer</button>
+        </div>
         <div id="stockList"></div>
       </section>
 
@@ -251,6 +282,7 @@
           <button class="pf-btn" onclick="filterPlatform('eBay',this,'vendus')">eBay</button>
           <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'vendus')">Leboncoin</button>
           <button class="pf-btn" onclick="filterPlatform('Autre',this,'vendus')">Autre</button>
+          <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('vendus')">⬇ Exporter CSV</button>
         </div>
         <div class="section-header"><span class="count-label" id="vendusCount"></span></div>
         <div id="vendusList"></div>
@@ -302,7 +334,7 @@
       <!-- ANALYTICS -->
       <section class="page" id="page-analytics">
         <div class="kpi-grid" id="analyticsKpi"></div>
-        <div class="section-header"><h2>Profit par mois</h2></div>
+        <div class="section-header"><h2>Profit par mois</h2><button class="btn-edit" onclick="exportAnnualRecapCSV()">⬇ Récap fiscal annuel (CSV)</button></div>
         <div class="chart-card big">
           <div class="chart-bars" id="chartBars"></div>
           <div class="chart-labels" id="chartLabels"></div>
@@ -395,6 +427,16 @@
             <button class="btn-cancel" onclick="doLogout()">Déconnexion</button>
           </div>
         </div>
+        <div class="settings-card" style="margin-top:16px;">
+          <h2 class="settings-title">Votre avis compte</h2>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Signaler un bug ou une suggestion</div>
+              <div class="setting-sub">Envoyé directement, on vous répond si besoin</div>
+            </div>
+            <button class="btn-confirm" onclick="openFeedback()">💬 Envoyer un avis</button>
+          </div>
+        </div>
         <p id="settingsMsg" class="success-msg" style="margin-top:12px;"></p>
       </section>
 
@@ -415,6 +457,7 @@
         <div class="field full"><label>Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" /></div>
         <div class="field"><label>Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" /></div>
         <div class="field"><label>Prix de vente (€)</label><input type="number" id="mSell" placeholder="0,00" step="0.01" /></div>
+        <div class="field"><label>Frais annexes (€)</label><input type="number" id="mExtraCosts" placeholder="0,00" step="0.01" /></div>
         <div class="field"><label>Plateforme</label>
           <select id="mPlatform"><option>Vinted</option><option>eBay</option><option>Leboncoin</option><option>Autre</option></select>
         </div>
@@ -465,6 +508,38 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeConfirm()">Annuler</button>
       <button class="btn-danger" id="btnConfirmDelete">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK -->
+<div class="modal-bg" id="feedbackBg">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3>Envoyer un avis</h3>
+      <button class="modal-close" onclick="closeFeedback()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field full">
+        <label>Votre message</label>
+        <textarea id="feedbackMessage" rows="5" placeholder="Un bug ? Une idée d'amélioration ? Dites-nous tout."></textarea>
+      </div>
+      <p id="feedbackMsg" class="success-msg"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeFeedback()">Annuler</button>
+      <button class="btn-confirm" id="btnFeedbackSend" onclick="sendFeedback()">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div class="modal-bg" id="onboardingBg">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-body" id="onboardingBody" style="padding-top:24px;"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="onboardingSkip" onclick="closeOnboarding()">Passer</button>
+      <button class="btn-confirm" id="onboardingNext" onclick="onboardingNext()">Suivant</button>
     </div>
   </div>
 </div>

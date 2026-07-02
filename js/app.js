@@ -9,6 +9,8 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null, allArticles = [], selectedPhotoFile = null, deleteTargetId = null;
 let currentFilter = { stock: 'Tous', vendus: 'Tous', preparation: 'all' };
+let selectMode = { stock: false, prep: false };
+let selectedIds = { stock: new Set(), prep: new Set() };
 
 const PREP_STEPS = [
   { key: 'laver',      label: '🧺 À laver',       color: '#60a5fa' },
@@ -114,6 +116,7 @@ function loginAs(user) {
   document.getElementById('btnDark')?.classList.toggle('active',t==='dark');
   document.getElementById('btnLight')?.classList.toggle('active',t==='light');
   loadArticles();
+  maybeShowOnboarding();
 }
 
 // ── NAV ──
@@ -157,6 +160,15 @@ function heatmapColor(a) {
   if(days<=30) return {color:'#00e5a0', label:'🟢 Récent'};
   if(days<=90) return {color:'#f59e0b', label:'🟠 Moyen'};
   return {color:'#ef4444', label:'🔴 Ancien'};
+}
+
+// ── TENDANCE (favoris qui montent vite) ──
+function isTrending(a){
+  if(a.status!=='stock'||!a.vinted_item_id) return false;
+  const d=daysBetween(a.buy_date||a.created_at?.split('T')[0],today());
+  if(d===null||d<1) return false;
+  const favoris=a.vinted_favoris||0;
+  return favoris>=5 || (favoris/d)>=0.5;
 }
 
 // ── SCORE ──
@@ -214,6 +226,7 @@ window.openModal=(article=null)=>{
   document.getElementById('mName').value=article?.name||'';
   document.getElementById('mBuy').value=article?.buy_price||'';
   document.getElementById('mSell').value=article?.sell_price||'';
+  document.getElementById('mExtraCosts').value=article?.extra_costs||'';
   document.getElementById('mPlatform').value=article?.platform||'Vinted';
   document.getElementById('mStatus').value=article?.status||'laver';
   document.getElementById('mBuyDate').value=article?.buy_date||today();
@@ -238,6 +251,7 @@ window.saveArticle=async()=>{
   const name=document.getElementById('mName').value.trim();
   const buy=parseFloat(document.getElementById('mBuy').value.replace(',','.'))||0;
   const sell=parseFloat(document.getElementById('mSell').value.replace(',','.'))||0;
+  const extra_costs=parseFloat(document.getElementById('mExtraCosts').value.replace(',','.'))||0;
   const platform=document.getElementById('mPlatform').value;
   const status=document.getElementById('mStatus').value;
   const buy_date=document.getElementById('mBuyDate').value||today();
@@ -253,7 +267,7 @@ window.saveArticle=async()=>{
   const articleId=id||crypto.randomUUID();
   if(selectedPhotoFile) photoUrl=await uploadPhoto(selectedPhotoFile,articleId);
 
-  const payload={name,buy_price:buy,sell_price:sell,platform,status,buy_date,sell_date,photo_url:photoUrl,location,source};
+  const payload={name,buy_price:buy,sell_price:sell,extra_costs,platform,status,buy_date,sell_date,photo_url:photoUrl,location,source};
 
   if(id){
     const {data}=await sb.from('articles').update(payload).eq('id',id).eq('user_id',currentUser.id).select();
@@ -304,7 +318,7 @@ window.filterPrep=(step,btn)=>{
 };
 
 // ── HELPERS ──
-function calcProfit(a){return(parseFloat(a.sell_price)||0)-(parseFloat(a.buy_price)||0);}
+function calcProfit(a){return(parseFloat(a.sell_price)||0)-(parseFloat(a.buy_price)||0)-(parseFloat(a.extra_costs)||0);}
 function fmtPrice(v){return parseFloat(v||0).toFixed(2).replace('.',',')+' €';}
 function platformBadgeClass(p){return{Vinted:'badge-vinted',eBay:'badge-ebay',Leboncoin:'badge-leboncoin'}[p]||'badge-autre';}
 
@@ -333,18 +347,22 @@ function articleHTML(a, opts={}) {
   const scoreBadge=scoreVal!==null?`<span class="badge" style="background:${scoreVal>=70?'#00e5a022':'#f59e0b22'};color:${scoreVal>=70?'#00e5a0':'#f59e0b'}">⭐ ${scoreVal}/100</span>`:'';
   const vintedStatsBadge=a.vinted_item_id&&a.status==='stock'
     ?`<span class="badge badge-vinted">👁️ ${a.vinted_vues||0} · ❤️ ${a.vinted_favoris||0}</span>`:'';
+  const trendingBadge=isTrending(a)?`<span class="badge" style="background:#fb923c22;color:#fb923c;">🔥 Tendance</span>`:'';
   const nextStep=PREP_STEPS[PREP_STEPS.findIndex(p=>p.key===a.status)+1];
   const moveBtn=opts.showMove&&nextStep?`<button class="btn-edit" style="font-size:10px;" onclick="moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`:'';
+  const checkbox=opts.selectSection&&selectMode[opts.selectSection]
+    ?`<input type="checkbox" class="article-select-checkbox" ${selectedIds[opts.selectSection].has(a.id)?'checked':''} onchange="toggleArticleSelect('${opts.selectSection}','${a.id}',this.checked)" />`:'';
   return `<div class="article-card" style="${heatmapColor(a)?'border-left:3px solid '+heatmapColor(a).color:''}">
+    ${checkbox}
     ${photoEl(a)}
     <div class="article-info">
       <div class="article-name">${a.name}</div>
-      <div class="article-meta">Achat ${fmtPrice(a.buy_price)} · Vente ${fmtPrice(a.sell_price)}</div>
+      <div class="article-meta">Achat ${fmtPrice(a.buy_price)} · Vente ${fmtPrice(a.sell_price)}${a.extra_costs?' · Frais '+fmtPrice(a.extra_costs):''}</div>
       ${sellTime?`<div class="sell-time">${sellTime}</div>`:''}
       <div class="article-badges">
         <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
         ${stepBadge(a.status)}
-        ${heat}${locBadge}${scoreBadge}${vintedStatsBadge}
+        ${heat}${locBadge}${scoreBadge}${vintedStatsBadge}${trendingBadge}
       </div>
     </div>
     <div class="article-right">
@@ -400,7 +418,97 @@ function renderDashboard(){
     ?`<div class="article-list">${allArticles.slice(0,4).map(a=>articleHTML(a)).join('')}</div>`
     :emptyState('Aucun article encore.');
   renderMiniChart('dashChartBars','dashChartLabels');
+  renderWeeklySummary();
 }
+
+// ── RÉSUMÉ HEBDOMADAIRE ──
+function renderWeeklySummary(){
+  const el=document.getElementById('weeklySummary');
+  if(!el) return;
+  const weekAgo=new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  const ventesSemaine=allArticles.filter(a=>a.status==='vendu').filter(a=>new Date(a.sell_date||a.created_at)>=weekAgo);
+  const profitSemaine=ventesSemaine.reduce((s,a)=>s+calcProfit(a),0);
+  el.innerHTML=`
+    <div><div class="weekly-title">📅 Cette semaine</div><div class="weekly-val ${profitSemaine>=0?'green':'red'}">${fmtPrice(profitSemaine)} de profit</div></div>
+    <div><div class="weekly-title">Articles vendus cette semaine</div><div class="weekly-val">${ventesSemaine.length}</div></div>
+  `;
+}
+
+// ── EXPORT CSV ──
+function toCSV(rows, headers){
+  const esc=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const lines=[headers.map(h=>esc(h.label)).join(';')];
+  rows.forEach(r=>lines.push(headers.map(h=>esc(h.get(r))).join(';')));
+  return lines.join('\n');
+}
+function downloadCSV(content, filename){
+  const blob=new Blob(['﻿'+content], {type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+window.exportArticlesCSV = (section) => {
+  const arts = section==='stock' ? allArticles.filter(a=>a.status==='stock') : allArticles.filter(a=>a.status==='vendu');
+  const headers=[
+    {label:'Nom', get:a=>a.name},
+    {label:'Plateforme', get:a=>a.platform},
+    {label:'Prix achat', get:a=>a.buy_price||0},
+    {label:'Prix vente', get:a=>a.sell_price||0},
+    {label:'Frais annexes', get:a=>a.extra_costs||0},
+    {label:'Profit', get:a=>section==='vendus'?calcProfit(a).toFixed(2):''},
+    {label:'Date achat', get:a=>a.buy_date||''},
+    {label:'Date vente', get:a=>a.sell_date||''},
+    {label:'Emplacement', get:a=>a.location||''},
+  ];
+  downloadCSV(toCSV(arts, headers), `vinted-manager-${section}-${today()}.csv`);
+};
+window.exportAnnualRecapCSV = () => {
+  const vendus=allArticles.filter(a=>a.status==='vendu');
+  const byYear={};
+  vendus.forEach(a=>{
+    const y=new Date(a.sell_date||a.created_at).getFullYear();
+    if(!byYear[y]) byYear[y]={year:y,count:0,buy:0,sell:0,profit:0};
+    byYear[y].count++;
+    byYear[y].buy+=parseFloat(a.buy_price)||0;
+    byYear[y].sell+=parseFloat(a.sell_price)||0;
+    byYear[y].profit+=calcProfit(a);
+  });
+  const rows=Object.values(byYear).sort((a,b)=>a.year-b.year);
+  if(!rows.length){ alert('Aucune vente enregistrée pour le moment.'); return; }
+  const headers=[
+    {label:'Année', get:r=>r.year},
+    {label:'Nombre de ventes', get:r=>r.count},
+    {label:'Total achats', get:r=>r.buy.toFixed(2)},
+    {label:'Total ventes', get:r=>r.sell.toFixed(2)},
+    {label:'Profit total', get:r=>r.profit.toFixed(2)},
+  ];
+  downloadCSV(toCSV(rows, headers), `vinted-manager-recap-fiscal-${today()}.csv`);
+};
+
+// ── RECHERCHE GLOBALE ──
+function statusLabel(s){
+  const step=PREP_STEPS.find(p=>p.key===s);
+  return step?step.label:s;
+}
+window.handleGlobalSearch = (query) => {
+  const resultsEl=document.getElementById('searchResults');
+  const q=query.trim().toLowerCase();
+  if(!q){ resultsEl.style.display='none'; resultsEl.innerHTML=''; return; }
+  const matches=allArticles.filter(a=>a.name.toLowerCase().includes(q)).slice(0,8);
+  resultsEl.innerHTML = matches.length ? matches.map(a=>`
+    <div class="search-result-item" onclick="editArticle('${a.id}');document.getElementById('searchResults').style.display='none';document.getElementById('globalSearch').value='';">
+      <div class="search-result-name">${a.name}</div>
+      <div class="search-result-meta">${statusLabel(a.status)} · ${a.platform} · ${fmtPrice(a.sell_price)}</div>
+    </div>`).join('') : `<div class="search-result-item">Aucun résultat</div>`;
+  resultsEl.style.display='block';
+};
+document.addEventListener('click', (e) => {
+  const wrap=document.getElementById('globalSearch')?.closest('.topbar-search');
+  const results=document.getElementById('searchResults');
+  if(wrap && results && !wrap.contains(e.target)) results.style.display='none';
+});
 
 function generateCoach(){
   if(allArticles.length===0) return `<div class="coach-msg">👋 Bienvenue ! Ajoutez votre premier article pour commencer.</div>`;
@@ -421,6 +529,8 @@ function generateCoach(){
     return (a.vinted_vues||0)===0&&d!==null&&d>7;
   });
   if(sansVues.length>0) msgs.push(`👁️ <strong>${sansVues.length} articles</strong> n'ont eu <strong>aucune vue</strong> sur Vinted depuis plus d'une semaine. Republiez-les ou revoyez les photos/le prix.`);
+  const tendance=allArticles.filter(isTrending);
+  if(tendance.length>0) msgs.push(`🔥 <strong>${tendance.length} article(s)</strong> reçoivent beaucoup de favoris rapidement — envisagez d'augmenter le prix ou de répondre vite si on vous contacte dessus.`);
   const vendus=allArticles.filter(a=>a.status==='vendu');
   if(vendus.length>=3){
     const byPlatform={};
@@ -437,7 +547,7 @@ function renderPreparation(){
   let arts=allArticles.filter(a=>filter==='all'?['laver','photo','publier','stock'].includes(a.status):a.status===filter);
   const container=document.getElementById('prepList');
   if(!arts.length){container.innerHTML=emptyState('Aucun article dans cette étape.');return;}
-  container.innerHTML=`<div class="article-list">${arts.map(a=>articleHTML(a,{showMove:true})).join('')}</div>`;
+  container.innerHTML=`<div class="article-list">${arts.map(a=>articleHTML(a,{showMove:true,selectSection:'prep'})).join('')}</div>`;
   // Stats par étape
   const stats=PREP_STEPS.slice(0,4).map(s=>{
     const count=allArticles.filter(a=>a.status===s.key).length;
@@ -451,9 +561,44 @@ function renderStock(){
   if(currentFilter.stock!=='Tous') arts=arts.filter(a=>a.platform===currentFilter.stock);
   document.getElementById('stockCount').textContent=arts.length+' article(s) en stock';
   document.getElementById('stockList').innerHTML=arts.length
-    ?`<div class="article-list">${arts.map(a=>articleHTML(a)).join('')}</div>`
+    ?`<div class="article-list">${arts.map(a=>articleHTML(a,{selectSection:'stock'})).join('')}</div>`
     :emptyState('Aucun article en stock.');
 }
+
+// ── SÉLECTION MULTIPLE / ACTIONS GROUPÉES ──
+window.toggleSelectMode = (section) => {
+  selectMode[section] = !selectMode[section];
+  selectedIds[section].clear();
+  document.getElementById('selectModeBtn-'+section).textContent = selectMode[section] ? '✕ Annuler la sélection' : '☑ Sélection multiple';
+  document.getElementById('bulkBar-'+section).style.display = 'none';
+  if(section==='stock') renderStock(); else renderPreparation();
+};
+
+window.toggleArticleSelect = (section, id, checked) => {
+  if(checked) selectedIds[section].add(id); else selectedIds[section].delete(id);
+  const count = selectedIds[section].size;
+  document.getElementById('bulkCount-'+section).textContent = count+' sélectionné(s)';
+  document.getElementById('bulkBar-'+section).style.display = count>0 ? 'flex' : 'none';
+};
+
+window.applyBulkMove = async (section) => {
+  const ids = Array.from(selectedIds[section]);
+  if(!ids.length) return;
+  const target = document.getElementById('bulkTarget-'+section).value;
+  const sell_date = !['stock','laver','photo','publier'].includes(target) ? today() : null;
+  const {data} = await sb.from('articles').update({status:target, sell_date}).in('id', ids).eq('user_id', currentUser.id).select();
+  if(data){
+    data.forEach(updated=>{
+      const idx = allArticles.findIndex(a=>a.id===updated.id);
+      if(idx>=0) allArticles[idx]=updated;
+    });
+  }
+  selectedIds[section].clear();
+  selectMode[section] = false;
+  document.getElementById('selectModeBtn-'+section).textContent = '☑ Sélection multiple';
+  document.getElementById('bulkBar-'+section).style.display = 'none';
+  renderAll();
+};
 
 function renderExpedition(){
   const arts=allArticles.filter(a=>a.status==='expedition');
@@ -831,6 +976,60 @@ async function renderVintedConnectionStatus() {
     if (statusEl) statusEl.textContent = 'Erreur de chargement';
   }
 }
+
+// ── ONBOARDING ──
+const ONBOARDING_STEPS = [
+  { title: 'Bienvenue sur Vinted Manager 👋', body: 'Ce petit guide vous montre les bases en quelques étapes rapides.' },
+  { title: '📦 Ajoutez vos articles', body: 'Utilisez le bouton "+ Ajouter" en haut à droite pour suivre chaque article, de l\'achat à la vente.' },
+  { title: '🔗 Connectez l\'extension Chrome', body: 'Dans Paramètres, installez l\'extension pour synchroniser automatiquement vos ventes, votre stock et votre messagerie Vinted.' },
+  { title: '📅 Consultez le Calendrier', body: 'Chaque jour, retrouvez ce qu\'il reste à faire : laver, photographier, publier, expédier.' },
+  { title: '❤️ Messages favoris', body: 'Préparez un message type, puis copiez-le personnalisé pour chaque article afin de relancer les personnes qui l\'ont mis en favori.' },
+];
+let onboardingStep = 0;
+function maybeShowOnboarding(){
+  if(localStorage.getItem('onboarding_done_'+currentUser.id)) return;
+  onboardingStep = 0;
+  renderOnboardingStep();
+  document.getElementById('onboardingBg').classList.add('open');
+}
+function renderOnboardingStep(){
+  const s = ONBOARDING_STEPS[onboardingStep];
+  document.getElementById('onboardingBody').innerHTML = `
+    <h3 style="margin-bottom:10px;">${s.title}</h3>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6;">${s.body}</p>
+    <div style="margin-top:14px;font-size:12px;color:var(--muted);">Étape ${onboardingStep+1}/${ONBOARDING_STEPS.length}</div>
+  `;
+  document.getElementById('onboardingNext').textContent = onboardingStep===ONBOARDING_STEPS.length-1 ? 'Terminer' : 'Suivant';
+}
+window.onboardingNext = () => {
+  onboardingStep++;
+  if(onboardingStep>=ONBOARDING_STEPS.length){ closeOnboarding(); return; }
+  renderOnboardingStep();
+};
+window.closeOnboarding = () => {
+  document.getElementById('onboardingBg').classList.remove('open');
+  localStorage.setItem('onboarding_done_'+currentUser.id, '1');
+};
+
+// ── FEEDBACK ──
+window.openFeedback = () => {
+  document.getElementById('feedbackMessage').value = '';
+  document.getElementById('feedbackMsg').textContent = '';
+  document.getElementById('feedbackBg').classList.add('open');
+};
+window.closeFeedback = () => document.getElementById('feedbackBg').classList.remove('open');
+window.sendFeedback = async () => {
+  const msg = document.getElementById('feedbackMessage').value.trim();
+  const msgEl = document.getElementById('feedbackMsg');
+  if(!msg){ msgEl.textContent = 'Écrivez un message avant d\'envoyer.'; return; }
+  const btn = document.getElementById('btnFeedbackSend');
+  btn.disabled = true; btn.textContent = 'Envoi...';
+  const {error} = await sb.from('feedback').insert([{user_id:currentUser.id, message:msg}]);
+  btn.disabled = false; btn.textContent = 'Envoyer';
+  if(error){ msgEl.textContent = 'Erreur, réessayez.'; return; }
+  msgEl.textContent = '✓ Merci, votre message a été envoyé !';
+  setTimeout(closeFeedback, 1500);
+};
 
 // ── INIT ──
 initTheme();
