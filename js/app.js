@@ -824,4 +824,5 @@ async function renderVintedConnectionStatus() {
 
 // ── INIT ──
 initTheme();
+document.getElementById('landingLogo').src = LOGO_LIGHT;
 sb.auth.onAuthStateChange((event,session)=>{if(session?.user)loginAs(session.user);});

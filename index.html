@@ -15,7 +15,7 @@
 <!-- LANDING -->
 <div id="landingScreen" class="landing">
   <header class="landing-header">
-    <img src="" alt="Vinted Manager" class="landing-logo app-logo" />
+    <img src="" alt="Vinted Manager" class="landing-logo" id="landingLogo" />
     <div class="landing-header-actions">
       <button class="btn-ghost" onclick="showAuth('login')">Se connecter</button>
       <button class="btn-primary btn-inline" onclick="showAuth('register')">Commencer gratuitement</button>
@@ -23,9 +23,26 @@
   </header>
 
   <section class="landing-hero">
-    <div class="landing-badge">🔄 Synchronisation automatique Vinted</div>
-    <h1>Gérez votre business de resell Vinted,<br>sans y passer vos soirées.</h1>
-    <p class="landing-sub">Stock, ventes, messagerie et statistiques — synchronisés automatiquement depuis votre compte Vinted grâce à notre extension Chrome. Vous vendez, on s'occupe du reste.</p>
+    <h1>Fini les tableurs et les ressaisies.</h1>
+    <p class="landing-sub">Vinted Manager synchronise automatiquement votre stock, vos ventes et votre messagerie depuis Vinted, grâce à notre extension Chrome.</p>
+    <div class="compare-row">
+      <div class="compare-card compare-before">
+        <div class="compare-label">Avant</div>
+        <ul>
+          <li>Ressaisir chaque vente à la main</li>
+          <li>Chercher où est rangé un article</li>
+          <li>Oublier de republier ses annonces</li>
+        </ul>
+      </div>
+      <div class="compare-card compare-after">
+        <div class="compare-label">Avec Vinted Manager</div>
+        <ul>
+          <li>Ventes, stock et messages synchronisés tout seuls</li>
+          <li>Chaque article retrouvé en un clic</li>
+          <li>Rappels automatiques pour republier, laver, expédier</li>
+        </ul>
+      </div>
+    </div>
     <div class="landing-cta-row">
       <button class="btn-primary btn-inline btn-lg" onclick="showAuth('register')">Commencer gratuitement</button>
       <button class="btn-ghost btn-lg" onclick="showAuth('login')">J'ai déjà un compte</button>
