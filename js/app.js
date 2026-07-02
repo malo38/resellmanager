@@ -300,7 +300,7 @@ function photoEl(a){
 }
 
 function articleHTML(a, opts={}) {
-  const profit=calcProfit(a);
+  const profit=a.status==='vendu'?calcProfit(a):0;
   const sellTime=sellTimeLabel(a);
   const heat=heatBadge(a);
   const locBadge=a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:'';
