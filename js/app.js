@@ -661,7 +661,8 @@ window.saveFavMessage = () => {
 };
 
 window.copyFavMessage = (btn) => {
-  const msg = document.getElementById('favMessage').value;
+  const template = document.getElementById('favMessage').value;
+  const msg = template.replace(/\{item\}/g, btn.dataset.name || 'cet article');
   navigator.clipboard.writeText(msg).then(() => {
     const original = btn.textContent;
     btn.textContent = '✓ Copié !';
@@ -680,7 +681,7 @@ function renderFavoris() {
         <div class="article-name">${a.name}</div>
         <div class="article-meta">${a.platform} · ${fmtPrice(a.sell_price)}</div>
       </div>
-      <button class="fav-copy-btn" onclick="copyFavMessage(this)">📋 Copier le message</button>
+      <button class="fav-copy-btn" data-name="${a.name.replace(/"/g,'&quot;')}" onclick="copyFavMessage(this)">📋 Copier pour cet article</button>
     </div>`).join('') : emptyState('Aucun article en stock pour le moment.');
 }
 
