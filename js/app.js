@@ -170,9 +170,12 @@ async function uploadPhoto(file,articleId){
 }
 
 // ── LOAD ──
+let allPurchases=[];
 async function loadArticles(){
   const {data}=await sb.from('articles').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
   allArticles=data||[];
+  const {data:purchasesData}=await sb.from('vinted_purchases').select('*').eq('user_id',currentUser.id).order('purchase_date',{ascending:false});
+  allPurchases=purchasesData||[];
   renderAll();
   renderSyncBanner();
   updateMessagesBadge();
@@ -352,6 +355,10 @@ function renderDashboard(){
     const days=daysBetween(a.buy_date||a.created_at?.split('T')[0],today());
     return days!==null&&days>30;
   }).reduce((s,a)=>s+(parseFloat(a.buy_price)||0),0);
+  const achatsMois=allPurchases.filter(p=>{
+    const d=new Date(p.purchase_date||p.synced_at);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  }).reduce((s,p)=>s+(parseFloat(p.price)||0),0);
 
   document.getElementById('kpiGrid').innerHTML=`
     <div class="kpi-card"><div class="kpi-label">Profit total</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>
@@ -360,6 +367,7 @@ function renderDashboard(){
     <div class="kpi-card"><div class="kpi-label">À expédier</div><div class="kpi-val" style="color:var(--warning)">${expedition.length}</div></div>
     <div class="kpi-card"><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>
     <div class="kpi-card"><div class="kpi-label">Capital bloqué +30j</div><div class="kpi-val red">${fmtPrice(capitalBloque)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">🛍️ Achats Vinted ce mois</div><div class="kpi-val red">-${fmtPrice(achatsMois)}</div><div class="kpi-sub">Automatique</div></div>
   `;
 
   // IA Coach
