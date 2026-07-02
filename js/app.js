@@ -3,6 +3,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const LOGO_LIGHT = 'img/logo-light.png';
 const LOGO_DARK  = 'img/logo-dark.png';
 const BACKEND = 'https://web-production-662dc1.up.railway.app';
+// Passez à true une fois l'extension approuvée sur le Chrome Web Store.
+const EXTENSION_PUBLISHED = false;
+const EXTENSION_STORE_URL = 'https://chromewebstore.google.com/detail/vinted-manager/feedjnhhdfeojkocphjgnbjginadclip';
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -945,7 +948,16 @@ window.saveVintedCookie = async () => {
   }
 };
 
+function renderExtensionInstallBtn() {
+  const el = document.getElementById('extensionInstallBtn');
+  if (!el) return;
+  el.innerHTML = EXTENSION_PUBLISHED
+    ? `<a href="${EXTENSION_STORE_URL}" target="_blank" style="display:block;margin-top:14px;padding:10px;background:var(--accent);color:#000;border-radius:var(--radius);text-align:center;font-weight:700;text-decoration:none;font-size:13px;">⚡ Installer l'extension Chrome</a>`
+    : `<div style="margin-top:14px;padding:10px;background:var(--warning-dim);color:var(--warning);border-radius:var(--radius);text-align:center;font-weight:700;font-size:13px;">⏳ Extension en cours de validation par Google — bientôt disponible</div>`;
+}
+
 async function renderVintedConnectionStatus() {
+  renderExtensionInstallBtn();
   const statusEl = document.getElementById('vintedStatus');
   const badgeEl = document.getElementById('vintedStatusBadge');
   const loginEl = document.getElementById('vintedLogin');
@@ -978,13 +990,17 @@ async function renderVintedConnectionStatus() {
 }
 
 // ── ONBOARDING ──
-const ONBOARDING_STEPS = [
-  { title: 'Bienvenue sur Vinted Manager 👋', body: 'Ce petit guide vous montre les bases en quelques étapes rapides.' },
-  { title: '📦 Ajoutez vos articles', body: 'Utilisez le bouton "+ Ajouter" en haut à droite pour suivre chaque article, de l\'achat à la vente.' },
-  { title: '🔗 Connectez l\'extension Chrome', body: 'Dans Paramètres, installez l\'extension pour synchroniser automatiquement vos ventes, votre stock et votre messagerie Vinted.' },
-  { title: '📅 Consultez le Calendrier', body: 'Chaque jour, retrouvez ce qu\'il reste à faire : laver, photographier, publier, expédier.' },
-  { title: '❤️ Messages favoris', body: 'Préparez un message type, puis copiez-le personnalisé pour chaque article afin de relancer les personnes qui l\'ont mis en favori.' },
-];
+function getOnboardingSteps(){
+  return [
+    { title: 'Bienvenue sur Vinted Manager 👋', body: 'Ce petit guide vous montre les bases en quelques étapes rapides.' },
+    { title: '📦 Ajoutez vos articles', body: 'Utilisez le bouton "+ Ajouter" en haut à droite pour suivre chaque article, de l\'achat à la vente.' },
+    EXTENSION_PUBLISHED
+      ? { title: '🔗 Connectez l\'extension Chrome', body: 'Dans Paramètres, installez l\'extension pour synchroniser automatiquement vos ventes, votre stock et votre messagerie Vinted.' }
+      : { title: '🔗 Extension Chrome bientôt disponible', body: 'Une extension pour synchroniser automatiquement vos ventes, votre stock et votre messagerie est en cours de validation par Google. En attendant, ajoutez vos articles manuellement.' },
+    { title: '📅 Consultez le Calendrier', body: 'Chaque jour, retrouvez ce qu\'il reste à faire : laver, photographier, publier, expédier.' },
+    { title: '❤️ Messages favoris', body: 'Préparez un message type, puis copiez-le personnalisé pour chaque article afin de relancer les personnes qui l\'ont mis en favori.' },
+  ];
+}
 let onboardingStep = 0;
 function maybeShowOnboarding(){
   if(localStorage.getItem('onboarding_done_'+currentUser.id)) return;
@@ -993,17 +1009,18 @@ function maybeShowOnboarding(){
   document.getElementById('onboardingBg').classList.add('open');
 }
 function renderOnboardingStep(){
-  const s = ONBOARDING_STEPS[onboardingStep];
+  const steps = getOnboardingSteps();
+  const s = steps[onboardingStep];
   document.getElementById('onboardingBody').innerHTML = `
     <h3 style="margin-bottom:10px;">${s.title}</h3>
     <p style="color:var(--muted);font-size:14px;line-height:1.6;">${s.body}</p>
-    <div style="margin-top:14px;font-size:12px;color:var(--muted);">Étape ${onboardingStep+1}/${ONBOARDING_STEPS.length}</div>
+    <div style="margin-top:14px;font-size:12px;color:var(--muted);">Étape ${onboardingStep+1}/${steps.length}</div>
   `;
-  document.getElementById('onboardingNext').textContent = onboardingStep===ONBOARDING_STEPS.length-1 ? 'Terminer' : 'Suivant';
+  document.getElementById('onboardingNext').textContent = onboardingStep===steps.length-1 ? 'Terminer' : 'Suivant';
 }
 window.onboardingNext = () => {
   onboardingStep++;
-  if(onboardingStep>=ONBOARDING_STEPS.length){ closeOnboarding(); return; }
+  if(onboardingStep>=getOnboardingSteps().length){ closeOnboarding(); return; }
   renderOnboardingStep();
 };
 window.closeOnboarding = () => {
