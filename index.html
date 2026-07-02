@@ -61,6 +61,7 @@
       <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon">◫</span> Stock</button>
       <button class="nav-btn" onclick="goPage('expedition',this)"><span class="nav-icon">🚚</span> À expédier</button>
       <button class="nav-btn" onclick="goPage('vendus',this)"><span class="nav-icon">✓</span> Vendus</button>
+      <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon">💬</span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
       <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon">❤️</span> Messages favoris</button>
       <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon">🔄</span> Republication</button>
       <button class="nav-btn" onclick="goPage('replay',this)"><span class="nav-icon">▶</span> Resell Replay</button>
@@ -87,6 +88,7 @@
 
       <!-- DASHBOARD -->
       <section class="page active" id="page-dashboard">
+        <div class="sync-banner" id="dashSyncBanner" style="display:none"></div>
         <div class="kpi-grid" id="kpiGrid"></div>
         <div class="coach-card" id="coachBox"></div>
         <div class="dash-cols">
@@ -156,13 +158,19 @@
         <div id="vendusList"></div>
       </section>
 
+      <!-- MESSAGES VINTED -->
+      <section class="page" id="page-messages">
+        <div class="info-banner">💬 Votre messagerie Vinted, synchronisée automatiquement toutes les 5 minutes par l'extension Chrome — plus besoin d'ouvrir Vinted pour voir si on vous a répondu.</div>
+        <div id="messagesList"></div>
+      </section>
+
       <!-- RESELL REPLAY -->
       <section class="page" id="page-replay">
         <div class="info-banner">▶ Revivez le parcours complet de chaque article vendu</div>
         <div id="replayList"></div>
       </section>
 
-          <!-- MESSAGES FAVORIS -->
+      <!-- MESSAGES FAVORIS -->
       <section class="page" id="page-favoris">
         <div class="info-banner">❤️ Préparez un message type pour les personnes qui mettent vos articles en favoris sur Vinted, puis copiez-le en un clic. Utilisez <code>{item}</code> pour insérer le nom de l'article.</div>
         <div class="settings-card">
