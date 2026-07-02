@@ -12,9 +12,90 @@
 </head>
 <body>
 
+<!-- LANDING -->
+<div id="landingScreen" class="landing">
+  <header class="landing-header">
+    <img src="" alt="Vinted Manager" class="landing-logo app-logo" />
+    <div class="landing-header-actions">
+      <button class="btn-ghost" onclick="showAuth('login')">Se connecter</button>
+      <button class="btn-primary btn-inline" onclick="showAuth('register')">Commencer gratuitement</button>
+    </div>
+  </header>
+
+  <section class="landing-hero">
+    <div class="landing-badge">🔄 Synchronisation automatique Vinted</div>
+    <h1>Gérez votre business de resell Vinted,<br>sans y passer vos soirées.</h1>
+    <p class="landing-sub">Stock, ventes, messagerie et statistiques — synchronisés automatiquement depuis votre compte Vinted grâce à notre extension Chrome. Vous vendez, on s'occupe du reste.</p>
+    <div class="landing-cta-row">
+      <button class="btn-primary btn-inline btn-lg" onclick="showAuth('register')">Commencer gratuitement</button>
+      <button class="btn-ghost btn-lg" onclick="showAuth('login')">J'ai déjà un compte</button>
+    </div>
+  </section>
+
+  <section class="landing-features">
+    <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <div class="feature-title">Synchronisation automatique</div>
+      <div class="feature-desc">Vos ventes, annonces, photos, vues et favoris se mettent à jour tout seuls grâce à l'extension Chrome — plus de ressaisie manuelle.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📦</div>
+      <div class="feature-title">Stock &amp; préparation</div>
+      <div class="feature-desc">Suivez chaque article de l'achat à l'expédition, avec des relances automatiques pour laver, photographier, publier.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💬</div>
+      <div class="feature-title">Messagerie centralisée</div>
+      <div class="feature-desc">Retrouvez votre messagerie Vinted directement dans votre tableau de bord, sans jongler entre les onglets.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Statistiques &amp; objectifs</div>
+      <div class="feature-desc">Profit réel, ROI, temps de vente moyen, capital immobilisé — pilotez votre activité comme un vrai business.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📅</div>
+      <div class="feature-title">Calendrier &amp; rappels</div>
+      <div class="feature-desc">Sachez en un coup d'œil ce qu'il reste à faire aujourd'hui : laver, photographier, publier ou expédier.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">▶</div>
+      <div class="feature-title">Resell Replay</div>
+      <div class="feature-desc">Revivez le parcours complet de chaque article vendu, de l'achat jusqu'au profit final.</div>
+    </div>
+  </section>
+
+  <section class="landing-steps">
+    <h2>Comment ça marche</h2>
+    <div class="steps-row">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-title">Créez votre compte</div>
+        <div class="step-desc">Gratuit, en moins d'une minute.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-title">Installez l'extension Chrome</div>
+        <div class="step-desc">Connectez votre compte Vinted en un clic.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-title">Laissez faire</div>
+        <div class="step-desc">Tout se synchronise automatiquement, en continu.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <span>© Vinted Manager</span>
+    <a href="privacy.html">Politique de confidentialité</a>
+  </footer>
+</div>
+
 <!-- AUTH -->
-<div id="authScreen" class="auth-screen">
+<div id="authScreen" class="auth-screen" style="display:none">
   <div class="auth-wrap">
+    <button class="btn-back-landing" onclick="showLanding()">← Retour à l'accueil</button>
     <div class="auth-brand">
       <img src="" alt="Vinted Manager" class="auth-logo app-logo" />
       <p class="brand-sub">Gérez votre business de resell</p>

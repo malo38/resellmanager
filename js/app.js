@@ -33,6 +33,17 @@ function setTheme(t) {
 window.setTheme = setTheme;
 function initTheme() { setTheme(localStorage.getItem('theme') || 'dark'); }
 
+// ── LANDING ──
+window.showAuth = (tab) => {
+  document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  switchTab(tab);
+};
+window.showLanding = () => {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'block';
+};
+
 // ── AUTH ──
 window.switchTab = (tab) => {
   ['loginForm','registerForm','forgotForm'].forEach(id => document.getElementById(id).style.display='none');
@@ -75,8 +86,9 @@ window.sendResetEmail = async () => {
 window.doLogout = async () => {
   await sb.auth.signOut();
   currentUser=null; allArticles=[];
-  document.getElementById('authScreen').style.display='flex';
+  document.getElementById('authScreen').style.display='none';
   document.getElementById('mainApp').style.display='none';
+  document.getElementById('landingScreen').style.display='block';
 };
 
 function showError(msg){document.getElementById('authError').textContent=msg;}
@@ -84,6 +96,7 @@ function showError(msg){document.getElementById('authError').textContent=msg;}
 function loginAs(user) {
   currentUser=user;
   const name=user.user_metadata?.name||user.email.split('@')[0];
+  document.getElementById('landingScreen').style.display='none';
   document.getElementById('authScreen').style.display='none';
   document.getElementById('mainApp').style.display='flex';
   document.getElementById('userName').textContent=name;
