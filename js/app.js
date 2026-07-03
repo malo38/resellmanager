@@ -1095,22 +1095,24 @@ window.showInfo = (title, bodyHtml) => {
 };
 window.closeInfo = () => document.getElementById('infoBg').classList.remove('open');
 
+function infoLine(text){return `<p style="font-size:13px;color:var(--text);text-align:left;margin:8px 0;">${text}</p>`;}
+
 window.showScoreInfo = (score, profit, roi, days) => {
   showInfo('⭐ Score de qualité de la vente', `
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Note sur 100 qui résume à quel point cette vente a été rentable, calculée à partir de 3 critères :</p>
-    <div class="history-row"><div class="history-vals">💰 Profit réalisé : ${fmtPrice(profit)} ${profit>50?'(bonus)':profit>20?'(petit bonus)':profit<0?'(malus, vente à perte)':''}</div></div>
-    <div class="history-row"><div class="history-vals">📈 ROI (profit / prix d'achat) : ${roi.toFixed(0)}% ${roi>100?'(bonus)':roi>50?'(petit bonus)':roi<0?'(malus)':''}</div></div>
-    <div class="history-row"><div class="history-vals">⏱ Vendu en ${days!==null?days+' jour(s)':'—'} ${days!==null&&days<=7?'(bonus rapidité)':days!==null&&days>90?'(malus, vente lente)':''}</div></div>
-    <p style="font-size:12px;color:var(--muted);margin-top:12px;">Base de 50/100, ajustée par ces critères. Purement indicatif — utile pour repérer vos meilleures affaires d'un coup d'œil.</p>
+    <p style="font-size:13px;color:var(--muted);text-align:left;margin-bottom:8px;">Note sur 100 qui résume à quel point cette vente a été rentable, calculée à partir de 3 critères :</p>
+    ${infoLine(`💰 Profit réalisé : <strong>${fmtPrice(profit)}</strong> ${profit>50?'(bonus)':profit>20?'(petit bonus)':profit<0?'(malus, vente à perte)':''}`)}
+    ${infoLine(`📈 ROI (profit / prix d'achat) : <strong>${roi.toFixed(0)}%</strong> ${roi>100?'(bonus)':roi>50?'(petit bonus)':roi<0?'(malus)':''}`)}
+    ${infoLine(`⏱ ${days!==null?'Vendu en '+days+' jour(s)':'Délai de vente inconnu'} ${days!==null&&days<=7?'(bonus rapidité)':days!==null&&days>90?'(malus, vente lente)':''}`)}
+    <p style="font-size:12px;color:var(--muted);text-align:left;margin-top:8px;">Base de 50/100, ajustée par ces critères. Purement indicatif — utile pour repérer vos meilleures affaires d'un coup d'œil.</p>
   `);
 };
 
-window.showHeatInfo = (label) => {
+window.showHeatInfo = () => {
   showInfo('🕐 Ancienneté du stock', `
-    <p style="font-size:13px;color:var(--muted);">Indique depuis combien de temps l'article est en stock sans être vendu :</p>
-    <div class="history-row"><div class="history-vals">🟢 Récent : acheté il y a moins de 30 jours</div></div>
-    <div class="history-row"><div class="history-vals">🟠 Moyen : entre 30 et 90 jours</div></div>
-    <div class="history-row"><div class="history-vals">🔴 Ancien : plus de 90 jours — pensez à baisser le prix ou relancer l'annonce</div></div>
+    <p style="font-size:13px;color:var(--muted);text-align:left;margin-bottom:8px;">Indique depuis combien de temps l'article est en stock sans être vendu :</p>
+    ${infoLine('🟢 Récent : acheté il y a moins de 30 jours')}
+    ${infoLine('🟠 Moyen : entre 30 et 90 jours')}
+    ${infoLine('🔴 Ancien : plus de 90 jours — pensez à baisser le prix ou relancer l\'annonce')}
   `);
 };
 
