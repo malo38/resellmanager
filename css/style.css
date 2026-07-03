@@ -309,7 +309,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .replay-flow-step { flex: 1; text-align: center; }
 .replay-flow-label { font-size: 11px; color: var(--muted); }
 .replay-flow-val { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 2px; }
-.replay-flow-date { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.replay-flow-date { font-size: 11px; color: var(--muted); margin-top: 3px; font-weight: 500; }
 .replay-flow-arrow { font-size: 16px; color: var(--muted); flex-shrink: 0; }
 .replay-shipping { margin-top: 10px; }
 

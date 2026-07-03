@@ -328,6 +328,7 @@ function calcProfit(a){
   return(parseFloat(a.sell_price)||0)-(parseFloat(a.buy_price)||0)-(parseFloat(a.extra_costs)||0);
 }
 function fmtPrice(v){return parseFloat(v||0).toFixed(2).replace('.',',')+' €';}
+function fmtDate(d){ if(!d) return '—'; const dt=new Date(d); return isNaN(dt)?'—':dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 function platformBadgeClass(p){return{Vinted:'badge-vinted',eBay:'badge-ebay',Leboncoin:'badge-leboncoin'}[p]||'badge-autre';}
 
 function stepBadge(s){
@@ -729,13 +730,13 @@ function renderReplay(){
         <div class="replay-flow-step">
           <div class="replay-flow-label">🛒 Acheté</div>
           <div class="replay-flow-val">${fmtPrice(a.buy_price)}</div>
-          ${a.buy_date?`<div class="replay-flow-date">${a.buy_date}</div>`:''}
+          <div class="replay-flow-date">${fmtDate(a.buy_date)}</div>
         </div>
         <div class="replay-flow-arrow">→</div>
         <div class="replay-flow-step">
           <div class="replay-flow-label">💸 Vendu</div>
           <div class="replay-flow-val">${isRefunded?fmtPrice(0):fmtPrice(a.sell_price)}</div>
-          ${a.sell_date?`<div class="replay-flow-date">${a.sell_date}</div>`:''}
+          <div class="replay-flow-date">${fmtDate(a.sell_date)}</div>
         </div>
       </div>
       ${a.vinted_shipping_status?`<div class="replay-shipping">${orderStatusBadge(a.vinted_transaction_status,a.vinted_shipping_status)}</div>`:''}
