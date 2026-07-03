@@ -389,6 +389,7 @@
               <div class="setting-sub" id="vintedLastSync">—</div>
             </div>
           </div>
+          <div class="reputation-grid" id="reputationGrid" style="display:none"></div>
 
           <!-- Instructions extension -->
           <div style="background:var(--surface2);border-radius:var(--radius);padding:14px;font-size:13px;line-height:1.7;color:var(--text);margin-bottom:14px;">
@@ -508,6 +509,20 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeConfirm()">Annuler</button>
       <button class="btn-danger" id="btnConfirmDelete">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORIQUE VUES/FAVORIS -->
+<div class="modal-bg" id="historyBg">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3 id="historyTitle">Évolution</h3>
+      <button class="modal-close" onclick="closeHistory()">✕</button>
+    </div>
+    <div class="modal-body" id="historyBody"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeHistory()">Fermer</button>
     </div>
   </div>
 </div>

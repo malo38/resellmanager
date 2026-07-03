@@ -350,7 +350,7 @@ function articleHTML(a, opts={}) {
   const scoreVal=a.status==='vendu'?calcScore(a):null;
   const scoreBadge=scoreVal!==null?`<span class="badge" style="background:${scoreVal>=70?'#00e5a022':'#f59e0b22'};color:${scoreVal>=70?'#00e5a0':'#f59e0b'}">⭐ ${scoreVal}/100</span>`:'';
   const vintedStatsBadge=a.vinted_item_id&&a.status==='stock'
-    ?`<span class="badge badge-vinted">👁️ ${a.vinted_vues||0} · ❤️ ${a.vinted_favoris||0}</span>`:'';
+    ?`<span class="badge badge-vinted badge-clickable" title="Voir l'évolution" onclick="showHistory('${a.vinted_item_id}','${a.name.replace(/'/g,"\\'")}')">👁️ ${a.vinted_vues||0} · ❤️ ${a.vinted_favoris||0}</span>`:'';
   const trendingBadge=isTrending(a)?`<span class="badge" style="background:#fb923c22;color:#fb923c;">🔥 Tendance</span>`:'';
   const nextStep=PREP_STEPS[PREP_STEPS.findIndex(p=>p.key===a.status)+1];
   const moveBtn=opts.showMove&&nextStep?`<button class="btn-edit" style="font-size:10px;" onclick="moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`:'';
@@ -984,6 +984,7 @@ async function renderVintedConnectionStatus() {
       lastSyncEl.textContent = data.last_sync
         ? new Date(data.last_sync).toLocaleDateString('fr-FR') : '—';
       document.getElementById('vintedLoginRow').style.display = 'flex';
+      renderReputationGrid(data);
     } else {
       statusEl.textContent = 'Compte enregistré mais extension inactive';
       badgeEl.innerHTML = '<span style="color:#f59e0b;">● Inactif</span>';
@@ -992,6 +993,41 @@ async function renderVintedConnectionStatus() {
     if (statusEl) statusEl.textContent = 'Erreur de chargement';
   }
 }
+
+function renderReputationGrid(data){
+  const el = document.getElementById('reputationGrid');
+  if(!el) return;
+  const hasAny = (data.review_count||data.followers_count||data.vinted_item_count);
+  if(!hasAny){ el.style.display = 'none'; return; }
+  el.style.display = 'grid';
+  el.innerHTML = `
+    <div class="reputation-stat"><div class="reputation-val">${(data.feedback_reputation||0).toFixed(1)}/5</div><div class="reputation-label">⭐ Note moyenne</div></div>
+    <div class="reputation-stat"><div class="reputation-val">${data.review_count||0}</div><div class="reputation-label">💬 Avis</div></div>
+    <div class="reputation-stat"><div class="reputation-val">${data.followers_count||0}</div><div class="reputation-label">👥 Abonnés</div></div>
+  `;
+}
+
+// ── HISTORIQUE VUES/FAVORIS ──
+window.showHistory = async (itemId, itemName) => {
+  document.getElementById('historyTitle').textContent = `Évolution — ${itemName}`;
+  document.getElementById('historyBody').innerHTML = emptyState('Chargement...');
+  document.getElementById('historyBg').classList.add('open');
+  const { data, error } = await sb.from('vinted_stats_history')
+    .select('*').eq('vinted_item_id', itemId).order('stat_date', { ascending: true });
+  const bodyEl = document.getElementById('historyBody');
+  if(error || !data || !data.length){
+    bodyEl.innerHTML = emptyState('Pas encore assez de données. Revenez dans quelques jours pour voir l\'évolution.');
+    return;
+  }
+  const maxVal = Math.max(...data.map(d=>Math.max(d.vues||0,d.favoris||0)), 1);
+  bodyEl.innerHTML = `<p style="font-size:12px;color:var(--muted);margin-bottom:10px;">👁️ vues · ❤️ favoris, un point par jour synchronisé</p>` + data.map(d => `
+    <div class="history-row">
+      <div class="history-date">${new Date(d.stat_date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})}</div>
+      <div class="history-bar-wrap"><div class="history-bar-fill" style="width:${Math.max(4,(d.vues||0)/maxVal*100)}%"></div></div>
+      <div class="history-vals">👁️ ${d.vues||0} · ❤️ ${d.favoris||0}</div>
+    </div>`).join('');
+};
+window.closeHistory = () => document.getElementById('historyBg').classList.remove('open');
 
 // ── ONBOARDING ──
 function getOnboardingSteps(){

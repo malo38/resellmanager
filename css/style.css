@@ -90,6 +90,21 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .bulk-bar .btn-confirm { width: auto; padding: 6px 16px; }
 .article-select-checkbox { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; margin-right: 4px; }
 
+/* ── RÉPUTATION VENDEUR ── */
+.reputation-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.reputation-stat { background: var(--surface2); border-radius: var(--radius); padding: 10px; text-align: center; }
+.reputation-val { font-size: 18px; font-weight: 700; color: var(--accent); }
+.reputation-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ── HISTORIQUE VUES/FAVORIS ── */
+.history-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 12px; }
+.history-date { width: 80px; color: var(--muted); flex-shrink: 0; }
+.history-bar-wrap { flex: 1; background: var(--surface2); border-radius: 4px; overflow: hidden; height: 8px; }
+.history-bar-fill { height: 100%; background: var(--accent); }
+.history-vals { width: 90px; text-align: right; color: var(--text); flex-shrink: 0; }
+.badge-clickable { cursor: pointer; }
+.badge-clickable:hover { opacity: 0.8; }
+
 /* ── PAGES ── */
 .page { display: none; }
 .page.active { display: block; }
