@@ -335,7 +335,7 @@ function stepBadge(s){
 
 function heatBadge(a){
   const h=heatmapColor(a);
-  return h?`<span class="badge" style="background:${h.color}22;color:${h.color};font-size:10px;">${h.label}</span>`:'';
+  return h?`<span class="badge badge-clickable" style="background:${h.color}22;color:${h.color};font-size:10px;" onclick="showHeatInfo()">${h.label}</span>`:'';
 }
 
 function photoEl(a){
@@ -349,23 +349,25 @@ function articleHTML(a, opts={}) {
   const heat=heatBadge(a);
   const locBadge=a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:'';
   const scoreVal=a.status==='vendu'?calcScore(a):null;
-  const scoreBadge=scoreVal!==null?`<span class="badge" style="background:${scoreVal>=70?'#00e5a022':'#f59e0b22'};color:${scoreVal>=70?'#00e5a0':'#f59e0b'}">⭐ ${scoreVal}/100</span>`:'';
+  const scoreRoi=a.buy_price>0?(profit/a.buy_price*100):0;
+  const scoreDays=daysBetween(a.buy_date,a.sell_date);
+  const scoreBadge=scoreVal!==null?`<span class="badge badge-clickable" style="background:${scoreVal>=70?'#00e5a022':'#f59e0b22'};color:${scoreVal>=70?'#00e5a0':'#f59e0b'}" onclick="showScoreInfo(${scoreVal},${profit},${scoreRoi},${scoreDays===null?'null':scoreDays})">⭐ ${scoreVal}/100</span>`:'';
   const vintedStatsBadge=a.vinted_item_id&&a.status==='stock'
     ?`<span class="badge badge-vinted badge-clickable" title="Voir l'évolution" onclick="showHistory('${a.vinted_item_id}','${a.name.replace(/'/g,"\\'")}')">👁️ ${a.vinted_vues||0} · ❤️ ${a.vinted_favoris||0}</span>`:'';
-  const trendingBadge=isTrending(a)?`<span class="badge" style="background:#fb923c22;color:#fb923c;">🔥 Tendance</span>`:'';
+  const trendingBadge=isTrending(a)?`<span class="badge badge-clickable" style="background:#fb923c22;color:#fb923c;" onclick="showTrendingInfo()">🔥 Tendance</span>`:'';
   const shippingBadge=a.status==='vendu'&&a.vinted_shipping_status?orderStatusBadge(a.vinted_transaction_status,a.vinted_shipping_status):'';
   const nextStep=PREP_STEPS[PREP_STEPS.findIndex(p=>p.key===a.status)+1];
   const moveBtn=opts.showMove&&nextStep?`<button class="btn-edit" style="font-size:10px;" onclick="moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`:'';
   const checkbox=opts.selectSection&&selectMode[opts.selectSection]
     ?`<input type="checkbox" class="article-select-checkbox" ${selectedIds[opts.selectSection].has(a.id)?'checked':''} onchange="toggleArticleSelect('${opts.selectSection}','${a.id}',this.checked)" />`:'';
-  return `<div class="article-card" style="${heatmapColor(a)?'border-left:3px solid '+heatmapColor(a).color:''}">
-    ${checkbox}
+  return `<div class="article-card" style="${heatmapColor(a)?'border-left:3px solid '+heatmapColor(a).color:''}" onclick="showDetail('${a.id}')">
+    <span onclick="event.stopPropagation()">${checkbox}</span>
     ${photoEl(a)}
     <div class="article-info">
       <div class="article-name">${a.name}</div>
       <div class="article-meta">Achat ${fmtPrice(a.buy_price)} · Vente ${fmtPrice(a.sell_price)}${a.extra_costs?' · Frais '+fmtPrice(a.extra_costs):''}</div>
       ${sellTime?`<div class="sell-time">${sellTime}</div>`:''}
-      <div class="article-badges">
+      <div class="article-badges" onclick="event.stopPropagation()">
         <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
         ${stepBadge(a.status)}
         ${heat}${locBadge}${scoreBadge}${vintedStatsBadge}${trendingBadge}${shippingBadge}
@@ -373,7 +375,7 @@ function articleHTML(a, opts={}) {
     </div>
     <div class="article-right">
       <div class="article-profit ${a.status!=='vendu'?'profit-neutral':(profit>=0?'profit-pos':'profit-neg')}">${a.status==='vendu'&&profit>=0?'+':''}${fmtPrice(profit)}</div>
-      <div class="article-actions">
+      <div class="article-actions" onclick="event.stopPropagation()">
         ${moveBtn}
         <button class="btn-edit" onclick="editArticle('${a.id}')">✎</button>
         <button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="confirmDelete('${a.id}')">✕</button>
@@ -707,17 +709,20 @@ function renderReplay(){
   const container=document.getElementById('replayList');
   if(!arts.length){container.innerHTML=emptyState('Aucun article vendu encore.');return;}
   container.innerHTML=arts.map(a=>{
+    const shippingDone=a.vinted_transaction_status==='completed';
     const steps=[
       {label:'Acheté',date:a.buy_date,val:fmtPrice(a.buy_price),done:true},
       {label:'En préparation',date:'',val:'',done:true},
       {label:'Publié',date:'',val:'',done:true},
       {label:'Vendu',date:a.sell_date,val:fmtPrice(a.sell_price),done:true},
-      {label:'Expédié',date:a.sell_date,val:'',done:true},
+      a.vinted_shipping_status
+        ?{label:'Expédition',date:'',val:a.vinted_shipping_status,done:shippingDone}
+        :{label:'Expédié',date:a.sell_date,val:'',done:true},
     ];
     const profit=calcProfit(a);
     const days=daysBetween(a.buy_date,a.sell_date);
     const score=calcScore(a);
-    return `<div class="replay-card">
+    return `<div class="replay-card" style="cursor:pointer;" onclick="showDetail('${a.id}')">
       <div class="replay-header">
         ${a.photo_url?`<img src="${a.photo_url}" class="replay-photo" />`:'<div class="replay-photo">📦</div>'}
         <div>
@@ -892,7 +897,7 @@ function renderAchats(){
       <div class="article-photo">${p.photo_url?`<img src="${p.photo_url}" alt="">`:'📦'}</div>
       <div class="article-info">
         <div class="article-name">${p.title||'Article'}</div>
-        <div class="article-meta">${fmtPrice(p.price)} · ${p.purchase_date||''}</div>
+        <div class="article-meta profit-neg">-${fmtPrice(p.price)} · ${p.purchase_date||''}</div>
         <div class="article-badges">${orderStatusBadge(p.transaction_status,p.status)}</div>
       </div>
     </div>`).join('') : emptyState('Aucun achat Vinted synchronisé pour le moment.');
@@ -1026,6 +1031,70 @@ window.showHistory = async (itemId, itemName) => {
     </div>`).join('');
 };
 window.closeHistory = () => document.getElementById('historyBg').classList.remove('open');
+
+// ── DÉTAIL ARTICLE ──
+window.showDetail = (id) => {
+  const a=allArticles.find(x=>x.id===id);
+  if(!a) return;
+  const profit=a.status==='vendu'?calcProfit(a):0;
+  const roi=a.buy_price>0?(profit/a.buy_price*100):0;
+  const days=daysBetween(a.buy_date,a.sell_date);
+  const score=a.status==='vendu'?calcScore(a):null;
+  document.getElementById('detailTitle').textContent=a.name;
+  document.getElementById('detailBody').innerHTML=`
+    ${a.photo_url?`<img src="${a.photo_url}" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:var(--radius-lg);margin-bottom:12px;">`:''}
+    <div class="article-badges" style="margin-bottom:12px;">
+      <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
+      ${stepBadge(a.status)}
+      ${a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:''}
+    </div>
+    <div class="history-row"><div class="history-vals">🛒 Achat : ${fmtPrice(a.buy_price)}${a.buy_date?' · '+a.buy_date:''}</div></div>
+    ${a.status==='vendu'?`<div class="history-row"><div class="history-vals">💸 Vente : ${fmtPrice(a.sell_price)}${a.sell_date?' · '+a.sell_date:''}</div></div>`:''}
+    ${a.extra_costs?`<div class="history-row"><div class="history-vals">🧾 Frais annexes : ${fmtPrice(a.extra_costs)}</div></div>`:''}
+    ${a.status==='vendu'?`<div class="history-row"><div class="history-vals">📊 Profit : <strong class="${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</strong> · ROI ${roi.toFixed(0)}%</div></div>`:''}
+    ${days!==null?`<div class="history-row"><div class="history-vals">⏱ Vendu en ${days} jour(s)</div></div>`:''}
+    ${score!==null?`<div class="history-row"><div class="history-vals">⭐ Score : ${score}/100</div></div>`:''}
+    ${a.vinted_item_id&&a.status==='stock'?`<div class="history-row"><div class="history-vals">👁️ ${a.vinted_vues||0} vues · ❤️ ${a.vinted_favoris||0} favoris</div></div>`:''}
+    ${a.vinted_shipping_status?`<div class="history-row"><div class="history-vals">📦 Statut Vinted : ${a.vinted_shipping_status}</div></div>`:''}
+    ${a.source?`<div class="history-row"><div class="history-vals">🔗 Source : ${a.source}</div></div>`:''}
+  `;
+  document.getElementById('detailEditBtn').onclick=()=>{ closeDetail(); editArticle(id); };
+  document.getElementById('detailBg').classList.add('open');
+};
+window.closeDetail = () => document.getElementById('detailBg').classList.remove('open');
+
+// ── INFO GÉNÉRIQUE (explication des badges) ──
+window.showInfo = (title, bodyHtml) => {
+  document.getElementById('infoTitle').textContent = title;
+  document.getElementById('infoBody').innerHTML = bodyHtml;
+  document.getElementById('infoBg').classList.add('open');
+};
+window.closeInfo = () => document.getElementById('infoBg').classList.remove('open');
+
+window.showScoreInfo = (score, profit, roi, days) => {
+  showInfo('⭐ Score de qualité de la vente', `
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Note sur 100 qui résume à quel point cette vente a été rentable, calculée à partir de 3 critères :</p>
+    <div class="history-row"><div class="history-vals">💰 Profit réalisé : ${fmtPrice(profit)} ${profit>50?'(bonus)':profit>20?'(petit bonus)':profit<0?'(malus, vente à perte)':''}</div></div>
+    <div class="history-row"><div class="history-vals">📈 ROI (profit / prix d'achat) : ${roi.toFixed(0)}% ${roi>100?'(bonus)':roi>50?'(petit bonus)':roi<0?'(malus)':''}</div></div>
+    <div class="history-row"><div class="history-vals">⏱ Vendu en ${days!==null?days+' jour(s)':'—'} ${days!==null&&days<=7?'(bonus rapidité)':days!==null&&days>90?'(malus, vente lente)':''}</div></div>
+    <p style="font-size:12px;color:var(--muted);margin-top:12px;">Base de 50/100, ajustée par ces critères. Purement indicatif — utile pour repérer vos meilleures affaires d'un coup d'œil.</p>
+  `);
+};
+
+window.showHeatInfo = (label) => {
+  showInfo('🕐 Ancienneté du stock', `
+    <p style="font-size:13px;color:var(--muted);">Indique depuis combien de temps l'article est en stock sans être vendu :</p>
+    <div class="history-row"><div class="history-vals">🟢 Récent : acheté il y a moins de 30 jours</div></div>
+    <div class="history-row"><div class="history-vals">🟠 Moyen : entre 30 et 90 jours</div></div>
+    <div class="history-row"><div class="history-vals">🔴 Ancien : plus de 90 jours — pensez à baisser le prix ou relancer l'annonce</div></div>
+  `);
+};
+
+window.showTrendingInfo = () => {
+  showInfo('🔥 Article tendance', `
+    <p style="font-size:13px;color:var(--muted);">Cet article reçoit beaucoup de favoris rapidement depuis sa mise en ligne (au moins 8 favoris, à un rythme d'au moins 2 par jour). C'est le moment idéal pour le mettre en avant ou répondre vite aux messages à son sujet.</p>
+  `);
+};
 
 // ── ONBOARDING ──
 function getOnboardingSteps(){

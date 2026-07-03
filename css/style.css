@@ -129,8 +129,8 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 
 /* ── ARTICLE CARDS ── */
 .article-list { display: flex; flex-direction: column; gap: 8px; }
-.article-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; display: flex; align-items: center; gap: 14px; transition: border-color 0.15s; }
-.article-card:hover { border-color: var(--border2); }
+.article-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; display: flex; align-items: center; gap: 14px; transition: border-color 0.15s; cursor: pointer; }
+.article-card:hover { border-color: var(--accent); }
 .article-photo { width: 54px; height: 54px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; }
 .article-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
 .article-info { flex: 1; min-width: 0; }
