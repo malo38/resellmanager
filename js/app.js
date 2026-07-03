@@ -145,8 +145,7 @@ window.toggleDates=()=>{
   const s=document.getElementById('mStatus').value;
   document.getElementById('sellDateField').style.display=s!=='stock'&&s!=='laver'&&s!=='photo'&&s!=='publier'?'block':'none';
 };
-function today(){return new Date().toISOString().split('T')[0];}
-function daysBetween(d1,d2){if(!d1||!d2)return null;return Math.round((new Date(d2)-new Date(d1))/86400000);}
+// today()/daysBetween() sont définies dans calc.js (chargé avant ce fichier).
 function sellTimeLabel(a){
   if(['stock','laver','photo','publier'].includes(a.status)) return '';
   const days=daysBetween(a.buy_date,a.sell_date||a.created_at?.split('T')[0]);
@@ -166,27 +165,7 @@ function heatmapColor(a) {
   return {color:'#ef4444', label:'🔴 Ancien'};
 }
 
-// ── TENDANCE (favoris qui montent vite) ──
-function isTrending(a){
-  if(a.status!=='stock'||!a.vinted_item_id) return false;
-  const d=daysBetween(a.buy_date||a.created_at?.split('T')[0],today());
-  if(d===null||d<1) return false;
-  const favoris=a.vinted_favoris||0;
-  // Il faut à la fois un volume significatif (8+ favoris) ET un rythme rapide (2+/jour en moyenne).
-  return favoris>=8 && (favoris/d)>=2;
-}
-
-// ── SCORE ──
-function calcScore(a) {
-  const profit=calcProfit(a);
-  const days=daysBetween(a.buy_date,a.sell_date);
-  let score=50;
-  if(profit>50) score+=20; else if(profit>20) score+=10; else if(profit<0) score-=20;
-  const roi=a.buy_price>0?(profit/a.buy_price*100):0;
-  if(roi>100) score+=20; else if(roi>50) score+=10; else if(roi<0) score-=10;
-  if(days!==null){if(days<=7) score+=10; else if(days<=30) score+=5; else if(days>90) score-=10;}
-  return Math.min(100,Math.max(0,score));
-}
+// isTrending()/calcScore() sont définies dans calc.js (chargé avant ce fichier).
 
 // ── PHOTO ──
 window.previewPhoto=(event)=>{
@@ -324,12 +303,7 @@ window.filterPrep=(step,btn)=>{
 };
 
 // ── HELPERS ──
-function calcProfit(a){
-  if(a.vinted_transaction_status==='failed') return 0;
-  return(parseFloat(a.sell_price)||0)-(parseFloat(a.buy_price)||0)-(parseFloat(a.extra_costs)||0);
-}
-function fmtPrice(v){return parseFloat(v||0).toFixed(2).replace('.',',')+' €';}
-function fmtDate(d){ if(!d) return '—'; const dt=new Date(d); return isNaN(dt)?'—':dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+// calcProfit()/fmtPrice()/fmtDate() sont définies dans calc.js (chargé avant ce fichier).
 function platformBadgeClass(p){return{Vinted:'badge-vinted',eBay:'badge-ebay',Leboncoin:'badge-leboncoin'}[p]||'badge-autre';}
 
 function stepBadge(s){

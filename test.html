@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<title>Vinted Manager — Tests de calcul</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #0f0f0f; color: #f0f0f0; padding: 24px; max-width: 700px; margin: 0 auto; }
+  h1 { font-size: 18px; }
+  .test { padding: 8px 12px; margin-bottom: 4px; border-radius: 6px; font-size: 13px; }
+  .pass { background: #00e5a022; color: #00e5a0; }
+  .fail { background: #ef444422; color: #ef4444; }
+  #summary { margin-top: 16px; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>🧪 Tests de calcul — Vinted Manager</h1>
+<p style="color:#888;font-size:13px;">Ouvrez cette page dans un navigateur après toute modification de <code>js/calc.js</code> pour vérifier qu'aucun calcul n'a régressé. Pas d'installation nécessaire.</p>
+<div id="results"></div>
+<div id="summary"></div>
+
+<script src="js/calc.js"></script>
+<script>
+let pass = 0, fail = 0;
+const results = document.getElementById('results');
+
+function assertEqual(label, actual, expected) {
+  const ok = JSON.stringify(actual) === JSON.stringify(expected);
+  if (ok) pass++; else fail++;
+  const div = document.createElement('div');
+  div.className = 'test ' + (ok ? 'pass' : 'fail');
+  div.textContent = (ok ? '✓ ' : '✗ ') + label + (ok ? '' : ` — attendu ${JSON.stringify(expected)}, obtenu ${JSON.stringify(actual)}`);
+  results.appendChild(div);
+}
+
+// ── calcProfit ──
+assertEqual('calcProfit : vente normale (30 - 5 - 2 frais)', calcProfit({sell_price:30, buy_price:5, extra_costs:2}), 23);
+assertEqual('calcProfit : sans frais annexes', calcProfit({sell_price:20, buy_price:8}), 12);
+assertEqual('calcProfit : vente à perte', calcProfit({sell_price:5, buy_price:10}), -5);
+assertEqual('calcProfit : remboursement effectué → toujours 0€', calcProfit({sell_price:26.84, buy_price:5, vinted_transaction_status:'failed'}), 0);
+assertEqual('calcProfit : champs manquants → 0', calcProfit({}), 0);
+
+// ── calcScore ──
+assertEqual('calcScore : bonne vente rapide et rentable = score élevé', calcScore({sell_price:60, buy_price:5, buy_date:'2026-01-01', sell_date:'2026-01-03'}) >= 80, true);
+assertEqual('calcScore : remboursement = score bas (pas de bonus profit/ROI)', calcScore({sell_price:20, buy_price:5, vinted_transaction_status:'failed', buy_date:'2026-01-01', sell_date:'2026-01-10'}) <= 60, true);
+assertEqual('calcScore : reste entre 0 et 100 (vente très négative)', calcScore({sell_price:0, buy_price:1000, buy_date:'2026-01-01', sell_date:'2027-01-01'}) >= 0, true);
+
+// ── daysBetween ──
+assertEqual('daysBetween : 5 jours', daysBetween('2026-06-20','2026-06-25'), 5);
+assertEqual('daysBetween : dates manquantes → null', daysBetween(null,'2026-06-25'), null);
+assertEqual('daysBetween : même jour', daysBetween('2026-06-20','2026-06-20'), 0);
+
+// ── isTrending ──
+assertEqual('isTrending : pas un article en stock → jamais tendance', isTrending({status:'vendu', vinted_item_id:'1', vinted_favoris:100}), false);
+assertEqual('isTrending : pas d\'item Vinted → jamais tendance', isTrending({status:'stock', vinted_favoris:100}), false);
+assertEqual('isTrending : acheté aujourd\'hui (0 jour) → pas encore tendance', isTrending({status:'stock', vinted_item_id:'1', vinted_favoris:100, buy_date:today()}), false);
+
+// Test dynamique avec une vraie date d'hier pour vérifier le vrai calcul de ratio
+(function(){
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const y = yesterday.toISOString().split('T')[0];
+  assertEqual('isTrending : 10 favoris en 1 jour (ratio 10) → tendance', isTrending({status:'stock', vinted_item_id:'1', vinted_favoris:10, buy_date:y}), true);
+  assertEqual('isTrending : 3 favoris en 1 jour (sous le seuil) → pas tendance', isTrending({status:'stock', vinted_item_id:'1', vinted_favoris:3, buy_date:y}), false);
+})();
+
+// ── fmtPrice ──
+assertEqual('fmtPrice : formatage virgule + €', fmtPrice(23.5), '23,50 €');
+assertEqual('fmtPrice : valeur vide → 0,00 €', fmtPrice(null), '0,00 €');
+
+document.getElementById('summary').innerHTML = `${pass} réussi(s) / ${fail} échoué(s)`;
+document.getElementById('summary').style.color = fail === 0 ? '#00e5a0' : '#ef4444';
+</script>
+</body>
+</html>
