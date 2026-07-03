@@ -171,7 +171,8 @@ function isTrending(a){
   const d=daysBetween(a.buy_date||a.created_at?.split('T')[0],today());
   if(d===null||d<1) return false;
   const favoris=a.vinted_favoris||0;
-  return favoris>=5 || (favoris/d)>=0.5;
+  // Il faut à la fois un volume significatif (8+ favoris) ET un rythme rapide (2+/jour en moyenne).
+  return favoris>=8 && (favoris/d)>=2;
 }
 
 // ── SCORE ──
