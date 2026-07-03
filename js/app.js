@@ -393,16 +393,18 @@ function renderDashboard(){
   const totalDepenses=allExpenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
   const profitNet=totalProfit-totalDepenses;
 
-  document.getElementById('kpiGrid').innerHTML=`
-    <div class="kpi-card"><div class="kpi-label">Profit total</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Profit ce mois</div><div class="kpi-val ${profitMois>=0?'green':'red'}">${fmtPrice(profitMois)}</div><div class="kpi-sub">Automatique</div></div>
-    <div class="kpi-card"><div class="kpi-label">Profit net (après dépenses)</div><div class="kpi-val ${profitNet>=0?'green':'red'}">${fmtPrice(profitNet)}</div><div class="kpi-sub">-${fmtPrice(totalDepenses)} de dépenses</div></div>
-    <div class="kpi-card"><div class="kpi-label">En stock</div><div class="kpi-val">${stock.length}</div><div class="kpi-sub">${fmtPrice(investi)} investis</div></div>
-    <div class="kpi-card"><div class="kpi-label">À expédier</div><div class="kpi-val" style="color:var(--warning)">${expedition.length}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Capital bloqué +30j</div><div class="kpi-val red">${fmtPrice(capitalBloque)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">🛍️ Achats Vinted ce mois</div><div class="kpi-val red">-${fmtPrice(achatsMois)}</div><div class="kpi-sub">Automatique</div></div>
-  `;
+  const kpis=[
+    {key:'kpi_profit_total', html:`<div class="kpi-card"><div class="kpi-label">Profit total</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>`},
+    {key:'kpi_profit_mois', html:`<div class="kpi-card"><div class="kpi-label">Profit ce mois</div><div class="kpi-val ${profitMois>=0?'green':'red'}">${fmtPrice(profitMois)}</div><div class="kpi-sub">Automatique</div></div>`},
+    {key:'kpi_profit_net', html:`<div class="kpi-card"><div class="kpi-label">Profit net (après dépenses)</div><div class="kpi-val ${profitNet>=0?'green':'red'}">${fmtPrice(profitNet)}</div><div class="kpi-sub">-${fmtPrice(totalDepenses)} de dépenses</div></div>`},
+    {key:'kpi_stock', html:`<div class="kpi-card"><div class="kpi-label">En stock</div><div class="kpi-val">${stock.length}</div><div class="kpi-sub">${fmtPrice(investi)} investis</div></div>`},
+    {key:'kpi_expedition', html:`<div class="kpi-card"><div class="kpi-label">À expédier</div><div class="kpi-val" style="color:var(--warning)">${expedition.length}</div></div>`},
+    {key:'kpi_vendus', html:`<div class="kpi-card"><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>`},
+    {key:'kpi_capital', html:`<div class="kpi-card"><div class="kpi-label">Capital bloqué +30j</div><div class="kpi-val red">${fmtPrice(capitalBloque)}</div></div>`},
+    {key:'kpi_achats', html:`<div class="kpi-card"><div class="kpi-label">🛍️ Achats Vinted ce mois</div><div class="kpi-val red">-${fmtPrice(achatsMois)}</div><div class="kpi-sub">Automatique</div></div>`},
+  ];
+  const kpiPrefs=getDashboardWidgetPrefs();
+  document.getElementById('kpiGrid').innerHTML=kpis.filter(k=>kpiPrefs[k.key]).map(k=>k.html).join('');
 
   // IA Coach
   const coach=generateCoach();
@@ -418,7 +420,7 @@ function renderDashboard(){
 }
 
 // ── PERSONNALISATION DU TABLEAU DE BORD ──
-const DASH_WIDGETS=['weekly','coach','calc','recent','chart'];
+const DASH_WIDGETS=['kpi_profit_total','kpi_profit_mois','kpi_profit_net','kpi_stock','kpi_expedition','kpi_vendus','kpi_capital','kpi_achats','weekly','coach','calc','recent','chart'];
 function getDashboardWidgetPrefs(){
   const stored=JSON.parse(localStorage.getItem('dashWidgets_'+currentUser.id)||'{}');
   const prefs={};
@@ -442,7 +444,7 @@ window.saveDashboardSettings=()=>{
   const prefs={};
   DASH_WIDGETS.forEach(w=>{ prefs[w]=document.getElementById('widget_'+w).checked; });
   localStorage.setItem('dashWidgets_'+currentUser.id, JSON.stringify(prefs));
-  applyDashboardWidgets();
+  renderDashboard();
   closeDashboardSettings();
 };
 

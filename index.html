@@ -613,8 +613,17 @@
       <h3>Personnaliser le tableau de bord</h3>
       <button class="modal-close" onclick="closeDashboardSettings()">✕</button>
     </div>
-    <div class="modal-body">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Choisissez les sections à afficher.</p>
+    <div class="modal-body" style="max-height:60vh;overflow-y:auto;">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">Indicateurs (bande du haut)</p>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_profit_total" checked><label for="widget_kpi_profit_total">Profit total</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_profit_mois" checked><label for="widget_kpi_profit_mois">Profit ce mois</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_profit_net" checked><label for="widget_kpi_profit_net">Profit net (après dépenses)</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_stock" checked><label for="widget_kpi_stock">En stock</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_expedition" checked><label for="widget_kpi_expedition">À expédier</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_vendus" checked><label for="widget_kpi_vendus">Vendus</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_capital" checked><label for="widget_kpi_capital">Capital bloqué +30j</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_achats" checked><label for="widget_kpi_achats">🛍️ Achats Vinted ce mois</label></div>
+      <p style="font-size:13px;color:var(--muted);margin:14px 0 8px;">Sections</p>
       <div class="checklist-item"><input type="checkbox" id="widget_weekly" checked><label for="widget_weekly">📅 Résumé hebdomadaire</label></div>
       <div class="checklist-item"><input type="checkbox" id="widget_coach" checked><label for="widget_coach">🤖 Coach IA</label></div>
       <div class="checklist-item"><input type="checkbox" id="widget_calc" checked><label for="widget_calc">🧮 Calculateur de marge rapide</label></div>
