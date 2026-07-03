@@ -917,6 +917,14 @@ async function renderSyncBanner(){
     el.innerHTML=`<div class="sync-banner-text">🔌 Extension Chrome non connectée — <strong>connectez-la dans Paramètres</strong> pour synchroniser automatiquement vos ventes, votre stock et votre messagerie Vinted.</div>`;
     return;
   }
+  const daysSinceSync=data.last_sync?daysBetween(data.last_sync,today()):null;
+  if(daysSinceSync!==null&&daysSinceSync>=3){
+    el.style.display='flex';
+    el.classList.add('sync-banner-warning');
+    el.innerHTML=`<div class="sync-banner-text">⚠️ Aucune synchronisation depuis ${daysSinceSync} jours — votre connexion Vinted a probablement expiré. <strong>Reconnectez-vous dans Paramètres.</strong></div>`;
+    return;
+  }
+  el.classList.remove('sync-banner-warning');
   el.style.display='flex';
   el.innerHTML=`<div class="sync-banner-text">✅ Vinted connecté — <strong>@${data.vinted_login||'—'}</strong> · dernière synchro ${data.last_sync?new Date(data.last_sync).toLocaleDateString('fr-FR'):'—'}</div>`;
 }
@@ -941,43 +949,6 @@ function renderRepublier() {
     ? `<div class="article-list">${toRepublish.map(a=>articleHTML(a)).join('')}</div>`
     : emptyState('Aucun article à republier pour le moment.');
 }
-
-// ── CONNEXION VINTED ──
-
-window.saveVintedCookie = async () => {
-  const cookie = document.getElementById('vintedCookieInput').value.trim();
-  const msgEl = document.getElementById('cookieMsg');
-  if (!cookie || cookie.length < 50) {
-    msgEl.style.color = '#ef4444';
-    msgEl.textContent = '⚠️ Cookie invalide ou trop court.';
-    return;
-  }
-  msgEl.style.color = 'var(--muted)';
-  msgEl.textContent = '⏳ Connexion à Vinted en cours...';
-
-  try {
-    const token = (await sb.auth.getSession()).data.session?.access_token;
-    const r = await fetch(`${BACKEND}/api/vinted/sync-cookie`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ cookie }),
-    });
-    const data = await r.json();
-    if (r.ok && data.ok) {
-      msgEl.style.color = '#00e5a0';
-      msgEl.textContent = `✓ ${data.message}`;
-      document.getElementById('vintedCookieInput').value = '';
-      await loadArticles();
-      renderVintedConnectionStatus();
-    } else {
-      msgEl.style.color = '#ef4444';
-      msgEl.textContent = `✗ ${data.detail || 'Erreur — vérifiez votre cookie.'}`;
-    }
-  } catch(e) {
-    msgEl.style.color = '#ef4444';
-    msgEl.textContent = '✗ Erreur de connexion au serveur.';
-  }
-};
 
 function renderExtensionInstallBtn() {
   const el = document.getElementById('extensionInstallBtn');

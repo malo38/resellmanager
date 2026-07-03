@@ -345,6 +345,8 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .sync-banner { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
 .sync-banner-text { font-size: 13px; color: var(--muted); }
 .sync-banner-text strong { color: var(--text); }
+.sync-banner.sync-banner-warning { background: #f59e0b1a; border-color: #f59e0b; }
+.sync-banner.sync-banner-warning .sync-banner-text, .sync-banner.sync-banner-warning .sync-banner-text strong { color: #f59e0b; }
 .fav-copy-btn:hover { opacity: 0.88; }
 
 /* ── LANDING PAGE (thème clair dédié, indépendant du thème sombre/clair de l'app) ── */
