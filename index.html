@@ -159,6 +159,7 @@
       <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon">◫</span> Stock</button>
       <button class="nav-btn" onclick="goPage('expedition',this)"><span class="nav-icon">🚚</span> À expédier</button>
       <button class="nav-btn" onclick="goPage('vendus',this)"><span class="nav-icon">✓</span> Vendus</button>
+      <button class="nav-btn" onclick="goPage('achats',this)"><span class="nav-icon">🛍️</span> Achats</button>
       <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon">💬</span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
       <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon">❤️</span> Messages favoris</button>
       <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon">🔄</span> Republication</button>
@@ -286,6 +287,13 @@
         </div>
         <div class="section-header"><span class="count-label" id="vendusCount"></span></div>
         <div id="vendusList"></div>
+      </section>
+
+      <!-- ACHATS -->
+      <section class="page" id="page-achats">
+        <div class="info-banner">🛍️ Vos achats Vinted, synchronisés automatiquement — statut de commande en temps réel.</div>
+        <div class="section-header"><span class="count-label" id="achatsCount"></span></div>
+        <div id="achatsList"></div>
       </section>
 
       <!-- MESSAGES VINTED -->

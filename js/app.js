@@ -24,7 +24,7 @@ const PREP_STEPS = [
   { key: 'vendu',      label: '💰 Vendu',           color: '#34d399' },
 ];
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', preparation:'Mode préparation', stock:'Stock', expedition:'À expédier', vendus:'Vendus', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', replay:'Resell Replay', settings:'Paramètres' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', preparation:'Mode préparation', stock:'Stock', expedition:'À expédier', vendus:'Vendus', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', replay:'Resell Replay', settings:'Paramètres' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -135,6 +135,7 @@ window.goPage = (id, btn) => {
   if(id==='favoris') renderFavoris();
   if(id==='republier') renderRepublier();
   if(id==='messages') renderMessages();
+  if(id==='achats') renderAchats();
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
 window.toggleSidebar=()=>document.querySelector('.sidebar').classList.toggle('open');
@@ -352,6 +353,7 @@ function articleHTML(a, opts={}) {
   const vintedStatsBadge=a.vinted_item_id&&a.status==='stock'
     ?`<span class="badge badge-vinted badge-clickable" title="Voir l'évolution" onclick="showHistory('${a.vinted_item_id}','${a.name.replace(/'/g,"\\'")}')">👁️ ${a.vinted_vues||0} · ❤️ ${a.vinted_favoris||0}</span>`:'';
   const trendingBadge=isTrending(a)?`<span class="badge" style="background:#fb923c22;color:#fb923c;">🔥 Tendance</span>`:'';
+  const shippingBadge=a.status==='vendu'&&a.vinted_shipping_status?orderStatusBadge(a.vinted_transaction_status,a.vinted_shipping_status):'';
   const nextStep=PREP_STEPS[PREP_STEPS.findIndex(p=>p.key===a.status)+1];
   const moveBtn=opts.showMove&&nextStep?`<button class="btn-edit" style="font-size:10px;" onclick="moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`:'';
   const checkbox=opts.selectSection&&selectMode[opts.selectSection]
@@ -366,7 +368,7 @@ function articleHTML(a, opts={}) {
       <div class="article-badges">
         <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
         ${stepBadge(a.status)}
-        ${heat}${locBadge}${scoreBadge}${vintedStatsBadge}${trendingBadge}
+        ${heat}${locBadge}${scoreBadge}${vintedStatsBadge}${trendingBadge}${shippingBadge}
       </div>
     </div>
     <div class="article-right">
@@ -870,6 +872,30 @@ async function renderMessages(){
       </div>
       <div class="msg-time">${timeAgo(m.updated_at)}</div>
     </div>`).join('');
+}
+
+// ── STATUT DE COMMANDE VINTED (ventes + achats) ──
+function orderStatusBadge(statutCode, statutText){
+  if(!statutText) return '';
+  const style = statutCode==='completed' ? 'background:#00e5a022;color:#00e5a0;'
+    : statutCode==='failed' ? 'background:#ef444422;color:#ef4444;'
+    : statutCode==='waiting' ? 'background:#f59e0b22;color:#f59e0b;'
+    : 'background:var(--surface2);color:var(--muted);';
+  return `<span class="badge" style="${style}" title="${statutText}">${statutText}</span>`;
+}
+
+function renderAchats(){
+  const el=document.getElementById('achatsList');
+  document.getElementById('achatsCount').textContent=allPurchases.length+' achat(s)';
+  el.innerHTML=allPurchases.length ? allPurchases.map(p=>`
+    <div class="article-card">
+      <div class="article-photo">${p.photo_url?`<img src="${p.photo_url}" alt="">`:'📦'}</div>
+      <div class="article-info">
+        <div class="article-name">${p.title||'Article'}</div>
+        <div class="article-meta">${fmtPrice(p.price)} · ${p.purchase_date||''}</div>
+        <div class="article-badges">${orderStatusBadge(p.transaction_status,p.status)}</div>
+      </div>
+    </div>`).join('') : emptyState('Aucun achat Vinted synchronisé pour le moment.');
 }
 
 async function updateMessagesBadge(){
