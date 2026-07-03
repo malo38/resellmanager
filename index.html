@@ -166,6 +166,7 @@
       <button class="nav-btn" onclick="goPage('replay',this)"><span class="nav-icon">▶</span> Resell Replay</button>
       <button class="nav-btn" onclick="goPage('analytics',this)"><span class="nav-icon">◈</span> Statistiques</button>
       <button class="nav-btn" onclick="goPage('objectif',this)"><span class="nav-icon">◉</span> Objectifs</button>
+      <button class="nav-btn" onclick="goPage('depenses',this)"><span class="nav-icon">🧾</span> Dépenses</button>
       <button class="nav-btn" onclick="goPage('settings',this)"><span class="nav-icon">⚙</span> Paramètres</button>
     </nav>
     <div class="sidebar-footer">
@@ -195,6 +196,21 @@
         <div class="kpi-grid" id="kpiGrid"></div>
         <div class="weekly-card" id="weeklySummary"></div>
         <div class="coach-card" id="coachBox"></div>
+        <div class="settings-card" id="quickCalcCard">
+          <h2 class="settings-title">🧮 Calculateur de marge rapide</h2>
+          <p class="setting-sub" style="margin-bottom:12px;">Testez un prix avant d'acheter un article.</p>
+          <div class="quick-calc-row">
+            <div class="quick-calc-field">
+              <label>Prix d'achat</label>
+              <input type="number" id="quickCalcBuy" placeholder="0" step="0.01" oninput="renderQuickCalc()">
+            </div>
+            <div class="quick-calc-field">
+              <label>Prix de vente</label>
+              <input type="number" id="quickCalcSell" placeholder="0" step="0.01" oninput="renderQuickCalc()">
+            </div>
+          </div>
+          <div class="quick-calc-result" id="quickCalcResult"></div>
+        </div>
         <div class="dash-cols">
           <div>
             <div class="section-header"><h2>Derniers articles</h2></div>
@@ -285,7 +301,15 @@
           <button class="pf-btn" onclick="filterPlatform('Autre',this,'vendus')">Autre</button>
           <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('vendus')">⬇ Exporter CSV</button>
         </div>
-        <div class="section-header"><span class="count-label" id="vendusCount"></span></div>
+        <div class="section-header">
+          <span class="count-label" id="vendusCount"></span>
+          <select id="vendusSort" onchange="renderVendus()" style="margin-left:auto;">
+            <option value="recent">Plus récent</option>
+            <option value="fastest">Vendu le plus vite</option>
+            <option value="profit">Plus rentable</option>
+            <option value="margin">Meilleure marge</option>
+          </select>
+        </div>
         <div id="vendusList"></div>
       </section>
 
@@ -347,6 +371,24 @@
           <div class="chart-bars" id="chartBars"></div>
           <div class="chart-labels" id="chartLabels"></div>
         </div>
+        <div class="section-header" style="margin-top:24px;"><h2>🏆 Hall of Fame — meilleures ventes</h2></div>
+        <div id="hallOfFameList"></div>
+      </section>
+
+      <!-- DÉPENSES -->
+      <section class="page" id="page-depenses">
+        <div class="info-banner">🧾 Suivez vos dépenses générales (emballages, fournitures, abonnements...) pour un profit vraiment net, en plus du coût de vos articles.</div>
+        <div class="settings-card" style="margin-bottom:16px;">
+          <h2 class="settings-title">Ajouter une dépense</h2>
+          <div class="expense-form-row">
+            <input type="text" id="expenseLabel" placeholder="Libellé (ex: Cartons, étiquettes...)" />
+            <input type="number" id="expenseAmount" placeholder="Montant (€)" step="0.01" />
+            <input type="date" id="expenseDate" />
+            <button class="btn-confirm" onclick="addExpense()">Ajouter</button>
+          </div>
+        </div>
+        <div class="section-header"><span class="count-label" id="expensesCount"></span></div>
+        <div id="expensesList"></div>
       </section>
 
       <!-- OBJECTIFS -->
@@ -434,6 +476,16 @@
               <div class="setting-sub">Fermer la session sur cet appareil</div>
             </div>
             <button class="btn-cancel" onclick="doLogout()">Déconnexion</button>
+          </div>
+        </div>
+        <div class="settings-card" style="margin-top:16px;">
+          <h2 class="settings-title">Vos données</h2>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Exporter toutes mes données</div>
+              <div class="setting-sub">Articles, achats et dépenses, en un seul fichier JSON téléchargé</div>
+            </div>
+            <button class="btn-confirm" onclick="exportMyData()">⬇ Exporter</button>
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">

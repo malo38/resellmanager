@@ -24,7 +24,7 @@ const PREP_STEPS = [
   { key: 'vendu',      label: '💰 Vendu',           color: '#34d399' },
 ];
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', preparation:'Mode préparation', stock:'Stock', expedition:'À expédier', vendus:'Vendus', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', replay:'Resell Replay', settings:'Paramètres' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', preparation:'Mode préparation', stock:'Stock', expedition:'À expédier', vendus:'Vendus', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', replay:'Resell Replay', settings:'Paramètres' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -136,6 +136,7 @@ window.goPage = (id, btn) => {
   if(id==='republier') renderRepublier();
   if(id==='messages') renderMessages();
   if(id==='achats') renderAchats();
+  if(id==='depenses') renderDepenses();
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
 window.toggleSidebar=()=>document.querySelector('.sidebar').classList.toggle('open');
@@ -189,11 +190,14 @@ async function uploadPhoto(file,articleId){
 
 // ── LOAD ──
 let allPurchases=[];
+let allExpenses=[];
 async function loadArticles(){
   const {data}=await sb.from('articles').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
   allArticles=data||[];
   const {data:purchasesData}=await sb.from('vinted_purchases').select('*').eq('user_id',currentUser.id).order('purchase_date',{ascending:false});
   allPurchases=purchasesData||[];
+  const {data:expensesData}=await sb.from('expenses').select('*').eq('user_id',currentUser.id).order('expense_date',{ascending:false});
+  allExpenses=expensesData||[];
   renderAll();
   renderSyncBanner();
   updateMessagesBadge();
@@ -386,10 +390,13 @@ function renderDashboard(){
     const d=new Date(p.purchase_date||p.synced_at);
     return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
   }).reduce((s,p)=>s+(p.transaction_status==='failed'?0:(parseFloat(p.price)||0)),0);
+  const totalDepenses=allExpenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const profitNet=totalProfit-totalDepenses;
 
   document.getElementById('kpiGrid').innerHTML=`
     <div class="kpi-card"><div class="kpi-label">Profit total</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>
     <div class="kpi-card"><div class="kpi-label">Profit ce mois</div><div class="kpi-val ${profitMois>=0?'green':'red'}">${fmtPrice(profitMois)}</div><div class="kpi-sub">Automatique</div></div>
+    <div class="kpi-card"><div class="kpi-label">Profit net (après dépenses)</div><div class="kpi-val ${profitNet>=0?'green':'red'}">${fmtPrice(profitNet)}</div><div class="kpi-sub">-${fmtPrice(totalDepenses)} de dépenses</div></div>
     <div class="kpi-card"><div class="kpi-label">En stock</div><div class="kpi-val">${stock.length}</div><div class="kpi-sub">${fmtPrice(investi)} investis</div></div>
     <div class="kpi-card"><div class="kpi-label">À expédier</div><div class="kpi-val" style="color:var(--warning)">${expedition.length}</div></div>
     <div class="kpi-card"><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>
@@ -406,7 +413,24 @@ function renderDashboard(){
     :emptyState('Aucun article encore.');
   renderMiniChart('dashChartBars','dashChartLabels');
   renderWeeklySummary();
+  renderQuickCalc();
 }
+
+// ── CALCULATEUR DE MARGE RAPIDE ──
+window.renderQuickCalc = () => {
+  const el=document.getElementById('quickCalcResult');
+  if(!el) return;
+  const buy=parseFloat(document.getElementById('quickCalcBuy').value)||0;
+  const sell=parseFloat(document.getElementById('quickCalcSell').value)||0;
+  const profit=sell-buy;
+  const margin=sell>0?(profit/sell*100):0;
+  const roi=buy>0?(profit/buy*100):0;
+  el.innerHTML=`
+    <div class="quick-calc-stat"><div class="quick-calc-stat-label">Profit</div><div class="quick-calc-stat-val ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div></div>
+    <div class="quick-calc-stat"><div class="quick-calc-stat-label">Marge</div><div class="quick-calc-stat-val">${margin.toFixed(0)}%</div></div>
+    <div class="quick-calc-stat"><div class="quick-calc-stat-label">ROI</div><div class="quick-calc-stat-val">${roi.toFixed(0)}%</div></div>
+  `;
+};
 
 // ── RÉSUMÉ HEBDOMADAIRE ──
 function renderWeeklySummary(){
@@ -436,6 +460,21 @@ function downloadCSV(content, filename){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+window.exportMyData = () => {
+  const payload={
+    exported_at: new Date().toISOString(),
+    articles: allArticles,
+    achats: allPurchases,
+    depenses: allExpenses,
+  };
+  const blob=new Blob([JSON.stringify(payload, null, 2)], {type:'application/json;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`vinted-manager-donnees-${today()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
 window.exportArticlesCSV = (section) => {
   const arts = section==='stock' ? allArticles.filter(a=>a.status==='stock') : allArticles.filter(a=>a.status==='vendu');
   const headers=[
@@ -456,11 +495,16 @@ window.exportAnnualRecapCSV = () => {
   const byYear={};
   vendus.forEach(a=>{
     const y=new Date(a.sell_date||a.created_at).getFullYear();
-    if(!byYear[y]) byYear[y]={year:y,count:0,buy:0,sell:0,profit:0};
+    if(!byYear[y]) byYear[y]={year:y,count:0,buy:0,sell:0,profit:0,expenses:0};
     byYear[y].count++;
     byYear[y].buy+=parseFloat(a.buy_price)||0;
     byYear[y].sell+=parseFloat(a.sell_price)||0;
     byYear[y].profit+=calcProfit(a);
+  });
+  allExpenses.forEach(e=>{
+    const y=new Date(e.expense_date).getFullYear();
+    if(!byYear[y]) byYear[y]={year:y,count:0,buy:0,sell:0,profit:0,expenses:0};
+    byYear[y].expenses+=parseFloat(e.amount)||0;
   });
   const rows=Object.values(byYear).sort((a,b)=>a.year-b.year);
   if(!rows.length){ alert('Aucune vente enregistrée pour le moment.'); return; }
@@ -470,6 +514,8 @@ window.exportAnnualRecapCSV = () => {
     {label:'Total achats', get:r=>r.buy.toFixed(2)},
     {label:'Total ventes', get:r=>r.sell.toFixed(2)},
     {label:'Profit total', get:r=>r.profit.toFixed(2)},
+    {label:'Dépenses générales', get:r=>r.expenses.toFixed(2)},
+    {label:'Profit net', get:r=>(r.profit-r.expenses).toFixed(2)},
   ];
   downloadCSV(toCSV(rows, headers), `vinted-manager-recap-fiscal-${today()}.csv`);
 };
@@ -618,6 +664,22 @@ window.toggleCheck=(id,el)=>{
 function renderVendus(){
   let arts=allArticles.filter(a=>a.status==='vendu');
   if(currentFilter.vendus!=='Tous') arts=arts.filter(a=>a.platform===currentFilter.vendus);
+  const sortMode=document.getElementById('vendusSort')?.value||'recent';
+  arts=[...arts].sort((a,b)=>{
+    if(sortMode==='fastest'){
+      const da=daysBetween(a.buy_date,a.sell_date), db=daysBetween(b.buy_date,b.sell_date);
+      if(da===null) return 1;
+      if(db===null) return -1;
+      return da-db;
+    }
+    if(sortMode==='profit') return calcProfit(b)-calcProfit(a);
+    if(sortMode==='margin'){
+      const ma=a.sell_price>0?calcProfit(a)/a.sell_price:-Infinity;
+      const mb=b.sell_price>0?calcProfit(b)/b.sell_price:-Infinity;
+      return mb-ma;
+    }
+    return new Date(b.sell_date||b.created_at)-new Date(a.sell_date||a.created_at);
+  });
   document.getElementById('vendusCount').textContent=arts.length+' article(s) vendu(s)';
   document.getElementById('vendusList').innerHTML=arts.length
     ?`<div class="article-list">${arts.map(a=>articleHTML(a)).join('')}</div>`
@@ -681,6 +743,27 @@ function renderAnalytics(){
   document.getElementById('chartLabels').innerHTML=months.map(m=>
     `<div class="chart-label">${m.label}<strong>${m.profit>=0?'+':''}${fmtPrice(m.profit)}</strong></div>`
   ).join('');
+  renderHallOfFame();
+}
+
+// ── HALL OF FAME ──
+function renderHallOfFame(){
+  const el=document.getElementById('hallOfFameList');
+  if(!el) return;
+  const medals=['🥇','🥈','🥉','🏅','🏅'];
+  const top=allArticles.filter(a=>a.status==='vendu').sort((a,b)=>calcProfit(b)-calcProfit(a)).slice(0,5);
+  el.innerHTML=top.length ? top.map((a,i)=>`
+    <div class="article-card" onclick="showDetail('${a.id}')">
+      <div class="hof-rank">${medals[i]||'🏅'}</div>
+      ${photoEl(a)}
+      <div class="article-info">
+        <div class="article-name">${a.name}</div>
+        <div class="article-meta">${a.platform}${a.sell_date?' · '+a.sell_date:''}</div>
+      </div>
+      <div class="article-right">
+        <div class="article-profit profit-pos">+${fmtPrice(calcProfit(a))}</div>
+      </div>
+    </div>`).join('') : emptyState('Vendez votre premier article pour apparaître ici !');
 }
 
 function renderReplay(){
@@ -880,6 +963,52 @@ function renderAchats(){
     </div>`;
   }).join('') : emptyState('Aucun achat Vinted synchronisé pour le moment.');
 }
+
+// ── DÉPENSES GÉNÉRALES ──
+function renderDepenses(){
+  const el=document.getElementById('expensesList');
+  if(!el) return;
+  const total=allExpenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  document.getElementById('expensesCount').textContent=allExpenses.length+' dépense(s) · '+fmtPrice(total)+' au total';
+  el.innerHTML=allExpenses.length ? allExpenses.map(e=>`
+    <div class="article-card">
+      <div class="article-photo">🧾</div>
+      <div class="article-info">
+        <div class="article-name">${e.label}</div>
+        <div class="article-meta">${fmtDate(e.expense_date)}</div>
+      </div>
+      <div class="article-right">
+        <div class="article-profit profit-neg">-${fmtPrice(e.amount)}</div>
+        <div class="article-actions">
+          <button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="deleteExpense('${e.id}')">✕</button>
+        </div>
+      </div>
+    </div>`).join('') : emptyState('Aucune dépense enregistrée pour le moment.');
+}
+
+window.addExpense = async () => {
+  const label=document.getElementById('expenseLabel').value.trim();
+  const amount=parseFloat(document.getElementById('expenseAmount').value)||0;
+  const expense_date=document.getElementById('expenseDate').value||today();
+  if(!label||amount<=0) return;
+  const {data}=await sb.from('expenses').insert([{user_id:currentUser.id,label,amount,expense_date}]).select();
+  if(data){
+    allExpenses.unshift(data[0]);
+    allExpenses.sort((a,b)=>new Date(b.expense_date)-new Date(a.expense_date));
+    document.getElementById('expenseLabel').value='';
+    document.getElementById('expenseAmount').value='';
+    document.getElementById('expenseDate').value='';
+    renderDepenses();
+    renderDashboard();
+  }
+};
+
+window.deleteExpense = async (id) => {
+  await sb.from('expenses').delete().eq('id',id).eq('user_id',currentUser.id);
+  allExpenses=allExpenses.filter(e=>e.id!==id);
+  renderDepenses();
+  renderDashboard();
+};
 
 async function updateMessagesBadge(){
   const badge=document.getElementById('navMsgBadge');
