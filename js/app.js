@@ -414,7 +414,37 @@ function renderDashboard(){
   renderMiniChart('dashChartBars','dashChartLabels');
   renderWeeklySummary();
   renderQuickCalc();
+  applyDashboardWidgets();
 }
+
+// ── PERSONNALISATION DU TABLEAU DE BORD ──
+const DASH_WIDGETS=['weekly','coach','calc','recent','chart'];
+function getDashboardWidgetPrefs(){
+  const stored=JSON.parse(localStorage.getItem('dashWidgets_'+currentUser.id)||'{}');
+  const prefs={};
+  DASH_WIDGETS.forEach(w=>{ prefs[w]=stored[w]!==false; });
+  return prefs;
+}
+function applyDashboardWidgets(){
+  const prefs=getDashboardWidgetPrefs();
+  DASH_WIDGETS.forEach(w=>{
+    const el=document.querySelector(`[data-widget="${w}"]`);
+    if(el) el.style.display=prefs[w]?'':'none';
+  });
+}
+window.showDashboardSettings=()=>{
+  const prefs=getDashboardWidgetPrefs();
+  DASH_WIDGETS.forEach(w=>{ document.getElementById('widget_'+w).checked=prefs[w]; });
+  document.getElementById('dashWidgetsBg').classList.add('open');
+};
+window.closeDashboardSettings=()=>document.getElementById('dashWidgetsBg').classList.remove('open');
+window.saveDashboardSettings=()=>{
+  const prefs={};
+  DASH_WIDGETS.forEach(w=>{ prefs[w]=document.getElementById('widget_'+w).checked; });
+  localStorage.setItem('dashWidgets_'+currentUser.id, JSON.stringify(prefs));
+  applyDashboardWidgets();
+  closeDashboardSettings();
+};
 
 // ── CALCULATEUR DE MARGE RAPIDE ──
 window.renderQuickCalc = () => {

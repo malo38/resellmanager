@@ -288,6 +288,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 
 /* ── CALCULATEUR RAPIDE ── */
 #quickCalcCard { margin-bottom: 20px; }
+.dash-topbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .quick-calc-row { display: flex; gap: 14px; }
 .quick-calc-field { flex: 1; }
 .quick-calc-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }

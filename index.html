@@ -192,11 +192,15 @@
 
       <!-- DASHBOARD -->
       <section class="page active" id="page-dashboard">
+        <div class="dash-topbar">
+          <span></span>
+          <button class="btn-edit" onclick="showDashboardSettings()">✎ Modifier le tableau de bord</button>
+        </div>
         <div class="sync-banner" id="dashSyncBanner" style="display:none"></div>
         <div class="kpi-grid" id="kpiGrid"></div>
-        <div class="weekly-card" id="weeklySummary"></div>
-        <div class="coach-card" id="coachBox"></div>
-        <div class="settings-card" id="quickCalcCard">
+        <div class="weekly-card" id="weeklySummary" data-widget="weekly"></div>
+        <div class="coach-card" id="coachBox" data-widget="coach"></div>
+        <div class="settings-card" id="quickCalcCard" data-widget="calc">
           <h2 class="settings-title">🧮 Calculateur de marge rapide</h2>
           <p class="setting-sub" style="margin-bottom:12px;">Testez un prix avant d'acheter un article.</p>
           <div class="quick-calc-row">
@@ -212,11 +216,11 @@
           <div class="quick-calc-result" id="quickCalcResult"></div>
         </div>
         <div class="dash-cols">
-          <div>
+          <div data-widget="recent">
             <div class="section-header"><h2>Derniers articles</h2></div>
             <div id="recentList"></div>
           </div>
-          <div>
+          <div data-widget="chart">
             <div class="section-header"><h2>Profit mensuel</h2></div>
             <div class="chart-card">
               <div class="chart-bars" id="dashChartBars"></div>
@@ -598,6 +602,28 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeDetail()">Fermer</button>
       <button class="btn-confirm" id="detailEditBtn">✎ Modifier</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERSONNALISATION DU TABLEAU DE BORD -->
+<div class="modal-bg" id="dashWidgetsBg">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h3>Personnaliser le tableau de bord</h3>
+      <button class="modal-close" onclick="closeDashboardSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Choisissez les sections à afficher.</p>
+      <div class="checklist-item"><input type="checkbox" id="widget_weekly" checked><label for="widget_weekly">📅 Résumé hebdomadaire</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_coach" checked><label for="widget_coach">🤖 Coach IA</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_calc" checked><label for="widget_calc">🧮 Calculateur de marge rapide</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_recent" checked><label for="widget_recent">📦 Derniers articles</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_chart" checked><label for="widget_chart">📊 Profit mensuel (graphique)</label></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDashboardSettings()">Fermer</button>
+      <button class="btn-confirm" onclick="saveDashboardSettings()">Enregistrer</button>
     </div>
   </div>
 </div>
