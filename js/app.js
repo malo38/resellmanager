@@ -218,6 +218,7 @@ async function loadArticles(){
   renderAll();
   renderSyncBanner();
   updateMessagesBadge();
+  updateRepublishBadge();
 }
 
 // ── MODAL ──
@@ -945,17 +946,49 @@ window.saveRepublishDays = () => {
   renderRepublier();
 };
 
-function renderRepublier() {
+function getArticlesToRepublish(){
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
-  document.getElementById('republishDays').value = days;
   const stock = allArticles.filter(a => a.status==='stock' && a.platform==='Vinted');
-  const toRepublish = stock.filter(a => {
+  return stock.filter(a => {
     const d = daysBetween(a.buy_date || a.created_at?.split('T')[0], today());
     return d !== null && d >= days;
   });
+}
+
+function republishDoneKey(){ return 'republish_done_'+currentUser.id+'_'+today(); }
+
+function renderRepublier() {
+  const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
+  document.getElementById('republishDays').value = days;
+  const toRepublish = getArticlesToRepublish();
+  const doneToday = JSON.parse(localStorage.getItem(republishDoneKey())||'[]');
   document.getElementById('republierList').innerHTML = toRepublish.length
-    ? `<div class="article-list">${toRepublish.map(a=>articleHTML(a)).join('')}</div>`
+    ? `<div class="checklist-card"><div class="checklist-title">✅ À republier aujourd'hui</div>${toRepublish.map(a=>`
+      <div class="checklist-item">
+        <input type="checkbox" id="rep_${a.id}" ${doneToday.includes(a.id)?'checked':''} onchange="toggleRepublishDone('${a.id}',this)" />
+        <label for="rep_${a.id}" class="${doneToday.includes(a.id)?'done':''}">${a.name}</label>
+        ${a.vinted_item_id?`<a href="https://www.vinted.fr/items/${a.vinted_item_id}" target="_blank" rel="noopener" class="btn-edit" style="text-decoration:none;flex-shrink:0;">Voir sur Vinted →</a>`:''}
+      </div>`).join('')}</div>`
     : emptyState('Aucun article à republier pour le moment.');
+  updateRepublishBadge();
+}
+
+window.toggleRepublishDone = (id, el) => {
+  const key = republishDoneKey();
+  const done = new Set(JSON.parse(localStorage.getItem(key)||'[]'));
+  if(el.checked) done.add(id); else done.delete(id);
+  localStorage.setItem(key, JSON.stringify([...done]));
+  el.nextElementSibling?.classList.toggle('done', el.checked);
+  updateRepublishBadge();
+};
+
+function updateRepublishBadge(){
+  const badge=document.getElementById('navRepublishBadge');
+  if(!badge || !currentUser) return;
+  const doneToday = JSON.parse(localStorage.getItem(republishDoneKey())||'[]');
+  const remaining = getArticlesToRepublish().filter(a=>!doneToday.includes(a.id));
+  if(remaining.length>0){ badge.textContent=remaining.length; badge.style.display='inline-block'; }
+  else { badge.style.display='none'; }
 }
 
 function renderExtensionInstallBtn() {
