@@ -861,10 +861,10 @@ async function renderMessages(){
     return;
   }
   container.innerHTML=data.map(m=>`
-    <div class="msg-card ${m.non_lu?'unread':''}">
+    <div class="msg-card ${m.non_lu?'unread':''} ${m.est_offre?'offer':''}">
       <div class="msg-avatar">${(m.interlocuteur||'?').charAt(0).toUpperCase()}</div>
       <div class="msg-info">
-        <div class="msg-name">${m.interlocuteur||'Utilisateur'} ${m.non_lu?'<span class="msg-dot"></span>':''}</div>
+        <div class="msg-name">${m.interlocuteur||'Utilisateur'} ${m.non_lu?'<span class="msg-dot"></span>':''} ${m.est_offre?`<span class="offer-badge">💰 Offre ${fmtPrice(m.offre_prix)}</span>`:''}</div>
         <div class="msg-preview">${m.dernier_message||''}</div>
       </div>
       <div class="msg-time">${timeAgo(m.updated_at)}</div>
