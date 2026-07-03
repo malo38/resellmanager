@@ -1009,7 +1009,7 @@ function renderReputationGrid(data){
   if(!hasAny){ el.style.display = 'none'; return; }
   el.style.display = 'grid';
   el.innerHTML = `
-    <div class="reputation-stat"><div class="reputation-val">${(data.feedback_reputation||0).toFixed(1)}/5</div><div class="reputation-label">⭐ Note moyenne</div></div>
+    <div class="reputation-stat"><div class="reputation-val">${((data.feedback_reputation||0)*5).toFixed(1)}/5</div><div class="reputation-label">⭐ Note moyenne</div></div>
     <div class="reputation-stat"><div class="reputation-val">${data.review_count||0}</div><div class="reputation-label">💬 Avis</div></div>
     <div class="reputation-stat"><div class="reputation-val">${data.followers_count||0}</div><div class="reputation-label">👥 Abonnés</div></div>
   `;
