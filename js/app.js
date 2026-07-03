@@ -984,8 +984,10 @@ async function renderVintedConnectionStatus() {
       return;
     }
     if (data.connected) {
-      statusEl.textContent = 'Extension Chrome active';
-      badgeEl.innerHTML = '<span style="color:#00e5a0;">● Connecté</span>';
+      const daysSinceSync = data.last_sync ? daysBetween(data.last_sync, today()) : null;
+      const isStale = daysSinceSync !== null && daysSinceSync >= 3;
+      statusEl.textContent = isStale ? `Aucune synchro depuis ${daysSinceSync} jours` : 'Extension Chrome active';
+      badgeEl.innerHTML = isStale ? '<span style="color:#f59e0b;">● Synchro en panne</span>' : '<span style="color:#00e5a0;">● Connecté</span>';
       loginEl.textContent = '@' + (data.vinted_login || '—');
       lastSyncEl.textContent = data.last_sync
         ? new Date(data.last_sync).toLocaleDateString('fr-FR') : '—';
