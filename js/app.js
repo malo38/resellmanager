@@ -323,7 +323,10 @@ window.filterPrep=(step,btn)=>{
 };
 
 // ── HELPERS ──
-function calcProfit(a){return(parseFloat(a.sell_price)||0)-(parseFloat(a.buy_price)||0)-(parseFloat(a.extra_costs)||0);}
+function calcProfit(a){
+  if(a.vinted_transaction_status==='failed') return 0;
+  return(parseFloat(a.sell_price)||0)-(parseFloat(a.buy_price)||0)-(parseFloat(a.extra_costs)||0);
+}
 function fmtPrice(v){return parseFloat(v||0).toFixed(2).replace('.',',')+' €';}
 function platformBadgeClass(p){return{Vinted:'badge-vinted',eBay:'badge-ebay',Leboncoin:'badge-leboncoin'}[p]||'badge-autre';}
 
@@ -365,7 +368,7 @@ function articleHTML(a, opts={}) {
     ${photoEl(a)}
     <div class="article-info">
       <div class="article-name">${a.name}</div>
-      <div class="article-meta">Achat ${fmtPrice(a.buy_price)} · Vente ${fmtPrice(a.sell_price)}${a.extra_costs?' · Frais '+fmtPrice(a.extra_costs):''}</div>
+      <div class="article-meta">Achat ${fmtPrice(a.buy_price)} · Vente ${a.vinted_transaction_status==='failed'?fmtPrice(0):fmtPrice(a.sell_price)}${a.extra_costs?' · Frais '+fmtPrice(a.extra_costs):''}</div>
       ${sellTime?`<div class="sell-time">${sellTime}</div>`:''}
       <div class="article-badges" onclick="event.stopPropagation()">
         <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
@@ -406,7 +409,7 @@ function renderDashboard(){
   const achatsMois=allPurchases.filter(p=>{
     const d=new Date(p.purchase_date||p.synced_at);
     return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-  }).reduce((s,p)=>s+(parseFloat(p.price)||0),0);
+  }).reduce((s,p)=>s+(p.transaction_status==='failed'?0:(parseFloat(p.price)||0)),0);
 
   document.getElementById('kpiGrid').innerHTML=`
     <div class="kpi-card"><div class="kpi-label">Profit total</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>
@@ -709,40 +712,33 @@ function renderReplay(){
   const container=document.getElementById('replayList');
   if(!arts.length){container.innerHTML=emptyState('Aucun article vendu encore.');return;}
   container.innerHTML=arts.map(a=>{
-    const shippingDone=a.vinted_transaction_status==='completed';
-    const steps=[
-      {label:'Acheté',date:a.buy_date,val:fmtPrice(a.buy_price),done:true},
-      {label:'En préparation',date:'',val:'',done:true},
-      {label:'Publié',date:'',val:'',done:true},
-      {label:'Vendu',date:a.sell_date,val:fmtPrice(a.sell_price),done:true},
-      a.vinted_shipping_status
-        ?{label:'Expédition',date:'',val:a.vinted_shipping_status,done:shippingDone}
-        :{label:'Expédié',date:a.sell_date,val:'',done:true},
-    ];
+    const isRefunded=a.vinted_transaction_status==='failed';
     const profit=calcProfit(a);
     const days=daysBetween(a.buy_date,a.sell_date);
     const score=calcScore(a);
-    return `<div class="replay-card" style="cursor:pointer;" onclick="showDetail('${a.id}')">
+    return `<div class="replay-card" onclick="showDetail('${a.id}')">
       <div class="replay-header">
         ${a.photo_url?`<img src="${a.photo_url}" class="replay-photo" />`:'<div class="replay-photo">📦</div>'}
-        <div>
+        <div class="replay-headinfo">
           <div class="replay-name">${a.name}</div>
-          <div class="replay-meta">${a.platform} · ${days!==null?'Vendu en '+days+'j':''}  · Score ${score}/100</div>
-          <div class="replay-profit ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div>
+          <div class="replay-meta">${a.platform}${days!==null&&!isRefunded?' · Vendu en '+days+'j':''} · Score ${score}/100</div>
+        </div>
+        <div class="replay-profit ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div>
+      </div>
+      <div class="replay-flow">
+        <div class="replay-flow-step">
+          <div class="replay-flow-label">🛒 Acheté</div>
+          <div class="replay-flow-val">${fmtPrice(a.buy_price)}</div>
+          ${a.buy_date?`<div class="replay-flow-date">${a.buy_date}</div>`:''}
+        </div>
+        <div class="replay-flow-arrow">→</div>
+        <div class="replay-flow-step">
+          <div class="replay-flow-label">💸 Vendu</div>
+          <div class="replay-flow-val">${isRefunded?fmtPrice(0):fmtPrice(a.sell_price)}</div>
+          ${a.sell_date?`<div class="replay-flow-date">${a.sell_date}</div>`:''}
         </div>
       </div>
-      <div class="replay-timeline">
-        ${steps.map((s,i)=>`
-          <div class="replay-step">
-            <div class="replay-dot ${s.done?'done':''}"></div>
-            ${i<steps.length-1?'<div class="replay-line"></div>':''}
-            <div class="replay-step-info">
-              <div class="replay-step-label">${s.label}</div>
-              ${s.date?`<div class="replay-step-date">${s.date}</div>`:''}
-              ${s.val?`<div class="replay-step-val">${s.val}</div>`:''}
-            </div>
-          </div>`).join('')}
-      </div>
+      ${a.vinted_shipping_status?`<div class="replay-shipping">${orderStatusBadge(a.vinted_transaction_status,a.vinted_shipping_status)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -897,7 +893,7 @@ function renderAchats(){
       <div class="article-photo">${p.photo_url?`<img src="${p.photo_url}" alt="">`:'📦'}</div>
       <div class="article-info">
         <div class="article-name">${p.title||'Article'}</div>
-        <div class="article-meta profit-neg">-${fmtPrice(p.price)} · ${p.purchase_date||''}</div>
+        <div class="article-meta profit-neg">${p.transaction_status==='failed'?fmtPrice(0):'-'+fmtPrice(p.price)} · ${p.purchase_date||''}</div>
         <div class="article-badges">${orderStatusBadge(p.transaction_status,p.status)}</div>
       </div>
     </div>`).join('') : emptyState('Aucun achat Vinted synchronisé pour le moment.');
@@ -1033,9 +1029,12 @@ window.showHistory = async (itemId, itemName) => {
 window.closeHistory = () => document.getElementById('historyBg').classList.remove('open');
 
 // ── DÉTAIL ARTICLE ──
+function detailRow(label,val){return `<div class="detail-row"><span class="detail-row-label">${label}</span><span class="detail-row-val">${val}</span></div>`;}
+
 window.showDetail = (id) => {
   const a=allArticles.find(x=>x.id===id);
   if(!a) return;
+  const isRefunded=a.vinted_transaction_status==='failed';
   const profit=a.status==='vendu'?calcProfit(a):0;
   const roi=a.buy_price>0?(profit/a.buy_price*100):0;
   const days=daysBetween(a.buy_date,a.sell_date);
@@ -1048,15 +1047,15 @@ window.showDetail = (id) => {
       ${stepBadge(a.status)}
       ${a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:''}
     </div>
-    <div class="history-row"><div class="history-vals">🛒 Achat : ${fmtPrice(a.buy_price)}${a.buy_date?' · '+a.buy_date:''}</div></div>
-    ${a.status==='vendu'?`<div class="history-row"><div class="history-vals">💸 Vente : ${fmtPrice(a.sell_price)}${a.sell_date?' · '+a.sell_date:''}</div></div>`:''}
-    ${a.extra_costs?`<div class="history-row"><div class="history-vals">🧾 Frais annexes : ${fmtPrice(a.extra_costs)}</div></div>`:''}
-    ${a.status==='vendu'?`<div class="history-row"><div class="history-vals">📊 Profit : <strong class="${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</strong> · ROI ${roi.toFixed(0)}%</div></div>`:''}
-    ${days!==null?`<div class="history-row"><div class="history-vals">⏱ Vendu en ${days} jour(s)</div></div>`:''}
-    ${score!==null?`<div class="history-row"><div class="history-vals">⭐ Score : ${score}/100</div></div>`:''}
-    ${a.vinted_item_id&&a.status==='stock'?`<div class="history-row"><div class="history-vals">👁️ ${a.vinted_vues||0} vues · ❤️ ${a.vinted_favoris||0} favoris</div></div>`:''}
-    ${a.vinted_shipping_status?`<div class="history-row"><div class="history-vals">📦 Statut Vinted : ${a.vinted_shipping_status}</div></div>`:''}
-    ${a.source?`<div class="history-row"><div class="history-vals">🔗 Source : ${a.source}</div></div>`:''}
+    ${detailRow('🛒 Achat', fmtPrice(a.buy_price)+(a.buy_date?' · '+a.buy_date:''))}
+    ${a.status==='vendu'?detailRow('💸 Vente', (isRefunded?fmtPrice(0):fmtPrice(a.sell_price))+(a.sell_date?' · '+a.sell_date:'')):''}
+    ${a.extra_costs?detailRow('🧾 Frais annexes', fmtPrice(a.extra_costs)):''}
+    ${a.status==='vendu'?detailRow('📊 Profit', `<span class="${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</span> · ROI ${roi.toFixed(0)}%`):''}
+    ${days!==null&&!isRefunded?detailRow('⏱ Délai', 'Vendu en '+days+' jour(s)'):''}
+    ${score!==null?detailRow('⭐ Score', score+'/100'):''}
+    ${a.vinted_item_id&&a.status==='stock'?detailRow('👁️ Stats Vinted', `${a.vinted_vues||0} vues · ❤️ ${a.vinted_favoris||0} favoris`):''}
+    ${a.vinted_shipping_status?detailRow('📦 Statut Vinted', a.vinted_shipping_status):''}
+    ${a.source?detailRow('🔗 Source', a.source):''}
   `;
   document.getElementById('detailEditBtn').onclick=()=>{ closeDetail(); editArticle(id); };
   document.getElementById('detailBg').classList.add('open');
