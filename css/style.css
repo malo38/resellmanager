@@ -333,6 +333,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .msg-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--muted); flex-shrink: 0; font-size: 15px; }
 .msg-info { flex: 1; min-width: 0; }
 .msg-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.msg-article { font-size: 11px; color: var(--accent); font-weight: 600; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .msg-preview { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 .msg-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 .msg-card.offer { border-color: #f5a623; background: rgba(245,166,35,0.08); }

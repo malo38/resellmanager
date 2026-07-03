@@ -865,6 +865,7 @@ async function renderMessages(){
       <div class="msg-avatar">${(m.interlocuteur||'?').charAt(0).toUpperCase()}</div>
       <div class="msg-info">
         <div class="msg-name">${m.interlocuteur||'Utilisateur'} ${m.non_lu?'<span class="msg-dot"></span>':''} ${m.est_offre?`<span class="offer-badge">💰 Offre ${fmtPrice(m.offre_prix)}</span>`:''}</div>
+        ${m.article_titre?`<div class="msg-article">${m.article_titre}</div>`:''}
         <div class="msg-preview">${m.dernier_message||''}</div>
       </div>
       <div class="msg-time">${timeAgo(m.updated_at)}</div>
