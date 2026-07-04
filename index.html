@@ -6,6 +6,7 @@
   <title>Vinted Manager — Gérez votre business de resell</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -153,21 +154,21 @@
       <img src="" alt="Vinted Manager" class="sidebar-logo app-logo" />
     </div>
     <nav class="sidebar-nav">
-      <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon">⬡</span> Tableau de bord</button>
-      <button class="nav-btn" onclick="goPage('calendrier',this)"><span class="nav-icon">▦</span> Calendrier</button>
-      <button class="nav-btn" onclick="goPage('preparation',this)"><span class="nav-icon">▤</span> Mode préparation</button>
-      <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon">◫</span> Stock</button>
-      <button class="nav-btn" onclick="goPage('expedition',this)"><span class="nav-icon">➤</span> À expédier</button>
-      <button class="nav-btn" onclick="goPage('vendus',this)"><span class="nav-icon">✓</span> Vendus</button>
-      <button class="nav-btn" onclick="goPage('achats',this)"><span class="nav-icon">▽</span> Achats</button>
-      <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon">▣</span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
-      <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon">♡</span> Messages favoris</button>
-      <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon">↻</span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
-      <button class="nav-btn" onclick="goPage('replay',this)"><span class="nav-icon">▶</span> Resell Replay</button>
-      <button class="nav-btn" onclick="goPage('analytics',this)"><span class="nav-icon">◈</span> Statistiques</button>
-      <button class="nav-btn" onclick="goPage('objectif',this)"><span class="nav-icon">◉</span> Objectifs</button>
-      <button class="nav-btn" onclick="goPage('depenses',this)"><span class="nav-icon">▧</span> Dépenses</button>
-      <button class="nav-btn" onclick="goPage('settings',this)"><span class="nav-icon">⚙</span> Paramètres</button>
+      <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span> Tableau de bord</button>
+      <button class="nav-btn" onclick="goPage('calendrier',this)"><span class="nav-icon"><i class="ti ti-calendar"></i></span> Calendrier</button>
+      <button class="nav-btn" onclick="goPage('preparation',this)"><span class="nav-icon"><i class="ti ti-package"></i></span> Mode préparation</button>
+      <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
+      <button class="nav-btn" onclick="goPage('expedition',this)"><span class="nav-icon"><i class="ti ti-truck"></i></span> À expédier</button>
+      <button class="nav-btn" onclick="goPage('vendus',this)"><span class="nav-icon"><i class="ti ti-check"></i></span> Vendus</button>
+      <button class="nav-btn" onclick="goPage('achats',this)"><span class="nav-icon"><i class="ti ti-shopping-bag"></i></span> Achats</button>
+      <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
+      <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
+      <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
+      <button class="nav-btn" onclick="goPage('replay',this)"><span class="nav-icon"><i class="ti ti-player-play"></i></span> Resell Replay</button>
+      <button class="nav-btn" onclick="goPage('analytics',this)"><span class="nav-icon"><i class="ti ti-chart-bar"></i></span> Statistiques</button>
+      <button class="nav-btn" onclick="goPage('objectif',this)"><span class="nav-icon"><i class="ti ti-target"></i></span> Objectifs</button>
+      <button class="nav-btn" onclick="goPage('depenses',this)"><span class="nav-icon"><i class="ti ti-receipt"></i></span> Dépenses</button>
+      <button class="nav-btn" onclick="goPage('settings',this)"><span class="nav-icon"><i class="ti ti-settings"></i></span> Paramètres</button>
     </nav>
     <div class="sidebar-footer">
       <div class="user-pill">
