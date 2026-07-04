@@ -470,6 +470,34 @@ window.renderQuickCalc = () => {
   `;
 };
 
+// ── PRIX DU MARCHÉ (recherche publique Vinted) ──
+window.checkMarketPrice = async () => {
+  const query=document.getElementById('marketPriceQuery').value.trim();
+  const el=document.getElementById('marketPriceResult');
+  if(!query||query.length<2){ el.innerHTML=`<p style="font-size:12px;color:var(--danger);margin-top:10px;">Tapez au moins 2 caractères.</p>`; return; }
+  el.innerHTML=`<p style="font-size:12px;color:var(--muted);margin-top:10px;">Recherche en cours...</p>`;
+  try{
+    const token=(await sb.auth.getSession()).data.session?.access_token;
+    const r=await fetch(`${BACKEND}/api/vinted/market-price?query=${encodeURIComponent(query)}`,{
+      headers:{ 'Authorization': `Bearer ${token}` },
+    });
+    const data=await r.json();
+    if(!r.ok){ el.innerHTML=`<p style="font-size:12px;color:var(--danger);margin-top:10px;">${data.detail||'Erreur, réessayez.'}</p>`; return; }
+    if(!data.count){ el.innerHTML=`<p style="font-size:12px;color:var(--muted);margin-top:10px;">Aucun résultat trouvé pour "${query}".</p>`; return; }
+    el.innerHTML=`
+      <p style="font-size:12px;color:var(--muted);margin-top:10px;">${data.count} annonce(s) similaire(s) trouvée(s) sur Vinted</p>
+      <div class="market-price-stats">
+        <div class="quick-calc-stat"><div class="quick-calc-stat-label">Moyenne</div><div class="quick-calc-stat-val">${fmtPrice(data.average)}</div></div>
+        <div class="quick-calc-stat"><div class="quick-calc-stat-label">Médiane</div><div class="quick-calc-stat-val">${fmtPrice(data.median)}</div></div>
+        <div class="quick-calc-stat"><div class="quick-calc-stat-label">Min</div><div class="quick-calc-stat-val">${fmtPrice(data.min)}</div></div>
+        <div class="quick-calc-stat"><div class="quick-calc-stat-label">Max</div><div class="quick-calc-stat-val">${fmtPrice(data.max)}</div></div>
+      </div>
+    `;
+  }catch(e){
+    el.innerHTML=`<p style="font-size:12px;color:var(--danger);margin-top:10px;">Erreur de connexion au serveur.</p>`;
+  }
+};
+
 // ── RÉSUMÉ HEBDOMADAIRE ──
 function renderWeeklySummary(){
   const el=document.getElementById('weeklySummary');

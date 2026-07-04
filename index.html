@@ -214,6 +214,11 @@
             </div>
           </div>
           <div class="quick-calc-result" id="quickCalcResult"></div>
+          <div class="market-price-row">
+            <input type="text" id="marketPriceQuery" placeholder="ex: jean levis, robe zara..." onkeydown="if(event.key==='Enter')checkMarketPrice()">
+            <button class="btn-edit" onclick="checkMarketPrice()">🔍 Voir les prix similaires sur Vinted</button>
+          </div>
+          <div id="marketPriceResult"></div>
         </div>
         <div class="dash-cols">
           <div data-widget="recent">
