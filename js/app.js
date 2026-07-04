@@ -191,6 +191,7 @@ async function uploadPhoto(file,articleId){
 // ── LOAD ──
 let allPurchases=[];
 let allExpenses=[];
+let vintedWallet=null;
 async function loadArticles(){
   const {data}=await sb.from('articles').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
   allArticles=data||[];
@@ -198,6 +199,8 @@ async function loadArticles(){
   allPurchases=purchasesData||[];
   const {data:expensesData}=await sb.from('expenses').select('*').eq('user_id',currentUser.id).order('expense_date',{ascending:false});
   allExpenses=expensesData||[];
+  const {data:accountData}=await sb.from('vinted_accounts').select('wallet_balance,wallet_pending_balance').eq('user_id',currentUser.id).single();
+  vintedWallet=accountData||null;
   renderAll();
   renderSyncBanner();
   updateMessagesBadge();
@@ -403,6 +406,9 @@ function renderDashboard(){
     {key:'kpi_capital', html:`<div class="kpi-card"><div class="kpi-label">Capital bloqué +30j</div><div class="kpi-val red">${fmtPrice(capitalBloque)}</div></div>`},
     {key:'kpi_achats', html:`<div class="kpi-card"><div class="kpi-label">🛍️ Achats Vinted ce mois</div><div class="kpi-val red">-${fmtPrice(achatsMois)}</div><div class="kpi-sub">Automatique</div></div>`},
   ];
+  if(vintedWallet){
+    kpis.push({key:'kpi_wallet', html:`<div class="kpi-card"><div class="kpi-label">💰 Solde Vinted</div><div class="kpi-val green">${fmtPrice(vintedWallet.wallet_balance)}</div>${vintedWallet.wallet_pending_balance>0?`<div class="kpi-sub">+${fmtPrice(vintedWallet.wallet_pending_balance)} en attente</div>`:''}</div>`});
+  }
   const kpiPrefs=getDashboardWidgetPrefs();
   document.getElementById('kpiGrid').innerHTML=kpis.filter(k=>kpiPrefs[k.key]).map(k=>k.html).join('');
 
@@ -420,7 +426,7 @@ function renderDashboard(){
 }
 
 // ── PERSONNALISATION DU TABLEAU DE BORD ──
-const DASH_WIDGETS=['kpi_profit_total','kpi_profit_mois','kpi_profit_net','kpi_stock','kpi_expedition','kpi_vendus','kpi_capital','kpi_achats','weekly','coach','calc','recent','chart'];
+const DASH_WIDGETS=['kpi_profit_total','kpi_profit_mois','kpi_profit_net','kpi_stock','kpi_expedition','kpi_vendus','kpi_capital','kpi_achats','kpi_wallet','weekly','coach','calc','recent','chart'];
 function getDashboardWidgetPrefs(){
   const stored=JSON.parse(localStorage.getItem('dashWidgets_'+currentUser.id)||'{}');
   const prefs={};
