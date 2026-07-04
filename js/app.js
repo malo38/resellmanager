@@ -11,7 +11,7 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null, allArticles = [], selectedPhotoFile = null, deleteTargetId = null;
-let currentFilter = { stockall: 'Tous' };
+let currentFilter = { stockall: 'Tous', replay: 'Tous' };
 let selectMode = { stockall: false };
 let selectedIds = { stockall: new Set() };
 
@@ -40,7 +40,7 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 // (personnalisables) : pas encore vendu, donc pas de date de vente.
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', replay:'Resell Replay', settings:'Paramètres' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', historique:'Historique', replay:'Resell Replay', settings:'Paramètres' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -152,6 +152,7 @@ window.goPage = (id, btn) => {
   if(id==='republier') renderRepublier();
   if(id==='messages') renderMessages();
   if(id==='depenses') renderDepenses();
+  if(id==='historique') renderHistorique();
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
 window.toggleSidebar=()=>document.querySelector('.sidebar').classList.toggle('open');
@@ -325,6 +326,7 @@ window.filterPlatform=(p,btn,section)=>{
   btn.closest('.page-filters').querySelectorAll('.pf-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(section==='stockall') renderStockAll();
+  if(section==='replay') renderReplay();
 };
 
 // ── HELPERS ──
@@ -738,29 +740,6 @@ function renderStockAll(){
           <label for="chk_${a.id}" class="${storedChk[a.id]?'done':''}">${a.name}${a.location?' — 📍 '+a.location:''} — ${a.platform}</label>
         </div>`).join('')}
     </div>`:'';
-
-  // Vendus (avec tri)
-  let vendus=bySection('vendu');
-  const sortMode=document.getElementById('vendusSort')?.value||'recent';
-  vendus=[...vendus].sort((a,b)=>{
-    if(sortMode==='fastest'){
-      const da=daysBetween(a.buy_date,a.sell_date), db=daysBetween(b.buy_date,b.sell_date);
-      if(da===null) return 1;
-      if(db===null) return -1;
-      return da-db;
-    }
-    if(sortMode==='profit') return calcProfit(b)-calcProfit(a);
-    if(sortMode==='margin'){
-      const ma=a.sell_price>0?calcProfit(a)/a.sell_price:-Infinity;
-      const mb=b.sell_price>0?calcProfit(b)/b.sell_price:-Infinity;
-      return mb-ma;
-    }
-    return new Date(b.sell_date||b.created_at)-new Date(a.sell_date||a.created_at);
-  });
-  document.getElementById('stockallCount-vendu').textContent=vendus.length;
-  document.getElementById('stockallGrid-vendu').innerHTML=vendus.length
-    ?vendus.map(a=>articleTileHTML(a,{selectSection:'stockall'})).join('')
-    :`<p class="stockall-empty">Aucun article vendu encore.</p>`;
 }
 
 // ── SÉLECTION MULTIPLE / ACTIONS GROUPÉES ──
@@ -888,7 +867,24 @@ function renderHallOfFame(){
 }
 
 function renderReplay(){
-  const arts=allArticles.filter(a=>a.status==='vendu').slice(0,10);
+  let arts=allArticles.filter(a=>a.status==='vendu');
+  if(currentFilter.replay!=='Tous') arts=arts.filter(a=>a.platform===currentFilter.replay);
+  const sortMode=document.getElementById('vendusSort')?.value||'recent';
+  arts=[...arts].sort((a,b)=>{
+    if(sortMode==='fastest'){
+      const da=daysBetween(a.buy_date,a.sell_date), db=daysBetween(b.buy_date,b.sell_date);
+      if(da===null) return 1;
+      if(db===null) return -1;
+      return da-db;
+    }
+    if(sortMode==='profit') return calcProfit(b)-calcProfit(a);
+    if(sortMode==='margin'){
+      const ma=a.sell_price>0?calcProfit(a)/a.sell_price:-Infinity;
+      const mb=b.sell_price>0?calcProfit(b)/b.sell_price:-Infinity;
+      return mb-ma;
+    }
+    return new Date(b.sell_date||b.created_at)-new Date(a.sell_date||a.created_at);
+  });
   const container=document.getElementById('replayList');
   if(!arts.length){container.innerHTML=emptyState('Aucun article vendu encore.');return;}
   container.innerHTML=arts.map(a=>{
@@ -1113,6 +1109,49 @@ window.deleteExpense = async (id) => {
   renderDepenses();
   renderDashboard();
 };
+
+// ── HISTORIQUE (journal des mouvements d'argent) ──
+// Chaque article compte pour une sortie d'argent à l'achat (buy_date) et,
+// s'il est vendu (et non remboursé), une entrée d'argent à la vente
+// (sell_date) — reflète le vrai flux de trésorerie, contrairement au profit
+// qui compense les deux sur une seule ligne.
+function getLedgerEntries(){
+  const entries=[];
+  allArticles.forEach(a=>{
+    if(a.buy_price&&a.buy_date) entries.push({date:a.buy_date, label:a.name, icon:'🛒', amount:-(parseFloat(a.buy_price)||0)});
+    if(a.status==='vendu'&&a.sell_date&&a.vinted_transaction_status!=='failed') entries.push({date:a.sell_date, label:a.name, icon:'💰', amount:parseFloat(a.sell_price)||0});
+  });
+  allExpenses.forEach(e=>{
+    if(e.expense_date) entries.push({date:e.expense_date, label:e.label, icon:'🧾', amount:-(parseFloat(e.amount)||0)});
+  });
+  return entries.filter(e=>e.date).sort((a,b)=>new Date(b.date)-new Date(a.date));
+}
+
+function renderHistorique(){
+  const el=document.getElementById('historiqueList');
+  if(!el) return;
+  const entries=getLedgerEntries();
+  if(!entries.length){ el.innerHTML=emptyState('Aucun mouvement pour le moment.'); return; }
+  const groups={};
+  entries.forEach(e=>{
+    const d=new Date(e.date);
+    const gKey=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    if(!groups[gKey]) groups[gKey]={label:d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}), items:[], total:0};
+    groups[gKey].items.push(e);
+    groups[gKey].total+=e.amount;
+  });
+  el.innerHTML=Object.keys(groups).sort().reverse().map(k=>{
+    const g=groups[k];
+    return `<div class="ledger-month">
+      <div class="ledger-month-header"><span>${g.label}</span><span class="${g.total>=0?'profit-pos':'profit-neg'}">${g.total>=0?'+':''}${fmtPrice(g.total)}</span></div>
+      ${g.items.map(e=>`<div class="ledger-row">
+        <div class="ledger-date">${fmtDate(e.date)}</div>
+        <div class="ledger-label">${e.icon} ${e.label}</div>
+        <div class="ledger-amount ${e.amount>=0?'profit-pos':'profit-neg'}">${e.amount>=0?'+':''}${fmtPrice(e.amount)}</div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
 
 async function updateMessagesBadge(){
   const badge=document.getElementById('navMsgBadge');

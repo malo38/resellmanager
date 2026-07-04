@@ -158,6 +158,15 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .profit-pos { color: var(--accent); }
 .profit-neg { color: var(--danger); }
 
+/* ── HISTORIQUE ── */
+.ledger-month { margin-bottom: 22px; }
+.ledger-month-header { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: capitalize; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.ledger-row { display: flex; align-items: center; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.ledger-row:last-child { border-bottom: none; }
+.ledger-date { color: var(--muted); flex-shrink: 0; width: 78px; }
+.ledger-label { flex: 1; min-width: 0; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ledger-amount { font-weight: 700; flex-shrink: 0; }
+
 /* ── STOCK UNIFIÉ (grille de tuiles) ── */
 .stockall-section { margin-bottom: 26px; }
 .stockall-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px; font-weight: 600; color: var(--text); }
