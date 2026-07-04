@@ -15,14 +15,30 @@ let currentFilter = { stockall: 'Tous' };
 let selectMode = { stockall: false };
 let selectedIds = { stockall: new Set() };
 
-const PREP_STEPS = [
-  { key: 'laver',      label: '🧺 À laver',       color: '#60a5fa' },
-  { key: 'photo',      label: '📸 À photographier', color: '#a78bfa' },
-  { key: 'publier',    label: '✍️ À publier',       color: '#f59e0b' },
-  { key: 'stock',      label: '📦 En stock',        color: '#00e5a0' },
-  { key: 'expedition', label: '🚚 À expédier',      color: '#fb923c' },
-  { key: 'vendu',      label: '💰 Vendu',           color: '#34d399' },
+// Les 3 dernières étapes sont fixes : les calculs du dashboard (profit, ROI,
+// capital bloqué...) dépendent de ces statuts précis, contrairement aux
+// étapes de préparation qui précèdent la mise en stock (personnalisables,
+// voir getPrepSteps()).
+const FIXED_STEPS = [
+  { key: 'stock',      label: '📦 En stock',   color: '#00e5a0' },
+  { key: 'expedition', label: '🚚 À expédier', color: '#fb923c' },
+  { key: 'vendu',      label: '💰 Vendu',      color: '#34d399' },
 ];
+const DEFAULT_PREP_STEPS = [
+  { key: 'laver',   label: '🧺 À laver',        color: '#60a5fa' },
+  { key: 'photo',   label: '📸 À photographier', color: '#a78bfa' },
+  { key: 'publier', label: '✍️ À publier',       color: '#f59e0b' },
+];
+function getPrepSteps(){
+  const raw=localStorage.getItem('prepSteps_'+currentUser.id);
+  if(raw===null) return DEFAULT_PREP_STEPS;
+  try { const parsed=JSON.parse(raw); return Array.isArray(parsed)?parsed:DEFAULT_PREP_STEPS; }
+  catch { return DEFAULT_PREP_STEPS; }
+}
+function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
+// Vrai pour "stock" et toutes les étapes de préparation avant publication
+// (personnalisables) : pas encore vendu, donc pas de date de vente.
+function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
 const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', replay:'Resell Replay', settings:'Paramètres' };
 
@@ -129,7 +145,7 @@ window.goPage = (id, btn) => {
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
-  if(id==='settings') renderVintedConnectionStatus();
+  if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); }
   if(id==='replay') renderReplay();
   if(id==='calendrier') renderCalendar();
   if(id==='favoris') renderFavoris();
@@ -143,11 +159,11 @@ window.toggleSidebar=()=>document.querySelector('.sidebar').classList.toggle('op
 // ── DATES ──
 window.toggleDates=()=>{
   const s=document.getElementById('mStatus').value;
-  document.getElementById('sellDateField').style.display=s!=='stock'&&s!=='laver'&&s!=='photo'&&s!=='publier'?'block':'none';
+  document.getElementById('sellDateField').style.display=!isPreSaleStatus(s)?'block':'none';
 };
 // today()/daysBetween() sont définies dans calc.js (chargé avant ce fichier).
 function sellTimeLabel(a){
-  if(['stock','laver','photo','publier'].includes(a.status)) return '';
+  if(isPreSaleStatus(a.status)) return '';
   const days=daysBetween(a.buy_date,a.sell_date||a.created_at?.split('T')[0]);
   if(days===null)return '';
   if(days===0)return 'Vendu le jour même';
@@ -157,7 +173,7 @@ function sellTimeLabel(a){
 
 // ── HEATMAP ──
 function heatmapColor(a) {
-  if(!['stock','laver','photo','publier'].includes(a.status)) return null;
+  if(!isPreSaleStatus(a.status)) return null;
   const days = daysBetween(a.buy_date || a.created_at?.split('T')[0], today());
   if(days===null) return null;
   if(days<=30) return {color:'#00e5a0', label:'🟢 Récent'};
@@ -219,7 +235,12 @@ window.openModal=(article=null)=>{
   document.getElementById('mSell').value=article?.sell_price||'';
   document.getElementById('mExtraCosts').value=article?.extra_costs||'';
   document.getElementById('mPlatform').value=article?.platform||'Vinted';
-  document.getElementById('mStatus').value=article?.status||'laver';
+  const prepStepsForModal=getPrepSteps();
+  document.getElementById('mStatus').innerHTML=prepStepsForModal.map(s=>`<option value="${s.key}">${s.label}</option>`).join('')+`
+    <option value="stock">📦 En stock</option>
+    <option value="expedition">🚚 Vendu — à expédier</option>
+    <option value="vendu">💰 Vendu — expédié</option>`;
+  document.getElementById('mStatus').value=article?.status||(prepStepsForModal[0]?.key||'stock');
   document.getElementById('mBuyDate').value=article?.buy_date||today();
   document.getElementById('mSellDate').value=article?.sell_date||today();
   document.getElementById('mLocation').value=article?.location||'';
@@ -246,7 +267,7 @@ window.saveArticle=async()=>{
   const platform=document.getElementById('mPlatform').value;
   const status=document.getElementById('mStatus').value;
   const buy_date=document.getElementById('mBuyDate').value||today();
-  const sell_date=!['stock','laver','photo','publier'].includes(status)?(document.getElementById('mSellDate').value||today()):null;
+  const sell_date=!isPreSaleStatus(status)?(document.getElementById('mSellDate').value||today()):null;
   const location=document.getElementById('mLocation').value.trim();
   const source=document.getElementById('mSource').value;
   if(!name)return;
@@ -290,7 +311,7 @@ window.closeConfirm=()=>{document.getElementById('confirmBg').classList.remove('
 
 // ── PREP STEP ──
 window.moveToStep=async(id,step)=>{
-  const sell_date=!['stock','laver','photo','publier'].includes(step)?today():null;
+  const sell_date=!isPreSaleStatus(step)?today():null;
   const patch={status:step,sell_date};
   if(step==='stock') patch.published_at=today();
   const {data}=await sb.from('articles').update(patch).eq('id',id).eq('user_id',currentUser.id).select();
@@ -311,7 +332,7 @@ window.filterPlatform=(p,btn,section)=>{
 function platformBadgeClass(p){return{Vinted:'badge-vinted',eBay:'badge-ebay',Leboncoin:'badge-leboncoin'}[p]||'badge-autre';}
 
 function stepBadge(s){
-  const step=PREP_STEPS.find(p=>p.key===s);
+  const step=getAllSteps().find(p=>p.key===s);
   if(!step) return '';
   return `<span class="badge" style="background:${step.color}22;color:${step.color}">${step.label}</span>`;
 }
@@ -339,7 +360,8 @@ function articleHTML(a, opts={}) {
     ?`<span class="badge badge-vinted badge-clickable" title="Voir l'évolution" onclick="showHistory('${a.vinted_item_id}','${a.name.replace(/'/g,"\\'")}')">👁️ ${a.vinted_vues||0} · ❤️ ${a.vinted_favoris||0}</span>`:'';
   const trendingBadge=isTrending(a)?`<span class="badge badge-clickable" style="background:#fb923c22;color:#fb923c;" onclick="showTrendingInfo()">🔥 Tendance</span>`:'';
   const shippingBadge=a.status==='vendu'&&a.vinted_shipping_status?orderStatusBadge(a.vinted_transaction_status,a.vinted_shipping_status):'';
-  const nextStep=PREP_STEPS[PREP_STEPS.findIndex(p=>p.key===a.status)+1];
+  const allSteps=getAllSteps();
+  const nextStep=allSteps[allSteps.findIndex(p=>p.key===a.status)+1];
   const moveBtn=opts.showMove&&nextStep?`<button class="btn-edit" style="font-size:10px;" onclick="moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`:'';
   const checkbox=opts.selectSection&&selectMode[opts.selectSection]
     ?`<input type="checkbox" class="article-select-checkbox" ${selectedIds[opts.selectSection].has(a.id)?'checked':''} onchange="toggleArticleSelect('${opts.selectSection}','${a.id}',this.checked)" />`:'';
@@ -374,7 +396,7 @@ function renderAll(){renderDashboard();renderStockAll();renderAnalytics();render
 
 function renderDashboard(){
   const vendus=allArticles.filter(a=>a.status==='vendu');
-  const stock=allArticles.filter(a=>['stock','laver','photo','publier'].includes(a.status));
+  const stock=allArticles.filter(a=>isPreSaleStatus(a.status));
   const expedition=allArticles.filter(a=>a.status==='expedition');
   const totalProfit=vendus.reduce((s,a)=>s+calcProfit(a),0);
   const investi=stock.reduce((s,a)=>s+(parseFloat(a.buy_price)||0),0);
@@ -384,7 +406,7 @@ function renderDashboard(){
   const now=new Date();
   const profitMois=vendus.filter(a=>{const d=new Date(a.sell_date||a.created_at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,a)=>s+calcProfit(a),0);
   const capitalBloque=allArticles.filter(a=>{
-    if(!['stock','laver','photo','publier'].includes(a.status))return false;
+    if(!isPreSaleStatus(a.status))return false;
     const days=daysBetween(a.buy_date||a.created_at?.split('T')[0],today());
     return days!==null&&days>30;
   }).reduce((s,a)=>s+(parseFloat(a.buy_price)||0),0);
@@ -589,7 +611,7 @@ window.exportAnnualRecapCSV = () => {
 
 // ── RECHERCHE GLOBALE ──
 function statusLabel(s){
-  const step=PREP_STEPS.find(p=>p.key===s);
+  const step=getAllSteps().find(p=>p.key===s);
   return step?step.label:s;
 }
 window.handleGlobalSearch = (query) => {
@@ -615,10 +637,12 @@ function generateCoach(){
   const msgs=[];
   const expedition=allArticles.filter(a=>a.status==='expedition');
   if(expedition.length>0) msgs.push(`📦 Vous avez <strong>${expedition.length} colis</strong> à envoyer aujourd'hui.`);
-  const apublier=allArticles.filter(a=>a.status==='publier');
+  const prepStepsForCoach=getPrepSteps();
+  const lastPrepStep=prepStepsForCoach[prepStepsForCoach.length-1];
+  const apublier=lastPrepStep?allArticles.filter(a=>a.status===lastPrepStep.key):[];
   if(apublier.length>0) msgs.push(`✍️ <strong>${apublier.length} articles</strong> sont prêts à être publiés sur Vinted.`);
   const anciens=allArticles.filter(a=>{
-    if(!['stock','laver','photo','publier'].includes(a.status))return false;
+    if(!isPreSaleStatus(a.status))return false;
     const d=daysBetween(a.buy_date||a.created_at?.split('T')[0],today());
     return d!==null&&d>60;
   });
@@ -647,7 +671,8 @@ function generateCoach(){
 
 // ── STOCK UNIFIÉ (laver/photo/publier/stock/expédition/vendus en une page) ──
 function articleTileHTML(a, opts={}){
-  const nextStep=PREP_STEPS[PREP_STEPS.findIndex(p=>p.key===a.status)+1];
+  const allSteps=getAllSteps();
+  const nextStep=allSteps[allSteps.findIndex(p=>p.key===a.status)+1];
   const heat=heatmapColor(a);
   const trending=isTrending(a);
   const profit=a.status==='vendu'?calcProfit(a):0;
@@ -672,8 +697,6 @@ function articleTileHTML(a, opts={}){
   </div>`;
 }
 
-const STOCKALL_SECTIONS=['laver','photo','publier','stock','expedition'];
-
 function renderStockAll(){
   const platformFilter=currentFilter.stockall;
   const bySection=(status)=>{
@@ -682,7 +705,20 @@ function renderStockAll(){
     return arts;
   };
 
-  STOCKALL_SECTIONS.forEach(key=>{
+  // Les étapes de préparation sont personnalisables (voir Paramètres) : on
+  // (re)génère leurs sections à chaque render pour refléter tout ajout/
+  // suppression immédiatement.
+  const prepSteps=getPrepSteps();
+  document.getElementById('stockallPrepSections').innerHTML=prepSteps.map(s=>`
+    <div class="stockall-section">
+      <div class="stockall-header"><span>${s.label}</span><span class="count-label" id="stockallCount-${s.key}"></span></div>
+      <div class="article-grid" id="stockallGrid-${s.key}"></div>
+    </div>`).join('');
+
+  const bulkTarget=document.getElementById('bulkTarget-stockall');
+  if(bulkTarget) bulkTarget.innerHTML=getAllSteps().map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+
+  [...prepSteps.map(s=>s.key),'stock','expedition'].forEach(key=>{
     const arts=bySection(key);
     document.getElementById('stockallCount-'+key).textContent=arts.length;
     document.getElementById('stockallGrid-'+key).innerHTML=arts.length
@@ -747,7 +783,7 @@ window.applyBulkMove = async (section) => {
   const ids = Array.from(selectedIds[section]);
   if(!ids.length) return;
   const target = document.getElementById('bulkTarget-'+section).value;
-  const sell_date = !['stock','laver','photo','publier'].includes(target) ? today() : null;
+  const sell_date = !isPreSaleStatus(target) ? today() : null;
   const patch = {status:target, sell_date};
   if(target==='stock') patch.published_at = today();
   const {data} = await sb.from('articles').update(patch).in('id', ids).eq('user_id', currentUser.id).select();
@@ -1172,6 +1208,45 @@ function renderExtensionInstallBtn() {
     ? `<a href="${EXTENSION_STORE_URL}" target="_blank" style="display:block;margin-top:14px;padding:10px;background:var(--accent);color:#000;border-radius:var(--radius);text-align:center;font-weight:700;text-decoration:none;font-size:13px;">⚡ Installer l'extension Chrome</a>`
     : `<div style="margin-top:14px;padding:10px;background:var(--warning-dim);color:var(--warning);border-radius:var(--radius);text-align:center;font-weight:700;font-size:13px;">⏳ Extension en cours de validation par Google — bientôt disponible</div>`;
 }
+
+// ── ÉTAPES DE PRÉPARATION PERSONNALISABLES ──
+function renderPrepStepsSettings(){
+  const el=document.getElementById('prepStepsList');
+  if(!el) return;
+  const steps=getPrepSteps();
+  el.innerHTML=steps.length?steps.map(s=>{
+    const count=allArticles.filter(a=>a.status===s.key).length;
+    return `<div class="setting-row">
+      <div class="setting-label">${s.label}${count?` <span style="color:var(--muted);font-weight:400;">(${count} article${count>1?'s':''})</span>`:''}</div>
+      <button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="removePrepStep('${s.key}')">✕ Supprimer</button>
+    </div>`;
+  }).join(''):`<p class="setting-sub">Aucune étape de préparation — les articles passent directement en stock.</p>`;
+}
+
+window.addPrepStep=()=>{
+  const input=document.getElementById('newPrepStepLabel');
+  const label=input.value.trim();
+  if(!label) return;
+  const steps=getPrepSteps();
+  const slug=label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  const key='custom_'+(slug||Date.now());
+  if(steps.some(s=>s.key===key)){ alert('Cette étape existe déjà.'); return; }
+  const colors=['#60a5fa','#a78bfa','#f59e0b','#f472b6','#38bdf8','#facc15','#4ade80'];
+  steps.push({key, label:'📝 '+label, color:colors[steps.length%colors.length]});
+  localStorage.setItem('prepSteps_'+currentUser.id, JSON.stringify(steps));
+  input.value='';
+  renderPrepStepsSettings();
+  renderStockAll();
+};
+
+window.removePrepStep=(key)=>{
+  const count=allArticles.filter(a=>a.status===key).length;
+  if(count>0){ alert(`Déplacez d'abord ${count===1?"l'article":'les '+count+' articles'} de cette étape ailleurs avant de la supprimer.`); return; }
+  const steps=getPrepSteps().filter(s=>s.key!==key);
+  localStorage.setItem('prepSteps_'+currentUser.id, JSON.stringify(steps));
+  renderPrepStepsSettings();
+  renderStockAll();
+};
 
 async function renderVintedConnectionStatus() {
   renderExtensionInstallBtn();

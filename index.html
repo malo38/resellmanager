@@ -250,29 +250,13 @@
         </div>
         <div class="bulk-bar" id="bulkBar-stockall" style="display:none">
           <span id="bulkCount-stockall">0 sélectionné(s)</span>
-          <select id="bulkTarget-stockall">
-            <option value="laver">🧺 À laver</option>
-            <option value="photo">📸 À photographier</option>
-            <option value="publier">✍️ À publier</option>
-            <option value="stock">📦 En stock</option>
-            <option value="expedition">🚚 À expédier</option>
-            <option value="vendu">💰 Vendu</option>
-          </select>
+          <select id="bulkTarget-stockall"></select>
           <button class="btn-confirm" onclick="applyBulkMove('stockall')">Appliquer</button>
         </div>
 
-        <div class="stockall-section">
-          <div class="stockall-header"><span>🧺 À laver</span><span class="count-label" id="stockallCount-laver"></span></div>
-          <div class="article-grid" id="stockallGrid-laver"></div>
-        </div>
-        <div class="stockall-section">
-          <div class="stockall-header"><span>📸 À photographier</span><span class="count-label" id="stockallCount-photo"></span></div>
-          <div class="article-grid" id="stockallGrid-photo"></div>
-        </div>
-        <div class="stockall-section">
-          <div class="stockall-header"><span>✍️ À publier</span><span class="count-label" id="stockallCount-publier"></span></div>
-          <div class="article-grid" id="stockallGrid-publier"></div>
-        </div>
+        <!-- Étapes de préparation personnalisables, générées par renderStockAll() -->
+        <div id="stockallPrepSections"></div>
+
         <div class="stockall-section">
           <div class="stockall-header"><span>📦 En stock</span><span class="count-label" id="stockallCount-stock"></span><button class="pf-btn" onclick="exportArticlesCSV('stock')">⬇ CSV</button></div>
           <div class="article-grid" id="stockallGrid-stock"></div>
@@ -396,6 +380,15 @@
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
+          <h2 class="settings-title">🧺 Étapes de préparation</h2>
+          <p class="setting-sub" style="margin-bottom:12px;">Personnalisez les étapes avant la mise en stock (à laver, à plier...) selon vos habitudes. "En stock", "À expédier" et "Vendus" restent fixes.</p>
+          <div id="prepStepsList"></div>
+          <div class="expense-form-row" style="margin-top:10px;">
+            <input type="text" id="newPrepStepLabel" placeholder="ex: À repasser, À plier..." onkeydown="if(event.key==='Enter')addPrepStep()">
+            <button class="btn-confirm" onclick="addPrepStep()">+ Ajouter</button>
+          </div>
+        </div>
+        <div class="settings-card" style="margin-top:16px;">
           <h2 class="settings-title">🔗 Connexion Vinted</h2>
 
           <!-- Statut actuel -->
@@ -500,14 +493,7 @@
           <select id="mPlatform"><option>Vinted</option><option>eBay</option><option>Leboncoin</option><option>Autre</option></select>
         </div>
         <div class="field"><label>Statut / Étape</label>
-          <select id="mStatus" onchange="toggleDates()">
-            <option value="laver">🧺 À laver</option>
-            <option value="photo">📸 À photographier</option>
-            <option value="publier">✍️ À publier</option>
-            <option value="stock">📦 En stock</option>
-            <option value="expedition">🚚 Vendu — à expédier</option>
-            <option value="vendu">💰 Vendu — expédié</option>
-          </select>
+          <select id="mStatus" onchange="toggleDates()"></select>
         </div>
         <div class="field"><label>Date d'achat</label><input type="date" id="mBuyDate" /></div>
         <div class="field" id="sellDateField" style="display:none"><label>Date de vente</label><input type="date" id="mSellDate" /></div>
