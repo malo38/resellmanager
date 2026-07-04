@@ -654,7 +654,7 @@ function articleTileHTML(a, opts={}){
   const checkbox=opts.selectSection&&selectMode[opts.selectSection]
     ?`<span class="tile-checkbox-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="tile-select-checkbox" ${selectedIds[opts.selectSection].has(a.id)?'checked':''} onchange="toggleArticleSelect('${opts.selectSection}','${a.id}',this.checked)" /></span>`:'';
   const quickBtn=opts.showMove&&nextStep
-    ?`<button class="tile-move-btn" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">→</button>`:'';
+    ?`<button class="tile-move-btn" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`:'';
   let priceLabel;
   if(a.status==='vendu') priceLabel=(profit>=0?'+':'')+fmtPrice(profit);
   else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
