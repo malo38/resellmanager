@@ -156,10 +156,7 @@
     <nav class="sidebar-nav">
       <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span> Tableau de bord</button>
       <button class="nav-btn" onclick="goPage('calendrier',this)"><span class="nav-icon"><i class="ti ti-calendar"></i></span> Calendrier</button>
-      <button class="nav-btn" onclick="goPage('preparation',this)"><span class="nav-icon"><i class="ti ti-package"></i></span> Mode préparation</button>
       <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
-      <button class="nav-btn" onclick="goPage('expedition',this)"><span class="nav-icon"><i class="ti ti-truck"></i></span> À expédier</button>
-      <button class="nav-btn" onclick="goPage('vendus',this)"><span class="nav-icon"><i class="ti ti-check"></i></span> Vendus</button>
       <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
       <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
       <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
@@ -241,46 +238,19 @@
         <div id="calendarTasks"></div>
       </section>
 
-      <!-- MODE PREPARATION -->
-      <section class="page" id="page-preparation">
-        <div id="prepStats" class="prep-stats"></div>
-        <div class="prep-filters">
-          <button class="prep-filter-btn active" onclick="filterPrep('all',this)">Tous</button>
-          <button class="prep-filter-btn" onclick="filterPrep('laver',this)">🧺 À laver</button>
-          <button class="prep-filter-btn" onclick="filterPrep('photo',this)">📸 À photographier</button>
-          <button class="prep-filter-btn" onclick="filterPrep('publier',this)">✍️ À publier</button>
-          <button class="prep-filter-btn" onclick="filterPrep('stock',this)">📦 En stock</button>
-          <button class="prep-filter-btn" style="margin-left:auto;" onclick="toggleSelectMode('prep')" id="selectModeBtn-prep">☑ Sélection multiple</button>
-        </div>
-        <div class="bulk-bar" id="bulkBar-prep" style="display:none">
-          <span id="bulkCount-prep">0 sélectionné(s)</span>
-          <select id="bulkTarget-prep">
-            <option value="laver">🧺 À laver</option>
-            <option value="photo">📸 À photographier</option>
-            <option value="publier">✍️ À publier</option>
-            <option value="stock">📦 En stock</option>
-            <option value="expedition">🚚 À expédier</option>
-            <option value="vendu">💰 Vendu</option>
-          </select>
-          <button class="btn-confirm" onclick="applyBulkMove('prep')">Appliquer</button>
-        </div>
-        <div id="prepList"></div>
-      </section>
-
-      <!-- STOCK -->
+      <!-- STOCK (unifié : préparation + stock + expédition + vendus) -->
       <section class="page" id="page-stock">
         <div class="page-filters">
-          <button class="pf-btn active" onclick="filterPlatform('Tous',this,'stock')">Tous</button>
-          <button class="pf-btn" onclick="filterPlatform('Vinted',this,'stock')">Vinted</button>
-          <button class="pf-btn" onclick="filterPlatform('eBay',this,'stock')">eBay</button>
-          <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'stock')">Leboncoin</button>
-          <button class="pf-btn" onclick="filterPlatform('Autre',this,'stock')">Autre</button>
-          <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('stock')">⬇ Exporter CSV</button>
+          <button class="pf-btn active" onclick="filterPlatform('Tous',this,'stockall')">Tous</button>
+          <button class="pf-btn" onclick="filterPlatform('Vinted',this,'stockall')">Vinted</button>
+          <button class="pf-btn" onclick="filterPlatform('eBay',this,'stockall')">eBay</button>
+          <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'stockall')">Leboncoin</button>
+          <button class="pf-btn" onclick="filterPlatform('Autre',this,'stockall')">Autre</button>
+          <button class="pf-btn" style="margin-left:auto;" onclick="toggleSelectMode('stockall')" id="selectModeBtn-stockall">☑ Sélection multiple</button>
         </div>
-        <div class="section-header"><span class="count-label" id="stockCount"></span><button class="btn-edit" onclick="toggleSelectMode('stock')" id="selectModeBtn-stock">☑ Sélection multiple</button></div>
-        <div class="bulk-bar" id="bulkBar-stock" style="display:none">
-          <span id="bulkCount-stock">0 sélectionné(s)</span>
-          <select id="bulkTarget-stock">
+        <div class="bulk-bar" id="bulkBar-stockall" style="display:none">
+          <span id="bulkCount-stockall">0 sélectionné(s)</span>
+          <select id="bulkTarget-stockall">
             <option value="laver">🧺 À laver</option>
             <option value="photo">📸 À photographier</option>
             <option value="publier">✍️ À publier</option>
@@ -288,38 +258,43 @@
             <option value="expedition">🚚 À expédier</option>
             <option value="vendu">💰 Vendu</option>
           </select>
-          <button class="btn-confirm" onclick="applyBulkMove('stock')">Appliquer</button>
+          <button class="btn-confirm" onclick="applyBulkMove('stockall')">Appliquer</button>
         </div>
-        <div id="stockList"></div>
-      </section>
 
-      <!-- À EXPÉDIER -->
-      <section class="page" id="page-expedition">
-        <div class="section-header"><span class="count-label" id="expeditionCount"></span></div>
-        <div id="checklistWrap"></div>
-        <div id="expeditionList"></div>
-      </section>
-
-      <!-- VENDUS -->
-      <section class="page" id="page-vendus">
-        <div class="page-filters">
-          <button class="pf-btn active" onclick="filterPlatform('Tous',this,'vendus')">Tous</button>
-          <button class="pf-btn" onclick="filterPlatform('Vinted',this,'vendus')">Vinted</button>
-          <button class="pf-btn" onclick="filterPlatform('eBay',this,'vendus')">eBay</button>
-          <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'vendus')">Leboncoin</button>
-          <button class="pf-btn" onclick="filterPlatform('Autre',this,'vendus')">Autre</button>
-          <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('vendus')">⬇ Exporter CSV</button>
+        <div class="stockall-section">
+          <div class="stockall-header"><span>🧺 À laver</span><span class="count-label" id="stockallCount-laver"></span></div>
+          <div class="article-grid" id="stockallGrid-laver"></div>
         </div>
-        <div class="section-header">
-          <span class="count-label" id="vendusCount"></span>
-          <select id="vendusSort" onchange="renderVendus()" style="margin-left:auto;">
-            <option value="recent">Plus récent</option>
-            <option value="fastest">Vendu le plus vite</option>
-            <option value="profit">Plus rentable</option>
-            <option value="margin">Meilleure marge</option>
-          </select>
+        <div class="stockall-section">
+          <div class="stockall-header"><span>📸 À photographier</span><span class="count-label" id="stockallCount-photo"></span></div>
+          <div class="article-grid" id="stockallGrid-photo"></div>
         </div>
-        <div id="vendusList"></div>
+        <div class="stockall-section">
+          <div class="stockall-header"><span>✍️ À publier</span><span class="count-label" id="stockallCount-publier"></span></div>
+          <div class="article-grid" id="stockallGrid-publier"></div>
+        </div>
+        <div class="stockall-section">
+          <div class="stockall-header"><span>📦 En stock</span><span class="count-label" id="stockallCount-stock"></span><button class="pf-btn" onclick="exportArticlesCSV('stock')">⬇ CSV</button></div>
+          <div class="article-grid" id="stockallGrid-stock"></div>
+        </div>
+        <div class="stockall-section">
+          <div class="stockall-header"><span>🚚 À expédier</span><span class="count-label" id="stockallCount-expedition"></span></div>
+          <div id="checklistWrap"></div>
+          <div class="article-grid" id="stockallGrid-expedition"></div>
+        </div>
+        <div class="stockall-section">
+          <div class="stockall-header">
+            <span>💰 Vendus</span><span class="count-label" id="stockallCount-vendu"></span>
+            <select id="vendusSort" onchange="renderStockAll()">
+              <option value="recent">Plus récent</option>
+              <option value="fastest">Vendu le plus vite</option>
+              <option value="profit">Plus rentable</option>
+              <option value="margin">Meilleure marge</option>
+            </select>
+            <button class="pf-btn" onclick="exportArticlesCSV('vendus')">⬇ CSV</button>
+          </div>
+          <div class="article-grid" id="stockallGrid-vendu"></div>
+        </div>
       </section>
 
       <!-- MESSAGES VINTED -->
@@ -599,6 +574,7 @@
     <div class="modal-body" id="detailBody"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeDetail()">Fermer</button>
+      <button class="btn-cancel" id="detailDeleteBtn" style="color:var(--danger);border-color:var(--danger);">✕ Supprimer</button>
       <button class="btn-confirm" id="detailEditBtn">✎ Modifier</button>
     </div>
   </div>

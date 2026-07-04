@@ -11,9 +11,9 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null, allArticles = [], selectedPhotoFile = null, deleteTargetId = null;
-let currentFilter = { stock: 'Tous', vendus: 'Tous', preparation: 'all' };
-let selectMode = { stock: false, prep: false };
-let selectedIds = { stock: new Set(), prep: new Set() };
+let currentFilter = { stockall: 'Tous' };
+let selectMode = { stockall: false };
+let selectedIds = { stockall: new Set() };
 
 const PREP_STEPS = [
   { key: 'laver',      label: '🧺 À laver',       color: '#60a5fa' },
@@ -24,7 +24,7 @@ const PREP_STEPS = [
   { key: 'vendu',      label: '💰 Vendu',           color: '#34d399' },
 ];
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', preparation:'Mode préparation', stock:'Stock', expedition:'À expédier', vendus:'Vendus', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', replay:'Resell Replay', settings:'Paramètres' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', replay:'Resell Replay', settings:'Paramètres' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -303,15 +303,7 @@ window.filterPlatform=(p,btn,section)=>{
   currentFilter[section]=p;
   btn.closest('.page-filters').querySelectorAll('.pf-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if(section==='stock') renderStock();
-  if(section==='vendus') renderVendus();
-};
-
-window.filterPrep=(step,btn)=>{
-  currentFilter.preparation=step;
-  document.querySelectorAll('.prep-filter-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderPreparation();
+  if(section==='stockall') renderStockAll();
 };
 
 // ── HELPERS ──
@@ -378,7 +370,7 @@ function articleHTML(a, opts={}) {
 function emptyState(msg){return `<div class="empty-state"><div class="empty-icon">📭</div>${msg}</div>`;}
 
 // ── RENDER ALL ──
-function renderAll(){renderDashboard();renderPreparation();renderStock();renderExpedition();renderVendus();renderAnalytics();renderObjectif();}
+function renderAll(){renderDashboard();renderStockAll();renderAnalytics();renderObjectif();}
 
 function renderDashboard(){
   const vendus=allArticles.filter(a=>a.status==='vendu');
@@ -653,27 +645,86 @@ function generateCoach(){
   return msgs.map(m=>`<div class="coach-msg">🤖 ${m}</div>`).join('');
 }
 
-function renderPreparation(){
-  const filter=currentFilter.preparation;
-  let arts=allArticles.filter(a=>filter==='all'?['laver','photo','publier','stock'].includes(a.status):a.status===filter);
-  const container=document.getElementById('prepList');
-  if(!arts.length){container.innerHTML=emptyState('Aucun article dans cette étape.');return;}
-  container.innerHTML=`<div class="article-list">${arts.map(a=>articleHTML(a,{showMove:true,selectSection:'prep'})).join('')}</div>`;
-  // Stats par étape
-  const stats=PREP_STEPS.slice(0,4).map(s=>{
-    const count=allArticles.filter(a=>a.status===s.key).length;
-    return `<div class="prep-stat" style="border-color:${s.color}"><div class="prep-stat-num" style="color:${s.color}">${count}</div><div class="prep-stat-label">${s.label}</div></div>`;
-  }).join('');
-  document.getElementById('prepStats').innerHTML=stats;
+// ── STOCK UNIFIÉ (laver/photo/publier/stock/expédition/vendus en une page) ──
+function articleTileHTML(a, opts={}){
+  const nextStep=PREP_STEPS[PREP_STEPS.findIndex(p=>p.key===a.status)+1];
+  const heat=heatmapColor(a);
+  const trending=isTrending(a);
+  const profit=a.status==='vendu'?calcProfit(a):0;
+  const checkbox=opts.selectSection&&selectMode[opts.selectSection]
+    ?`<span class="tile-checkbox-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="tile-select-checkbox" ${selectedIds[opts.selectSection].has(a.id)?'checked':''} onchange="toggleArticleSelect('${opts.selectSection}','${a.id}',this.checked)" /></span>`:'';
+  const quickBtn=opts.showMove&&nextStep
+    ?`<button class="tile-move-btn" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">→</button>`:'';
+  let priceLabel;
+  if(a.status==='vendu') priceLabel=(profit>=0?'+':'')+fmtPrice(profit);
+  else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
+  else priceLabel=fmtPrice(a.buy_price);
+  return `<div class="article-tile" onclick="showDetail('${a.id}')">
+    <div class="tile-photo">
+      ${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}">`:'📦'}
+      ${checkbox}
+      ${heat?`<span class="tile-dot" style="background:${heat.color}" title="${heat.label}"></span>`:''}
+      ${trending?`<span class="tile-trend" title="Tendance">🔥</span>`:''}
+      ${quickBtn}
+    </div>
+    <div class="tile-name">${a.name}</div>
+    <div class="tile-price ${a.status==='vendu'?(profit>=0?'profit-pos':'profit-neg'):''}">${priceLabel}</div>
+  </div>`;
 }
 
-function renderStock(){
-  let arts=allArticles.filter(a=>a.status==='stock');
-  if(currentFilter.stock!=='Tous') arts=arts.filter(a=>a.platform===currentFilter.stock);
-  document.getElementById('stockCount').textContent=arts.length+' article(s) en stock';
-  document.getElementById('stockList').innerHTML=arts.length
-    ?`<div class="article-list">${arts.map(a=>articleHTML(a,{selectSection:'stock'})).join('')}</div>`
-    :emptyState('Aucun article en stock.');
+const STOCKALL_SECTIONS=['laver','photo','publier','stock','expedition'];
+
+function renderStockAll(){
+  const platformFilter=currentFilter.stockall;
+  const bySection=(status)=>{
+    let arts=allArticles.filter(a=>a.status===status);
+    if(platformFilter!=='Tous') arts=arts.filter(a=>a.platform===platformFilter);
+    return arts;
+  };
+
+  STOCKALL_SECTIONS.forEach(key=>{
+    const arts=bySection(key);
+    document.getElementById('stockallCount-'+key).textContent=arts.length;
+    document.getElementById('stockallGrid-'+key).innerHTML=arts.length
+      ?arts.map(a=>articleTileHTML(a,{showMove:true,selectSection:'stockall'})).join('')
+      :`<p class="stockall-empty">Aucun article.</p>`;
+  });
+
+  // À expédier : checklist (même comportement qu'avant la fusion des pages)
+  const expArts=bySection('expedition');
+  const storedChk=JSON.parse(localStorage.getItem('checklist_'+currentUser.id)||'{}');
+  document.getElementById('checklistWrap').innerHTML=expArts.length?`
+    <div class="checklist-card">
+      <div class="checklist-title">✅ Checklist d'expédition</div>
+      ${expArts.map(a=>`
+        <div class="checklist-item">
+          <input type="checkbox" id="chk_${a.id}" ${storedChk[a.id]?'checked':''} onchange="toggleCheck('${a.id}',this)" />
+          <label for="chk_${a.id}" class="${storedChk[a.id]?'done':''}">${a.name}${a.location?' — 📍 '+a.location:''} — ${a.platform}</label>
+        </div>`).join('')}
+    </div>`:'';
+
+  // Vendus (avec tri)
+  let vendus=bySection('vendu');
+  const sortMode=document.getElementById('vendusSort')?.value||'recent';
+  vendus=[...vendus].sort((a,b)=>{
+    if(sortMode==='fastest'){
+      const da=daysBetween(a.buy_date,a.sell_date), db=daysBetween(b.buy_date,b.sell_date);
+      if(da===null) return 1;
+      if(db===null) return -1;
+      return da-db;
+    }
+    if(sortMode==='profit') return calcProfit(b)-calcProfit(a);
+    if(sortMode==='margin'){
+      const ma=a.sell_price>0?calcProfit(a)/a.sell_price:-Infinity;
+      const mb=b.sell_price>0?calcProfit(b)/b.sell_price:-Infinity;
+      return mb-ma;
+    }
+    return new Date(b.sell_date||b.created_at)-new Date(a.sell_date||a.created_at);
+  });
+  document.getElementById('stockallCount-vendu').textContent=vendus.length;
+  document.getElementById('stockallGrid-vendu').innerHTML=vendus.length
+    ?vendus.map(a=>articleTileHTML(a,{selectSection:'stockall'})).join('')
+    :`<p class="stockall-empty">Aucun article vendu encore.</p>`;
 }
 
 // ── SÉLECTION MULTIPLE / ACTIONS GROUPÉES ──
@@ -682,7 +733,7 @@ window.toggleSelectMode = (section) => {
   selectedIds[section].clear();
   document.getElementById('selectModeBtn-'+section).textContent = selectMode[section] ? '✕ Annuler la sélection' : '☑ Sélection multiple';
   document.getElementById('bulkBar-'+section).style.display = 'none';
-  if(section==='stock') renderStock(); else renderPreparation();
+  renderStockAll();
 };
 
 window.toggleArticleSelect = (section, id, checked) => {
@@ -713,55 +764,12 @@ window.applyBulkMove = async (section) => {
   renderAll();
 };
 
-function renderExpedition(){
-  const arts=allArticles.filter(a=>a.status==='expedition');
-  document.getElementById('expeditionCount').textContent=arts.length+' article(s) à expédier';
-  const stored=JSON.parse(localStorage.getItem('checklist_'+currentUser.id)||'{}');
-  document.getElementById('checklistWrap').innerHTML=arts.length?`
-    <div class="checklist-card">
-      <div class="checklist-title">✅ Checklist d'expédition</div>
-      ${arts.map(a=>`
-        <div class="checklist-item">
-          <input type="checkbox" id="chk_${a.id}" ${stored[a.id]?'checked':''} onchange="toggleCheck('${a.id}',this)" />
-          <label for="chk_${a.id}" class="${stored[a.id]?'done':''}">${a.name}${a.location?' — 📍 '+a.location:''} — ${a.platform}</label>
-        </div>`).join('')}
-    </div>`:'';
-  document.getElementById('expeditionList').innerHTML=arts.length
-    ?`<div class="article-list">${arts.map(a=>articleHTML(a)).join('')}</div>`
-    :emptyState('Aucun article en attente 🎉');
-}
-
 window.toggleCheck=(id,el)=>{
   const stored=JSON.parse(localStorage.getItem('checklist_'+currentUser.id)||'{}');
   stored[id]=el.checked;
   localStorage.setItem('checklist_'+currentUser.id,JSON.stringify(stored));
   el.nextElementSibling?.classList.toggle('done',el.checked);
 };
-
-function renderVendus(){
-  let arts=allArticles.filter(a=>a.status==='vendu');
-  if(currentFilter.vendus!=='Tous') arts=arts.filter(a=>a.platform===currentFilter.vendus);
-  const sortMode=document.getElementById('vendusSort')?.value||'recent';
-  arts=[...arts].sort((a,b)=>{
-    if(sortMode==='fastest'){
-      const da=daysBetween(a.buy_date,a.sell_date), db=daysBetween(b.buy_date,b.sell_date);
-      if(da===null) return 1;
-      if(db===null) return -1;
-      return da-db;
-    }
-    if(sortMode==='profit') return calcProfit(b)-calcProfit(a);
-    if(sortMode==='margin'){
-      const ma=a.sell_price>0?calcProfit(a)/a.sell_price:-Infinity;
-      const mb=b.sell_price>0?calcProfit(b)/b.sell_price:-Infinity;
-      return mb-ma;
-    }
-    return new Date(b.sell_date||b.created_at)-new Date(a.sell_date||a.created_at);
-  });
-  document.getElementById('vendusCount').textContent=arts.length+' article(s) vendu(s)';
-  document.getElementById('vendusList').innerHTML=arts.length
-    ?`<div class="article-list">${arts.map(a=>articleHTML(a)).join('')}</div>`
-    :emptyState('Aucun article vendu encore.');
-}
 
 function getMonths(){
   const now=new Date();
@@ -1267,6 +1275,7 @@ window.showDetail = (id) => {
   `;
   document.getElementById('detailEditBtn').style.display='inline-block';
   document.getElementById('detailEditBtn').onclick=()=>{ closeDetail(); editArticle(id); };
+  document.getElementById('detailDeleteBtn').onclick=()=>{ closeDetail(); confirmDelete(id); };
   document.getElementById('detailBg').classList.add('open');
 };
 window.closeDetail = () => document.getElementById('detailBg').classList.remove('open');

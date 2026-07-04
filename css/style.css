@@ -157,6 +157,27 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .profit-neutral { color: var(--muted); }
 .profit-pos { color: var(--accent); }
 .profit-neg { color: var(--danger); }
+
+/* ── STOCK UNIFIÉ (grille de tuiles) ── */
+.stockall-section { margin-bottom: 26px; }
+.stockall-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px; font-weight: 600; color: var(--text); }
+.stockall-header select { margin-left: auto; }
+.stockall-empty { font-size: 12px; color: var(--muted); }
+.article-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+@media (max-width: 900px) { .article-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px) { .article-grid { grid-template-columns: repeat(2, 1fr); } }
+.article-tile { cursor: pointer; }
+.tile-photo { position: relative; aspect-ratio: 1; border-radius: var(--radius); background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; overflow: hidden; transition: border-color 0.15s; }
+.article-tile:hover .tile-photo { border-color: var(--accent); }
+.tile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.tile-name { font-size: 12px; color: var(--text); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-price { font-size: 12px; color: var(--muted); font-weight: 600; }
+.tile-checkbox-wrap { position: absolute; top: 4px; left: 4px; }
+.tile-select-checkbox { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.tile-dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; }
+.tile-trend { position: absolute; bottom: 4px; left: 4px; font-size: 12px; }
+.tile-move-btn { position: absolute; bottom: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 13px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tile-move-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
 .article-actions { display: flex; gap: 4px; }
 .btn-edit { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; font-size: 11px; color: var(--muted); cursor: pointer; font-family: inherit; transition: all 0.15s; }
 .btn-edit:hover { color: var(--text); border-color: var(--accent); }
@@ -312,15 +333,6 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .coach-msg { font-size: 13px; color: var(--text); padding: 6px 0; border-bottom: 1px solid var(--border); }
 .coach-msg:last-child { border-bottom: none; }
 
-/* ── PREP ── */
-.prep-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
-.prep-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; border-top: 3px solid; }
-.prep-stat-num { font-size: 28px; font-weight: 700; }
-.prep-stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
-.prep-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-.prep-filter-btn { padding: 5px 14px; border: 1px solid var(--border2); border-radius: 20px; background: transparent; font-size: 12px; cursor: pointer; color: var(--muted); font-family: inherit; transition: all 0.15s; }
-.prep-filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
-
 /* ── REPLAY ── */
 .replay-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.15s; }
 .replay-card:hover { border-color: var(--accent); }
@@ -337,8 +349,6 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .replay-flow-date { font-size: 11px; color: var(--muted); margin-top: 3px; font-weight: 500; }
 .replay-flow-arrow { font-size: 16px; color: var(--muted); flex-shrink: 0; }
 .replay-shipping { margin-top: 10px; }
-
-@media (max-width: 700px) { .prep-stats { grid-template-columns: repeat(2,1fr); } }
 
 .modal select, .modal input { pointer-events: auto !important; position: relative; z-index: 1002; }
 
