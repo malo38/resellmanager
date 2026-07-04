@@ -24,7 +24,7 @@ const PREP_STEPS = [
   { key: 'vendu',      label: '💰 Vendu',           color: '#34d399' },
 ];
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', preparation:'Mode préparation', stock:'Stock', expedition:'À expédier', vendus:'Vendus', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', replay:'Resell Replay', settings:'Paramètres' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', preparation:'Mode préparation', stock:'Stock', expedition:'À expédier', vendus:'Vendus', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', replay:'Resell Replay', settings:'Paramètres' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -135,7 +135,6 @@ window.goPage = (id, btn) => {
   if(id==='favoris') renderFavoris();
   if(id==='republier') renderRepublier();
   if(id==='messages') renderMessages();
-  if(id==='achats') renderAchats();
   if(id==='depenses') renderDepenses();
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
@@ -1014,26 +1013,6 @@ function orderStatusBadge(statutCode, statutText){
   return `<span class="badge" style="${style}" title="${statutText}">${statutText}</span>`;
 }
 
-function renderAchats(){
-  const el=document.getElementById('achatsList');
-  document.getElementById('achatsCount').textContent=allPurchases.length+' achat(s)';
-  el.innerHTML=allPurchases.length ? allPurchases.map(p=>{
-    const isRefunded=p.transaction_status==='failed';
-    return `
-    <div class="article-card" onclick="showPurchaseDetail('${p.id}')">
-      <div class="article-photo">${p.photo_url?`<img src="${p.photo_url}" alt="">`:'📦'}</div>
-      <div class="article-info">
-        <div class="article-name">${p.title||'Article'}</div>
-        <div class="article-meta">${p.purchase_date||''}</div>
-        <div class="article-badges" onclick="event.stopPropagation()">${orderStatusBadge(p.transaction_status,p.status)}</div>
-      </div>
-      <div class="article-right">
-        <div class="article-profit profit-neg">${isRefunded?fmtPrice(0):'-'+fmtPrice(p.price)}</div>
-      </div>
-    </div>`;
-  }).join('') : emptyState('Aucun achat Vinted synchronisé pour le moment.');
-}
-
 // ── DÉPENSES GÉNÉRALES ──
 function renderDepenses(){
   const el=document.getElementById('expensesList');
@@ -1277,21 +1256,6 @@ window.showDetail = (id) => {
   document.getElementById('detailBg').classList.add('open');
 };
 window.closeDetail = () => document.getElementById('detailBg').classList.remove('open');
-
-window.showPurchaseDetail = (id) => {
-  const p=allPurchases.find(x=>x.id===id);
-  if(!p) return;
-  const isRefunded=p.transaction_status==='failed';
-  document.getElementById('detailTitle').textContent=p.title||'Article';
-  document.getElementById('detailBody').innerHTML=`
-    ${p.photo_url?`<img src="${p.photo_url}" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:var(--radius-lg);margin-bottom:12px;">`:''}
-    <div class="article-badges" style="margin-bottom:12px;">${orderStatusBadge(p.transaction_status,p.status)}</div>
-    ${detailRow('💸 Prix', (isRefunded?fmtPrice(0):fmtPrice(p.price))+(p.purchase_date?' · '+p.purchase_date:''))}
-    ${p.status?detailRow('📦 Statut Vinted', p.status):''}
-  `;
-  document.getElementById('detailEditBtn').style.display='none';
-  document.getElementById('detailBg').classList.add('open');
-};
 
 // ── INFO GÉNÉRIQUE (explication des badges) ──
 window.showInfo = (title, bodyHtml) => {
