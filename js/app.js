@@ -381,7 +381,9 @@ function renderDashboard(){
   const expedition=allArticles.filter(a=>a.status==='expedition');
   const totalProfit=vendus.reduce((s,a)=>s+calcProfit(a),0);
   const investi=stock.reduce((s,a)=>s+(parseFloat(a.buy_price)||0),0);
-  const roi=investi>0?(totalProfit/investi*100):0;
+  const ca=vendus.reduce((s,a)=>s+calcCA(a),0);
+  const coutVendus=vendus.reduce((s,a)=>s+(parseFloat(a.buy_price)||0),0);
+  const roiGlobal=coutVendus>0?(totalProfit/coutVendus*100):0;
   const now=new Date();
   const profitMois=vendus.filter(a=>{const d=new Date(a.sell_date||a.created_at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,a)=>s+calcProfit(a),0);
   const capitalBloque=allArticles.filter(a=>{
@@ -405,6 +407,8 @@ function renderDashboard(){
     {key:'kpi_vendus', html:`<div class="kpi-card"><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>`},
     {key:'kpi_capital', html:`<div class="kpi-card"><div class="kpi-label">Capital bloqué +30j</div><div class="kpi-val red">${fmtPrice(capitalBloque)}</div></div>`},
     {key:'kpi_achats', html:`<div class="kpi-card"><div class="kpi-label">🛍️ Achats Vinted ce mois</div><div class="kpi-val red">-${fmtPrice(achatsMois)}</div><div class="kpi-sub">Automatique</div></div>`},
+    {key:'kpi_ca', html:`<div class="kpi-card"><div class="kpi-label">Chiffre d'affaires</div><div class="kpi-val">${fmtPrice(ca)}</div></div>`},
+    {key:'kpi_roi', html:`<div class="kpi-card kpi-clickable" onclick="showRoiInfo(${roiGlobal})"><div class="kpi-label">ROI global ⓘ</div><div class="kpi-val ${roiGlobal>=0?'green':'red'}">${roiGlobal.toFixed(0)}%</div></div>`},
   ];
   if(vintedWallet){
     kpis.push({key:'kpi_wallet', html:`<div class="kpi-card"><div class="kpi-label">💰 Solde Vinted</div><div class="kpi-val green">${fmtPrice(vintedWallet.wallet_balance)}</div>${vintedWallet.wallet_pending_balance>0?`<div class="kpi-sub">+${fmtPrice(vintedWallet.wallet_pending_balance)} en attente</div>`:''}</div>`});
@@ -426,7 +430,7 @@ function renderDashboard(){
 }
 
 // ── PERSONNALISATION DU TABLEAU DE BORD ──
-const DASH_WIDGETS=['kpi_profit_total','kpi_profit_mois','kpi_profit_net','kpi_stock','kpi_expedition','kpi_vendus','kpi_capital','kpi_achats','kpi_wallet','weekly','coach','calc','recent','chart'];
+const DASH_WIDGETS=['kpi_profit_total','kpi_profit_mois','kpi_profit_net','kpi_stock','kpi_expedition','kpi_vendus','kpi_capital','kpi_achats','kpi_ca','kpi_roi','kpi_wallet','weekly','coach','calc','recent','chart'];
 function getDashboardWidgetPrefs(){
   const stored=JSON.parse(localStorage.getItem('dashWidgets_'+currentUser.id)||'{}');
   const prefs={};
@@ -989,7 +993,7 @@ async function renderMessages(){
     return;
   }
   container.innerHTML=data.map(m=>`
-    <div class="msg-card ${m.non_lu?'unread':''} ${m.est_offre?'offer':''}">
+    <div class="msg-card ${m.non_lu?'unread':''} ${m.est_offre?'offer':''}" style="cursor:pointer" onclick="window.open('https://www.vinted.fr/inbox/${m.id}','_blank')" title="Voir la conversation complète sur Vinted">
       <div class="msg-avatar">${(m.interlocuteur||'?').charAt(0).toUpperCase()}</div>
       <div class="msg-info">
         <div class="msg-name">${m.interlocuteur||'Utilisateur'} ${m.non_lu?'<span class="msg-dot"></span>':''} ${m.est_offre?`<span class="offer-badge">💰 Offre ${fmtPrice(m.offre_prix)}</span>`:''}</div>
@@ -1315,6 +1319,15 @@ window.showHeatInfo = () => {
     ${infoLine('🟢 Récent : acheté il y a moins de 30 jours')}
     ${infoLine('🟠 Moyen : entre 30 et 90 jours')}
     ${infoLine('🔴 Ancien : plus de 90 jours — pensez à baisser le prix ou relancer l\'annonce')}
+  `);
+};
+
+window.showRoiInfo = (roi) => {
+  showInfo('📈 ROI global (retour sur investissement)', `
+    <p style="font-size:13px;color:var(--muted);text-align:left;margin-bottom:8px;">Compare votre profit total à ce que vous avez dépensé pour acheter les articles que vous avez vendus :</p>
+    ${infoLine(`ROI = Profit total ÷ Prix d'achat des articles vendus × 100`)}
+    ${infoLine(`Ici : <strong>${roi.toFixed(0)}%</strong> ${roi>100?'— chaque euro investi en a rapporté plus de deux (très bonne rentabilité).':roi>50?'— bonne rentabilité.':roi>=0?'— rentabilité correcte, à surveiller.':'— vous perdez de l\'argent sur vos ventes en moyenne.'}`)}
+    <p style="font-size:12px;color:var(--muted);text-align:left;margin-top:8px;">Contrairement au profit (en €), le ROI (en %) permet de comparer la rentabilité de votre activité peu importe le montant investi.</p>
   `);
 };
 

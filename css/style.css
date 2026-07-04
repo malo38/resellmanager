@@ -128,6 +128,8 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .kpi-val { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
 .kpi-val.green { color: var(--accent); }
 .kpi-val.red { color: var(--danger); }
+.kpi-clickable { cursor: pointer; }
+.kpi-clickable:hover { opacity: 0.85; }
 .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
 /* ── DASHBOARD COLS ── */

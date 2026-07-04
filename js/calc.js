@@ -18,6 +18,12 @@ function calcProfit(a){
   return(parseFloat(a.sell_price)||0)-(parseFloat(a.buy_price)||0)-(parseFloat(a.extra_costs)||0);
 }
 
+// Chiffre d'affaires : même règle que calcProfit, une vente remboursée ne compte pas.
+function calcCA(a){
+  if(a.vinted_transaction_status==='failed') return 0;
+  return parseFloat(a.sell_price)||0;
+}
+
 // Il faut à la fois un volume significatif (8+ favoris) ET un rythme rapide (2+/jour en moyenne).
 function isTrending(a){
   if(a.status!=='stock'||!a.vinted_item_id) return false;
@@ -40,5 +46,5 @@ function calcScore(a) {
 
 // Utilisable depuis le navigateur (variables globales) et depuis Node (require) sans changement.
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { today, daysBetween, fmtPrice, fmtDate, calcProfit, isTrending, calcScore };
+  module.exports = { today, daysBetween, fmtPrice, fmtDate, calcProfit, calcCA, isTrending, calcScore };
 }
