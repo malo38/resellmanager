@@ -254,11 +254,15 @@ window.saveArticle=async()=>{
   const btn=document.getElementById('btnSave');
   btn.textContent='...'; btn.disabled=true;
 
-  let photoUrl=id?allArticles.find(a=>a.id===id)?.photo_url:null;
+  const existing=id?allArticles.find(a=>a.id===id):null;
+  let photoUrl=existing?.photo_url;
   const articleId=id||crypto.randomUUID();
   if(selectedPhotoFile) photoUrl=await uploadPhoto(selectedPhotoFile,articleId);
+  // Date de mise en ligne réelle (distincte de buy_date) : ne se pose qu'une
+  // fois, la première fois que l'article passe (ou est créé) au statut stock.
+  const published_at=status==='stock'?(existing?.published_at||today()):(existing?.published_at||null);
 
-  const payload={name,buy_price:buy,sell_price:sell,extra_costs,platform,status,buy_date,sell_date,photo_url:photoUrl,location,source};
+  const payload={name,buy_price:buy,sell_price:sell,extra_costs,platform,status,buy_date,sell_date,photo_url:photoUrl,location,source,published_at};
 
   if(id){
     const {data}=await sb.from('articles').update(payload).eq('id',id).eq('user_id',currentUser.id).select();
@@ -287,7 +291,9 @@ window.closeConfirm=()=>{document.getElementById('confirmBg').classList.remove('
 // ── PREP STEP ──
 window.moveToStep=async(id,step)=>{
   const sell_date=!['stock','laver','photo','publier'].includes(step)?today():null;
-  const {data}=await sb.from('articles').update({status:step,sell_date}).eq('id',id).eq('user_id',currentUser.id).select();
+  const patch={status:step,sell_date};
+  if(step==='stock') patch.published_at=today();
+  const {data}=await sb.from('articles').update(patch).eq('id',id).eq('user_id',currentUser.id).select();
   if(data){const idx=allArticles.findIndex(a=>a.id===id);if(idx>=0)allArticles[idx]=data[0];}
   renderAll();
 };
@@ -485,7 +491,7 @@ window.checkMarketPrice = async () => {
       headers:{ 'Authorization': `Bearer ${token}` },
     });
     const data=await r.json();
-    if(!r.ok){ el.innerHTML=`<p style="font-size:12px;color:var(--danger);margin-top:10px;">${data.detail||'Erreur, réessayez.'}</p>`; return; }
+    if(!r.ok){ el.innerHTML=`<p style="font-size:12px;color:var(--danger);margin-top:10px;">${r.status===401?'Session expirée, reconnectez-vous.':'Erreur, réessayez.'}</p>`; return; }
     if(!data.count){ el.innerHTML=`<p style="font-size:12px;color:var(--muted);margin-top:10px;">Aucun résultat trouvé pour "${query}".</p>`; return; }
     el.innerHTML=`
       <p style="font-size:12px;color:var(--muted);margin-top:10px;">${data.count} annonce(s) similaire(s) trouvée(s) sur Vinted</p>
@@ -691,7 +697,9 @@ window.applyBulkMove = async (section) => {
   if(!ids.length) return;
   const target = document.getElementById('bulkTarget-'+section).value;
   const sell_date = !['stock','laver','photo','publier'].includes(target) ? today() : null;
-  const {data} = await sb.from('articles').update({status:target, sell_date}).in('id', ids).eq('user_id', currentUser.id).select();
+  const patch = {status:target, sell_date};
+  if(target==='stock') patch.published_at = today();
+  const {data} = await sb.from('articles').update(patch).in('id', ids).eq('user_id', currentUser.id).select();
   if(data){
     data.forEach(updated=>{
       const idx = allArticles.findIndex(a=>a.id===updated.id);
@@ -800,7 +808,7 @@ function renderAnalytics(){
   document.getElementById('analyticsKpi').innerHTML=`
     <div class="kpi-card"><div class="kpi-label">Ce mois</div><div class="kpi-val green">${fmtPrice(profitMois)}</div></div>
     <div class="kpi-card"><div class="kpi-label">Meilleur mois</div><div class="kpi-val green">${fmtPrice(bestMonth)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Marge moyenne</div><div class="kpi-val">${fmtPrice(avgP)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Profit moyen par vente</div><div class="kpi-val">${fmtPrice(avgP)}</div></div>
     <div class="kpi-card"><div class="kpi-label">Temps vente moy.</div><div class="kpi-val">${avgDays!==null?avgDays+'j':'—'}</div></div>
     <div class="kpi-card"><div class="kpi-label">Score moyen</div><div class="kpi-val green">${avgScore!==null?avgScore+'/100':'—'}</div></div>
   `;
@@ -820,7 +828,7 @@ function renderHallOfFame(){
   const el=document.getElementById('hallOfFameList');
   if(!el) return;
   const medals=['🥇','🥈','🥉','🏅','🏅'];
-  const top=allArticles.filter(a=>a.status==='vendu').sort((a,b)=>calcProfit(b)-calcProfit(a)).slice(0,5);
+  const top=allArticles.filter(a=>a.status==='vendu'&&calcProfit(a)>0).sort((a,b)=>calcProfit(b)-calcProfit(a)).slice(0,5);
   el.innerHTML=top.length ? top.map((a,i)=>`
     <div class="article-card" onclick="showDetail('${a.id}')">
       <div class="hof-rank">${medals[i]||'🏅'}</div>
@@ -832,7 +840,7 @@ function renderHallOfFame(){
       <div class="article-right">
         <div class="article-profit profit-pos">+${fmtPrice(calcProfit(a))}</div>
       </div>
-    </div>`).join('') : emptyState('Vendez votre premier article pour apparaître ici !');
+    </div>`).join('') : emptyState('Vendez un article avec profit pour apparaître ici !');
 }
 
 function renderReplay(){
@@ -946,9 +954,12 @@ window.saveFavMessage = () => {
 window.copyFavMessage = (btn) => {
   const template = document.getElementById('favMessage').value;
   const msg = template.replace(/\{item\}/g, btn.dataset.name || 'cet article');
+  const original = btn.textContent;
   navigator.clipboard.writeText(msg).then(() => {
-    const original = btn.textContent;
     btn.textContent = '✓ Copié !';
+    setTimeout(() => btn.textContent = original, 1500);
+  }).catch(() => {
+    btn.textContent = '✕ Échec, réessayez';
     setTimeout(() => btn.textContent = original, 1500);
   });
 };
@@ -1102,7 +1113,10 @@ function getArticlesToRepublish(){
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   const stock = allArticles.filter(a => a.status==='stock' && a.platform==='Vinted');
   return stock.filter(a => {
-    const d = daysBetween(a.buy_date || a.created_at?.split('T')[0], today());
+    // published_at (date de mise en ligne réelle) prime sur buy_date : un
+    // article resté plusieurs jours en laver/photo avant d'être publié ne
+    // doit pas apparaître comme "à republier" dès sa mise en stock.
+    const d = daysBetween(a.published_at || a.buy_date || a.created_at?.split('T')[0], today());
     return d !== null && d >= days;
   });
 }
