@@ -682,10 +682,13 @@ function articleTileHTML(a, opts={}){
     ?`<span class="tile-checkbox-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="tile-select-checkbox" ${selectedIds[opts.selectSection].has(a.id)?'checked':''} onchange="toggleArticleSelect('${opts.selectSection}','${a.id}',this.checked)" /></span>`:'';
   const quickBtn=opts.showMove&&nextStep
     ?`<button class="tile-move-btn" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`:'';
-  let priceLabel;
-  if(a.status==='vendu') priceLabel=(profit>=0?'+':'')+fmtPrice(profit);
+  // Pas encore en stock (à laver/photographier/publier/...) : le prix affiché
+  // est le prix d'ACHAT, donc une dépense — signe moins et couleur rouge pour
+  // ne pas le confondre avec le prix de vente (positif) des autres sections.
+  let priceLabel, priceClass='';
+  if(a.status==='vendu'){ priceLabel=(profit>=0?'+':'')+fmtPrice(profit); priceClass=profit>=0?'profit-pos':'profit-neg'; }
   else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
-  else priceLabel=fmtPrice(a.buy_price);
+  else { priceLabel='-'+fmtPrice(a.buy_price); priceClass='profit-neg'; }
   return `<div class="article-tile" onclick="showDetail('${a.id}')">
     <div class="tile-photo">
       ${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}">`:'📦'}
@@ -695,7 +698,7 @@ function articleTileHTML(a, opts={}){
       ${quickBtn}
     </div>
     <div class="tile-name">${a.name}</div>
-    <div class="tile-price ${a.status==='vendu'?(profit>=0?'profit-pos':'profit-neg'):''}">${priceLabel}</div>
+    <div class="tile-price ${priceClass}">${priceLabel}</div>
   </div>`;
 }
 
