@@ -4,7 +4,7 @@ const LOGO_LIGHT = 'img/logo-light.png';
 const LOGO_DARK  = 'img/logo-dark.png';
 const BACKEND = 'https://web-production-662dc1.up.railway.app';
 // Passez à true une fois l'extension approuvée sur le Chrome Web Store.
-const EXTENSION_PUBLISHED = true;
+const EXTENSION_PUBLISHED = false;
 const EXTENSION_STORE_URL = 'https://chromewebstore.google.com/detail/vinted-manager/feedjnhhdfeojkocphjgnbjginadclip';
 
 const { createClient } = supabase;
