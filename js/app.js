@@ -136,6 +136,7 @@ function loginAs(user) {
   document.getElementById('btnLight')?.classList.toggle('active',t==='light');
   loadArticles();
   maybeShowOnboarding();
+  restoreNavGroupsState();
 }
 
 // ── NAV ──
@@ -156,6 +157,24 @@ window.goPage = (id, btn) => {
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
 window.toggleSidebar=()=>document.querySelector('.sidebar').classList.toggle('open');
+
+// ── SECTIONS REPLIABLES DE LA SIDEBAR ──
+window.toggleNavGroup=(header)=>{
+  const body=header.nextElementSibling;
+  const collapsed=body.classList.toggle('collapsed');
+  header.classList.toggle('collapsed',collapsed);
+  const closed=[...document.querySelectorAll('.nav-group-header.collapsed')].map(h=>h.textContent.trim());
+  localStorage.setItem('navGroupsClosed_'+currentUser.id, JSON.stringify(closed));
+};
+function restoreNavGroupsState(){
+  const closed=JSON.parse(localStorage.getItem('navGroupsClosed_'+currentUser.id)||'[]');
+  document.querySelectorAll('.nav-group-header').forEach(header=>{
+    if(closed.includes(header.textContent.trim())){
+      header.classList.add('collapsed');
+      header.nextElementSibling.classList.add('collapsed');
+    }
+  });
+}
 
 // ── DATES ──
 window.toggleDates=()=>{
