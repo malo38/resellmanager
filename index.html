@@ -159,20 +159,19 @@
       <button class="nav-group-header" onclick="toggleNavGroup(this)">ACTIVITÉ <i class="ti ti-chevron-down nav-group-caret"></i></button>
       <div class="nav-group-body">
         <button class="nav-btn" onclick="goPage('calendrier',this)"><span class="nav-icon"><i class="ti ti-calendar"></i></span> Calendrier</button>
-        <button class="nav-btn nav-btn-toggle" onclick="toggleNavGroup(this)"><span><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</span> <i class="ti ti-chevron-down nav-group-caret"></i></button>
-        <div class="nav-group-body" id="stockNavItems"></div>
-        <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
-        <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
-        <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
+        <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
+        <button class="nav-btn" onclick="goPage('ventes',this)"><span class="nav-icon"><i class="ti ti-player-play"></i></span> Ventes &amp; Historique</button>
       </div>
+
+      <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
+      <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
+      <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
 
       <button class="nav-group-header" onclick="toggleNavGroup(this)">FINANCE &amp; ANALYSE <i class="ti ti-chevron-down nav-group-caret"></i></button>
       <div class="nav-group-body">
-        <button class="nav-btn" id="navBtnReplay" onclick="goPage('replay',this)"><span class="nav-icon"><i class="ti ti-player-play"></i></span> Resell Replay</button>
         <button class="nav-btn" onclick="goPage('analytics',this)"><span class="nav-icon"><i class="ti ti-chart-bar"></i></span> Statistiques</button>
         <button class="nav-btn" onclick="goPage('objectif',this)"><span class="nav-icon"><i class="ti ti-target"></i></span> Objectifs</button>
         <button class="nav-btn" onclick="goPage('depenses',this)"><span class="nav-icon"><i class="ti ti-receipt"></i></span> Dépenses</button>
-        <button class="nav-btn" onclick="goPage('historique',this)"><span class="nav-icon"><i class="ti ti-history"></i></span> Historique</button>
       </div>
 
       <button class="nav-btn" onclick="goPage('settings',this)"><span class="nav-icon"><i class="ti ti-settings"></i></span> Paramètres</button>
@@ -249,15 +248,18 @@
         <div id="calendarTasks"></div>
       </section>
 
-      <!-- STOCK (unifié : préparation + stock + expédition + vendus) -->
+      <!-- STOCK (unifié : préparation + stock + expédition, filtré par catégorie) -->
       <section class="page" id="page-stock">
+        <div class="stock-ministats" id="stockMinistats"></div>
+
         <div class="page-filters">
           <button class="pf-btn active" onclick="filterPlatform('Tous',this,'stockall')">Tous</button>
           <button class="pf-btn" onclick="filterPlatform('Vinted',this,'stockall')">Vinted</button>
           <button class="pf-btn" onclick="filterPlatform('eBay',this,'stockall')">eBay</button>
           <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'stockall')">Leboncoin</button>
           <button class="pf-btn" onclick="filterPlatform('Autre',this,'stockall')">Autre</button>
-          <button class="pf-btn" style="margin-left:auto;" onclick="toggleSelectMode('stockall')" id="selectModeBtn-stockall">☑ Sélection multiple</button>
+          <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('stock')">⬇ CSV</button>
+          <button class="pf-btn" onclick="toggleSelectMode('stockall')" id="selectModeBtn-stockall">☑ Sélection multiple</button>
         </div>
         <div class="bulk-bar" id="bulkBar-stockall" style="display:none">
           <span id="bulkCount-stockall">0 sélectionné(s)</span>
@@ -265,18 +267,11 @@
           <button class="btn-confirm" onclick="applyBulkMove('stockall')">Appliquer</button>
         </div>
 
-        <!-- Étapes de préparation personnalisables, générées par renderStockAll() -->
-        <div id="stockallPrepSections"></div>
+        <!-- Chips de catégorie (à laver, à photographier, en stock...), générées par renderStockAll() -->
+        <div class="stock-chips" id="stockCategoryChips"></div>
 
-        <div class="stockall-section">
-          <div class="stockall-header"><span>📦 En stock</span><span class="count-label" id="stockallCount-stock"></span><button class="pf-btn" onclick="exportArticlesCSV('stock')">⬇ CSV</button></div>
-          <div class="article-grid" id="stockallGrid-stock"></div>
-        </div>
-        <div class="stockall-section">
-          <div class="stockall-header"><span>🚚 À expédier</span><span class="count-label" id="stockallCount-expedition"></span></div>
-          <div id="checklistWrap"></div>
-          <div class="article-grid" id="stockallGrid-expedition"></div>
-        </div>
+        <div id="checklistWrap"></div>
+        <div class="article-grid" id="stockallGrid"></div>
       </section>
 
       <!-- MESSAGES VINTED -->
@@ -285,24 +280,36 @@
         <div id="messagesList"></div>
       </section>
 
-      <!-- RESELL REPLAY -->
-      <section class="page" id="page-replay">
-        <div class="info-banner">▶ Revivez le parcours complet de chaque article vendu</div>
+      <!-- VENTES & HISTORIQUE (Resell Replay + Historique réunis, par onglets) -->
+      <section class="page" id="page-ventes">
         <div class="page-filters">
-          <button class="pf-btn active" onclick="filterPlatform('Tous',this,'replay')">Tous</button>
-          <button class="pf-btn" onclick="filterPlatform('Vinted',this,'replay')">Vinted</button>
-          <button class="pf-btn" onclick="filterPlatform('eBay',this,'replay')">eBay</button>
-          <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'replay')">Leboncoin</button>
-          <button class="pf-btn" onclick="filterPlatform('Autre',this,'replay')">Autre</button>
-          <select id="vendusSort" onchange="renderReplay()" style="margin-left:auto;">
-            <option value="recent">Plus récent</option>
-            <option value="fastest">Vendu le plus vite</option>
-            <option value="profit">Plus rentable</option>
-            <option value="margin">Meilleure marge</option>
-          </select>
-          <button class="pf-btn" onclick="exportArticlesCSV('vendus')">⬇ CSV</button>
+          <button class="pf-btn active" id="ventesTabBtn-ventes" onclick="goVentesTab('ventes',this)">💰 Ventes</button>
+          <button class="pf-btn" id="ventesTabBtn-historique" onclick="goVentesTab('historique',this)">📜 Historique</button>
         </div>
-        <div id="replayList"></div>
+
+        <div id="ventesTab-ventes">
+          <div class="info-banner">▶ Revivez le parcours complet de chaque article vendu</div>
+          <div class="page-filters">
+            <button class="pf-btn active" onclick="filterPlatform('Tous',this,'replay')">Tous</button>
+            <button class="pf-btn" onclick="filterPlatform('Vinted',this,'replay')">Vinted</button>
+            <button class="pf-btn" onclick="filterPlatform('eBay',this,'replay')">eBay</button>
+            <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'replay')">Leboncoin</button>
+            <button class="pf-btn" onclick="filterPlatform('Autre',this,'replay')">Autre</button>
+            <select id="vendusSort" onchange="renderReplay()" style="margin-left:auto;">
+              <option value="recent">Plus récent</option>
+              <option value="fastest">Vendu le plus vite</option>
+              <option value="profit">Plus rentable</option>
+              <option value="margin">Meilleure marge</option>
+            </select>
+            <button class="pf-btn" onclick="exportArticlesCSV('vendus')">⬇ CSV</button>
+          </div>
+          <div id="replayList"></div>
+        </div>
+
+        <div id="ventesTab-historique" style="display:none">
+          <div class="info-banner">📜 Chaque mouvement d'argent : achats, ventes et dépenses, classés par mois.</div>
+          <div id="historiqueList"></div>
+        </div>
       </section>
 
       <!-- MESSAGES FAVORIS -->
@@ -362,12 +369,6 @@
         </div>
         <div class="section-header"><span class="count-label" id="expensesCount"></span></div>
         <div id="expensesList"></div>
-      </section>
-
-      <!-- HISTORIQUE -->
-      <section class="page" id="page-historique">
-        <div class="info-banner">📜 Chaque mouvement d'argent : achats, ventes et dépenses, classés par mois.</div>
-        <div id="historiqueList"></div>
       </section>
 
       <!-- OBJECTIFS -->

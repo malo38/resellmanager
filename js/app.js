@@ -40,7 +40,7 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 // (personnalisables) : pas encore vendu, donc pas de date de vente.
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', historique:'Historique', replay:'Resell Replay', settings:'Paramètres' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes & Historique', settings:'Paramètres' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -147,14 +147,20 @@ window.goPage = (id, btn) => {
   btn.classList.add('active');
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
   if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); }
-  if(id==='replay') renderReplay();
+  if(id==='ventes') { renderReplay(); renderHistorique(); }
   if(id==='calendrier') renderCalendar();
   if(id==='favoris') renderFavoris();
   if(id==='republier') renderRepublier();
   if(id==='messages') renderMessages();
   if(id==='depenses') renderDepenses();
-  if(id==='historique') renderHistorique();
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
+};
+
+window.goVentesTab=(tab,btn)=>{
+  document.getElementById('ventesTabBtn-ventes').classList.toggle('active',tab==='ventes');
+  document.getElementById('ventesTabBtn-historique').classList.toggle('active',tab==='historique');
+  document.getElementById('ventesTab-ventes').style.display=tab==='ventes'?'':'none';
+  document.getElementById('ventesTab-historique').style.display=tab==='historique'?'':'none';
 };
 window.toggleSidebar=()=>document.querySelector('.sidebar').classList.toggle('open');
 
@@ -413,7 +419,7 @@ function articleHTML(a, opts={}) {
 function emptyState(msg){return `<div class="empty-state"><div class="empty-icon">📭</div>${msg}</div>`;}
 
 // ── RENDER ALL ──
-function renderAll(){renderDashboard();renderStockAll();renderStockNavItems();renderAnalytics();renderObjectif();}
+function renderAll(){renderDashboard();renderStockAll();renderAnalytics();renderObjectif();}
 
 function renderDashboard(){
   const vendus=allArticles.filter(a=>a.status==='vendu');
@@ -721,39 +727,43 @@ function articleTileHTML(a, opts={}){
   </div>`;
 }
 
+// Catégorie sélectionnée sur la page Stock (chips) : "Tous" ou une clé de statut.
+let stockCategoryFilter='Tous';
+
 function renderStockAll(){
   const platformFilter=currentFilter.stockall;
-  const bySection=(status)=>{
-    let arts=allArticles.filter(a=>a.status===status);
-    if(platformFilter!=='Tous') arts=arts.filter(a=>a.platform===platformFilter);
-    return arts;
-  };
-
-  // Les étapes de préparation sont personnalisables (voir Paramètres) : on
-  // (re)génère leurs sections à chaque render pour refléter tout ajout/
-  // suppression immédiatement.
+  const byPlatform=arts=>platformFilter==='Tous'?arts:arts.filter(a=>a.platform===platformFilter);
   const prepSteps=getPrepSteps();
-  document.getElementById('stockallPrepSections').innerHTML=prepSteps.map(s=>`
-    <div class="stockall-section">
-      <div class="stockall-header"><span>${s.label}</span><span class="count-label" id="stockallCount-${s.key}"></span></div>
-      <div class="article-grid" id="stockallGrid-${s.key}"></div>
-    </div>`).join('');
+  const categories=[...prepSteps, {key:'stock',label:'📦 En stock'}, {key:'expedition',label:'🚚 À expédier'}];
+
+  const activeArts=byPlatform(allArticles.filter(a=>isPreSaleStatus(a.status)||a.status==='expedition'));
+  const vendus=byPlatform(allArticles.filter(a=>a.status==='vendu'));
+  const ca=vendus.reduce((s,a)=>s+calcCA(a),0);
+  document.getElementById('stockMinistats').innerHTML=`
+    <div class="ministat"><div class="ministat-label">Articles</div><div class="ministat-val">${activeArts.length}</div></div>
+    <div class="ministat"><div class="ministat-label">Vendus</div><div class="ministat-val">${vendus.length}</div></div>
+    <div class="ministat"><div class="ministat-label">CA</div><div class="ministat-val">${fmtPrice(ca)}</div></div>
+  `;
+
+  if(!categories.some(c=>c.key===stockCategoryFilter)) stockCategoryFilter='Tous';
+  const chips=[{key:'Tous',label:'Tous'}, ...categories];
+  document.getElementById('stockCategoryChips').innerHTML=chips.map(c=>{
+    const count=c.key==='Tous'?activeArts.length:byPlatform(allArticles.filter(a=>a.status===c.key)).length;
+    return `<button class="pf-btn stock-chip${stockCategoryFilter===c.key?' active':''}" onclick="filterStockCategory('${c.key}',this)">${c.label} (${count})</button>`;
+  }).join('');
 
   const bulkTarget=document.getElementById('bulkTarget-stockall');
   if(bulkTarget) bulkTarget.innerHTML=getAllSteps().map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
 
-  [...prepSteps.map(s=>s.key),'stock','expedition'].forEach(key=>{
-    const arts=bySection(key);
-    document.getElementById('stockallCount-'+key).textContent=arts.length;
-    document.getElementById('stockallGrid-'+key).innerHTML=arts.length
-      ?arts.map(a=>articleTileHTML(a,{showMove:true,selectSection:'stockall'})).join('')
-      :`<p class="stockall-empty">Aucun article.</p>`;
-  });
+  const shown=stockCategoryFilter==='Tous'?activeArts:byPlatform(allArticles.filter(a=>a.status===stockCategoryFilter));
+  document.getElementById('stockallGrid').innerHTML=shown.length
+    ?shown.map(a=>articleTileHTML(a,{showMove:true,selectSection:'stockall'})).join('')
+    :`<p class="stockall-empty">Aucun article.</p>`;
 
-  // À expédier : checklist (même comportement qu'avant la fusion des pages)
-  const expArts=bySection('expedition');
+  // Checklist expédition : visible seulement quand ce filtre est actif.
+  const expArts=byPlatform(allArticles.filter(a=>a.status==='expedition'));
   const storedChk=JSON.parse(localStorage.getItem('checklist_'+currentUser.id)||'{}');
-  document.getElementById('checklistWrap').innerHTML=expArts.length?`
+  document.getElementById('checklistWrap').innerHTML=(stockCategoryFilter==='expedition'&&expArts.length)?`
     <div class="checklist-card">
       <div class="checklist-title">✅ Checklist d'expédition</div>
       ${expArts.map(a=>`
@@ -764,20 +774,11 @@ function renderStockAll(){
     </div>`:'';
 }
 
-// ── ENTRÉES "STOCK" DE LA SIDEBAR (une par catégorie, à plat) ──
-// Reflète toujours les étapes de préparation personnalisables (voir
-// getPrepSteps()) : régénéré à chaque changement dans Paramètres.
-function renderStockNavItems(){
-  const el=document.getElementById('stockNavItems');
-  if(!el) return;
-  const items=[...getPrepSteps(), {key:'stock',label:'📦 En stock'}, {key:'expedition',label:'🚚 À expédier'}];
-  el.innerHTML=items.map(s=>`<button class="nav-btn" onclick="goStockSection('${s.key}',this)">${s.label}</button>`).join('')
-    +`<button class="nav-btn" onclick="goPage('replay',this)">💰 Vendu</button>`;
-}
-
-window.goStockSection=(key,btn)=>{
-  goPage('stock',btn);
-  requestAnimationFrame(()=>document.getElementById('stockallGrid-'+key)?.scrollIntoView({behavior:'smooth',block:'start'}));
+window.filterStockCategory=(key,btn)=>{
+  stockCategoryFilter=key;
+  btn.closest('.stock-chips').querySelectorAll('.pf-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStockAll();
 };
 
 // ── SÉLECTION MULTIPLE / ACTIONS GROUPÉES ──
@@ -1314,7 +1315,6 @@ window.addPrepStep=()=>{
   input.value='';
   renderPrepStepsSettings();
   renderStockAll();
-  renderStockNavItems();
 };
 
 window.removePrepStep=(key)=>{
@@ -1324,7 +1324,6 @@ window.removePrepStep=(key)=>{
   localStorage.setItem('prepSteps_'+currentUser.id, JSON.stringify(steps));
   renderPrepStepsSettings();
   renderStockAll();
-  renderStockNavItems();
 };
 
 async function renderVintedConnectionStatus() {

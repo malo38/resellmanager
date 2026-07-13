@@ -52,11 +52,6 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .nav-btn:hover { background: var(--surface2); color: var(--text); }
 .nav-btn.active { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
 .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
-#stockNavItems { display: flex; flex-direction: column; gap: 2px; padding-left: 14px; }
-#stockNavItems.collapsed { display: none; }
-.nav-btn-toggle { justify-content: space-between; }
-.nav-btn-toggle .nav-group-caret { color: var(--muted); }
-.nav-btn-toggle.collapsed .nav-group-caret { transform: rotate(-90deg); }
 .nav-group-header { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 12px 4px; border: none; background: transparent; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); font-family: inherit; text-align: left; cursor: pointer; }
 .nav-group-caret { font-size: 13px; transition: transform 0.15s; }
 .nav-group-body { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
@@ -178,10 +173,12 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .ledger-amount { font-weight: 700; flex-shrink: 0; }
 
 /* ── STOCK UNIFIÉ (grille de tuiles) ── */
-.stockall-section { margin-bottom: 26px; }
-.stockall-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px; font-weight: 600; color: var(--text); }
-.stockall-header select { margin-left: auto; }
 .stockall-empty { font-size: 12px; color: var(--muted); }
+.stock-ministats { display: flex; gap: 12px; margin-bottom: 16px; }
+.ministat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 18px; flex: 1; }
+.ministat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.ministat-val { font-size: 20px; font-weight: 700; color: var(--text); }
+.stock-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .article-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 @media (max-width: 900px) { .article-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 700px) { .article-grid { grid-template-columns: repeat(2, 1fr); } }
