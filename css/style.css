@@ -52,7 +52,11 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .nav-btn:hover { background: var(--surface2); color: var(--text); }
 .nav-btn.active { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
 .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
-#stockNavItems { display: flex; flex-direction: column; gap: 2px; }
+#stockNavItems { display: flex; flex-direction: column; gap: 2px; padding-left: 14px; }
+#stockNavItems.collapsed { display: none; }
+.nav-btn-toggle { justify-content: space-between; }
+.nav-btn-toggle .nav-group-caret { color: var(--muted); }
+.nav-btn-toggle.collapsed .nav-group-caret { transform: rotate(-90deg); }
 .nav-group-header { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 12px 4px; border: none; background: transparent; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); font-family: inherit; text-align: left; cursor: pointer; }
 .nav-group-caret { font-size: 13px; transition: transform 0.15s; }
 .nav-group-body { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
