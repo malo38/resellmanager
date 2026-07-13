@@ -394,7 +394,7 @@ function articleHTML(a, opts={}) {
 function emptyState(msg){return `<div class="empty-state"><div class="empty-icon">📭</div>${msg}</div>`;}
 
 // ── RENDER ALL ──
-function renderAll(){renderDashboard();renderStockAll();renderAnalytics();renderObjectif();}
+function renderAll(){renderDashboard();renderStockAll();renderStockNavItems();renderAnalytics();renderObjectif();}
 
 function renderDashboard(){
   const vendus=allArticles.filter(a=>a.status==='vendu');
@@ -744,6 +744,22 @@ function renderStockAll(){
         </div>`).join('')}
     </div>`:'';
 }
+
+// ── ENTRÉES "STOCK" DE LA SIDEBAR (une par catégorie, à plat) ──
+// Reflète toujours les étapes de préparation personnalisables (voir
+// getPrepSteps()) : régénéré à chaque changement dans Paramètres.
+function renderStockNavItems(){
+  const el=document.getElementById('stockNavItems');
+  if(!el) return;
+  const items=[...getPrepSteps(), {key:'stock',label:'📦 En stock'}, {key:'expedition',label:'🚚 À expédier'}];
+  el.innerHTML=items.map(s=>`<button class="nav-btn" onclick="goStockSection('${s.key}',this)">${s.label}</button>`).join('')
+    +`<button class="nav-btn" onclick="goPage('replay',this)">💰 Vendu</button>`;
+}
+
+window.goStockSection=(key,btn)=>{
+  goPage('stock',btn);
+  requestAnimationFrame(()=>document.getElementById('stockallGrid-'+key)?.scrollIntoView({behavior:'smooth',block:'start'}));
+};
 
 // ── SÉLECTION MULTIPLE / ACTIONS GROUPÉES ──
 window.toggleSelectMode = (section) => {
@@ -1279,6 +1295,7 @@ window.addPrepStep=()=>{
   input.value='';
   renderPrepStepsSettings();
   renderStockAll();
+  renderStockNavItems();
 };
 
 window.removePrepStep=(key)=>{
@@ -1288,6 +1305,7 @@ window.removePrepStep=(key)=>{
   localStorage.setItem('prepSteps_'+currentUser.id, JSON.stringify(steps));
   renderPrepStepsSettings();
   renderStockAll();
+  renderStockNavItems();
 };
 
 async function renderVintedConnectionStatus() {
