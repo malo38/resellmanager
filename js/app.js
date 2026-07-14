@@ -1195,16 +1195,18 @@ function renderHistorique(){
 async function updateMessagesBadge(){
   const badge=document.getElementById('navMsgBadge');
   if(!badge)return;
-  const query=()=>sb.from('vinted_conversations')
-    .select('id',{count:'exact',head:true}).eq('user_id',currentUser.id).eq('non_lu',true);
-  // Cette requête part en même temps que ~6 autres appels au chargement initial
-  // et échoue occasionnellement (503, probablement une limite de connexions
-  // simultanées côté Supabase) alors qu'elle réussit à coup sûr rejouée seule —
-  // un seul retry suffit à absorber ça.
-  let {count,error}=await query();
-  if(error){ await new Promise(r=>setTimeout(r,1500)); ({count,error}=await query()); }
-  if(count>0){ badge.textContent=count; badge.style.display='inline-block'; }
-  else { badge.style.display='none'; }
+  // Un HEAD+count=exact déclenché juste après les autres appels du chargement
+  // initial échoue quasi systématiquement (503) sur cette table précise dans
+  // une vraie navigation — mais réussit à coup sûr rejoué depuis la console
+  // une fois la page stabilisée (retry immédiat inutile, voir historique de
+  // debug 2026-07-14). On décale l'appel de 3s pour sortir de la rafale
+  // initiale, et on passe en GET + comptage côté client (évite le HEAD).
+  setTimeout(async ()=>{
+    const {data,error}=await sb.from('vinted_conversations')
+      .select('id').eq('user_id',currentUser.id).eq('non_lu',true);
+    if(!error && data && data.length>0){ badge.textContent=data.length; badge.style.display='inline-block'; }
+    else { badge.style.display='none'; }
+  }, 3000);
 }
 
 // ── BANDEAU DE SYNCHRONISATION (dashboard) ──
