@@ -1023,11 +1023,31 @@ function renderCalendar() {
   document.getElementById('calendarTasks').innerHTML = html;
 }
 
+// ── APPELS BACKEND (extension.railway.app) ──
+async function backendFetch(path, options={}) {
+  const token=(await sb.auth.getSession()).data.session?.access_token;
+  const r=await fetch(`${BACKEND}${path}`, {
+    ...options,
+    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}`, ...(options.headers||{}) },
+  });
+  if(!r.ok) return null;
+  return r.json();
+}
+
 // ── MESSAGES FAVORIS ──
-window.saveFavMessage = () => {
+window.saveFavMessage = async () => {
   const savedEl = document.getElementById('favMsgSaved');
   localStorage.setItem('favMessage_'+currentUser.id, document.getElementById('favMessage').value);
-  savedEl.textContent = '✓ Modèle enregistré !';
+  const payload = {
+    enabled: document.getElementById('autoMsgEnabled').checked,
+    template: document.getElementById('favMessage').value,
+    delay_min_sec: parseInt(document.getElementById('autoMsgDelayMin').value)||60,
+    delay_max_sec: parseInt(document.getElementById('autoMsgDelayMax').value)||180,
+    daily_limit: parseInt(document.getElementById('autoMsgDailyLimit').value)||0,
+  };
+  const res = await backendFetch('/api/settings/automessage', {method:'POST', body:JSON.stringify(payload)});
+  savedEl.textContent = res ? '✓ Modèle et réglages enregistrés !' : '✕ Erreur, réessayez.';
+  renderAutoMsgStatus();
 };
 
 window.copyFavMessage = (btn) => {
@@ -1043,7 +1063,24 @@ window.copyFavMessage = (btn) => {
   });
 };
 
-function renderFavoris() {
+async function renderAutoMsgStatus() {
+  const config = await backendFetch('/api/extension/automessage-config');
+  const el = document.getElementById('autoMsgStatus');
+  if(!config){ el.textContent=''; return; }
+  el.textContent = `${config.sent_today}/${config.daily_limit} message(s) envoyé(s) automatiquement aujourd'hui.`;
+  const historyData = await backendFetch('/api/extension/sent-messages');
+  const history = historyData?.messages || [];
+  document.getElementById('autoMsgHistory').innerHTML = history.length ? history.map(m=>`
+    <div class="article-card">
+      <div class="article-photo">💌</div>
+      <div class="article-info">
+        <div class="article-name">${m.recipient_login||'Utilisateur'}${m.item_title?' — '+m.item_title:''}</div>
+        <div class="article-meta">${fmtDate(m.sent_at)}</div>
+      </div>
+    </div>`).join('') : emptyState('Aucun message auto-envoyé pour le moment.');
+}
+
+async function renderFavoris() {
   const saved = localStorage.getItem('favMessage_'+currentUser.id) || '';
   document.getElementById('favMessage').value = saved;
   const stock = allArticles.filter(a=>a.status==='stock');
@@ -1056,6 +1093,16 @@ function renderFavoris() {
       </div>
       <button class="fav-copy-btn" data-name="${a.name.replace(/"/g,'&quot;')}" onclick="copyFavMessage(this)">📋 Copier pour cet article</button>
     </div>`).join('') : emptyState('Aucun article en stock pour le moment.');
+
+  const config = await backendFetch('/api/extension/automessage-config');
+  if(config){
+    document.getElementById('favMessage').value = config.template || saved;
+    document.getElementById('autoMsgEnabled').checked = !!config.enabled;
+    document.getElementById('autoMsgDailyLimit').value = config.daily_limit;
+    document.getElementById('autoMsgDelayMin').value = config.delay_min_sec;
+    document.getElementById('autoMsgDelayMax').value = config.delay_max_sec;
+  }
+  renderAutoMsgStatus();
 }
 
 // ── MESSAGES VINTED (synchronisés par l'extension) ──
@@ -1232,12 +1279,27 @@ async function renderSyncBanner(){
 }
 
 // ── REPUBLICATION ──
-window.saveRepublishDays = () => {
+window.saveRepublishDays = async () => {
   const v = parseInt(document.getElementById('republishDays').value);
   if (isNaN(v) || v <= 0) return;
   localStorage.setItem('republishDays_'+currentUser.id, v);
+  const payload = {
+    enabled: document.getElementById('autoRepublishEnabled').checked,
+    frequency_days: v,
+    daily_limit: parseInt(document.getElementById('autoRepublishDailyLimit').value)||0,
+  };
+  const res = await backendFetch('/api/settings/republish', {method:'POST', body:JSON.stringify(payload)});
+  document.getElementById('republishSaved').textContent = res ? '✓ Réglages enregistrés !' : '✕ Erreur, réessayez.';
+  renderAutoRepublishStatus();
   renderRepublier();
 };
+
+async function renderAutoRepublishStatus(){
+  const config = await backendFetch('/api/extension/republish-config');
+  const el = document.getElementById('autoRepublishStatus');
+  if(!config){ el.textContent=''; return; }
+  el.textContent = `${config.republished_today}/${config.daily_limit} article(s) republié(s) automatiquement aujourd'hui.`;
+}
 
 function getArticlesToRepublish(){
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
@@ -1253,7 +1315,7 @@ function getArticlesToRepublish(){
 
 function republishDoneKey(){ return 'republish_done_'+currentUser.id+'_'+today(); }
 
-function renderRepublier() {
+async function renderRepublier() {
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   document.getElementById('republishDays').value = days;
   const toRepublish = getArticlesToRepublish();
@@ -1266,6 +1328,13 @@ function renderRepublier() {
         ${a.vinted_item_id?`<a href="https://www.vinted.fr/items/${a.vinted_item_id}" target="_blank" rel="noopener" class="btn-edit" style="text-decoration:none;flex-shrink:0;">Voir sur Vinted →</a>`:''}
       </div>`).join('')}</div>`
     : emptyState('Aucun article à republier pour le moment.');
+
+  const config = await backendFetch('/api/extension/republish-config');
+  if(config){
+    document.getElementById('autoRepublishEnabled').checked = !!config.enabled;
+    document.getElementById('autoRepublishDailyLimit').value = config.daily_limit;
+  }
+  renderAutoRepublishStatus();
   updateRepublishBadge();
 }
 

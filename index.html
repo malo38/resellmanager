@@ -313,17 +313,29 @@
 
       <!-- MESSAGES FAVORIS -->
       <section class="page" id="page-favoris">
-        <div class="info-banner">❤️ Écrivez un seul message type ci-dessous (avec <code>{item}</code> à la place du nom de l'article), puis enregistrez-le. Ensuite, pour chaque article en stock listé plus bas, le bouton "Copier" vous donne ce message déjà personnalisé avec le nom de cet article précis — prêt à coller dans une conversation Vinted.</div>
+        <div class="info-banner">❤️ Écrivez un modèle (avec <code>{item}</code> à la place du nom de l'article) : activez l'envoi automatique pour que l'extension contacte toute seule les personnes qui mettent vos articles en favoris, ou utilisez le bouton "Copier" plus bas pour le faire à la main.</div>
         <div class="settings-card">
           <h2 class="settings-title">Modèle de message</h2>
           <div class="field full">
             <label>Votre message</label>
             <textarea id="favMessage" rows="4" placeholder="Bonjour ! J'ai vu que {item} vous intéresse 😊 N'hésitez pas si vous avez des questions, et je peux faire un geste sur le prix si vous l'achetez rapidement !"></textarea>
           </div>
-          <button class="btn-confirm" onclick="saveFavMessage()">Enregistrer</button>
+          <div class="checklist-item" style="margin-top:12px;">
+            <input type="checkbox" id="autoMsgEnabled" />
+            <label for="autoMsgEnabled">Envoyer automatiquement (nécessite un onglet vinted.fr ouvert, via l'extension)</label>
+          </div>
+          <div class="goal-row" style="margin-top:10px;">
+            <div class="field"><label>Max par jour</label><input type="number" id="autoMsgDailyLimit" min="0" value="20" /></div>
+            <div class="field"><label>Délai min (sec)</label><input type="number" id="autoMsgDelayMin" min="10" value="60" /></div>
+            <div class="field"><label>Délai max (sec)</label><input type="number" id="autoMsgDelayMax" min="10" value="180" /></div>
+          </div>
+          <button class="btn-confirm" style="margin-top:12px;" onclick="saveFavMessage()">Enregistrer</button>
           <p id="favMsgSaved" class="success-msg"></p>
+          <p class="setting-sub" id="autoMsgStatus" style="margin-top:8px;"></p>
         </div>
-        <div class="section-header" style="margin-top:20px;"><h2>Vos articles en stock — à relancer</h2></div>
+        <div class="section-header" style="margin-top:20px;"><h2>Historique des messages auto-envoyés</h2></div>
+        <div id="autoMsgHistory"></div>
+        <div class="section-header" style="margin-top:20px;"><h2>Vos articles en stock — à relancer manuellement</h2></div>
         <div id="favorisList"></div>
       </section>
 
@@ -332,11 +344,20 @@
         <div class="info-banner">🔄 Republier régulièrement vos annonces Vinted les remet en avant dans les résultats de recherche.</div>
         <div class="settings-card">
           <h2 class="settings-title">Fréquence de republication</h2>
-          <p class="setting-sub" style="margin-bottom:12px;">Tous les combien de jours voulez-vous être rappelé de republier vos articles ?</p>
+          <p class="setting-sub" style="margin-bottom:12px;">Tous les combien de jours voulez-vous republier vos articles ?</p>
           <div class="goal-row">
             <input type="number" id="republishDays" placeholder="ex: 3" min="1" />
-            <button class="btn-confirm" onclick="saveRepublishDays()">Enregistrer</button>
           </div>
+          <div class="checklist-item" style="margin-top:12px;">
+            <input type="checkbox" id="autoRepublishEnabled" />
+            <label for="autoRepublishEnabled">Republier automatiquement (supprime puis recrée l'annonce à l'identique, via l'extension — nécessite un onglet vinted.fr ouvert)</label>
+          </div>
+          <div class="goal-row" style="margin-top:10px;">
+            <div class="field"><label>Max par jour</label><input type="number" id="autoRepublishDailyLimit" min="0" value="5" /></div>
+          </div>
+          <button class="btn-confirm" style="margin-top:12px;" onclick="saveRepublishDays()">Enregistrer</button>
+          <p id="republishSaved" class="success-msg"></p>
+          <p class="setting-sub" id="autoRepublishStatus" style="margin-top:8px;"></p>
         </div>
         <div class="section-header" style="margin-top:20px;"><h2>Articles à republier maintenant</h2></div>
         <div id="republierList"></div>
