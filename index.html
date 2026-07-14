@@ -153,6 +153,9 @@
     <div class="sidebar-brand">
       <img src="" alt="VintControl" class="sidebar-logo app-logo" />
     </div>
+    <div class="account-switcher" id="accountSwitcher" style="display:none;padding:0 16px 12px;">
+      <select id="accountSwitcherSelect" onchange="onAccountSwitch(this.value)" style="width:100%;padding:8px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;"></select>
+    </div>
     <nav class="sidebar-nav">
       <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span> Tableau de bord</button>
 
@@ -314,6 +317,7 @@
       <!-- MESSAGES FAVORIS -->
       <section class="page" id="page-favoris">
         <div class="info-banner">❤️ Écrivez un modèle (avec <code>{item}</code> à la place du nom de l'article) : activez l'envoi automatique pour que l'extension contacte toute seule les personnes qui mettent vos articles en favoris, ou utilisez le bouton "Copier" plus bas pour le faire à la main.</div>
+        <div class="info-banner" id="favorisAccountWarning" style="display:none;background:var(--warning-dim);color:var(--warning);">⚠️ Plusieurs comptes Vinted connectés — sélectionnez-en un précis (en haut de la sidebar) pour configurer son automatisation, "Tous les comptes" n'affiche que celle du compte le plus récemment synchronisé.</div>
         <div class="settings-card">
           <h2 class="settings-title">Modèle de message</h2>
           <div class="field full">
@@ -342,6 +346,7 @@
       <!-- REPUBLICATION -->
       <section class="page" id="page-republier">
         <div class="info-banner">🔄 Republier régulièrement vos annonces Vinted les remet en avant dans les résultats de recherche.</div>
+        <div class="info-banner" id="republierAccountWarning" style="display:none;background:var(--warning-dim);color:var(--warning);">⚠️ Plusieurs comptes Vinted connectés — sélectionnez-en un précis (en haut de la sidebar) pour configurer son automatisation, "Tous les comptes" n'affiche que celle du compte le plus récemment synchronisé.</div>
         <div class="settings-card">
           <h2 class="settings-title">Fréquence de republication</h2>
           <p class="setting-sub" style="margin-bottom:12px;">Tous les combien de jours voulez-vous republier vos articles ?</p>
@@ -430,29 +435,12 @@
         <div class="settings-card" style="margin-top:16px;">
           <h2 class="settings-title">🔗 Connexion Vinted</h2>
 
-          <!-- Statut actuel -->
-          <div class="setting-row" style="margin-bottom:16px;">
-            <div>
-              <div class="setting-label">Statut</div>
-              <div class="setting-sub" id="vintedStatus">Chargement...</div>
-            </div>
-            <div id="vintedStatusBadge" style="font-size:13px;font-weight:700;"></div>
-          </div>
-          <div class="setting-row" id="vintedLoginRow" style="display:none;margin-bottom:16px;">
-            <div>
-              <div class="setting-label">Compte connecté</div>
-              <div class="setting-sub" id="vintedLogin">—</div>
-            </div>
-            <div style="text-align:right;">
-              <div class="setting-label">Dernière sync</div>
-              <div class="setting-sub" id="vintedLastSync">—</div>
-            </div>
-          </div>
-          <div class="reputation-grid" id="reputationGrid" style="display:none"></div>
+          <!-- Un compte par ligne : plusieurs comptes Vinted possibles en parallèle -->
+          <div id="vintedAccountsList">Chargement...</div>
 
           <!-- Instructions extension -->
-          <div style="background:var(--surface2);border-radius:var(--radius);padding:14px;font-size:13px;line-height:1.7;color:var(--text);margin-bottom:14px;">
-            <div style="font-weight:700;margin-bottom:10px;">Comment connecter votre compte Vinted ?</div>
+          <div style="background:var(--surface2);border-radius:var(--radius);padding:14px;font-size:13px;line-height:1.7;color:var(--text);margin-top:14px;margin-bottom:14px;">
+            <div style="font-weight:700;margin-bottom:10px;">Connecter un compte Vinted (le premier, ou un compte supplémentaire)</div>
             <div style="display:flex;flex-direction:column;gap:10px;">
               <div style="display:flex;gap:10px;align-items:flex-start;">
                 <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">1</span>

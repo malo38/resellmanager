@@ -11,6 +11,7 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null, allArticles = [], selectedPhotoFile = null, deleteTargetId = null;
+let vintedAccounts = [], selectedVintedAccountId = null; // null = "Tous les comptes" (agrégat)
 let currentFilter = { stockall: 'Tous', replay: 'Tous' };
 let selectMode = { stockall: false };
 let selectedIds = { stockall: new Set() };
@@ -134,9 +135,59 @@ function loginAs(user) {
   const t=localStorage.getItem('theme')||'light';
   document.getElementById('btnDark')?.classList.toggle('active',t==='dark');
   document.getElementById('btnLight')?.classList.toggle('active',t==='light');
-  loadArticles();
+  // loadVintedAccounts() restaure d'abord le compte sélectionné en mémoire
+  // (localStorage) avant que loadArticles() ne l'utilise pour filtrer —
+  // sinon le premier chargement ignorerait la préférence sauvegardée et
+  // partirait toujours en vue agrégée.
+  loadVintedAccounts().then(loadArticles);
   maybeShowOnboarding();
   restoreNavGroupsState();
+}
+
+// ── MULTICOMPTE VINTED ──
+// Un utilisateur VintControl peut avoir plusieurs comptes Vinted connectés en
+// parallèle (données stockées séparément, jamais écrasées) — voir le
+// sélecteur de compte dans la sidebar. `selectedVintedAccountId` vaut null
+// pour "Tous les comptes" (vue agrégée, comportement historique).
+async function loadVintedAccounts(){
+  const res = await backendFetch('/api/extension/accounts');
+  vintedAccounts = res?.accounts || [];
+  const stored = localStorage.getItem('selectedVintedAccountId_'+currentUser.id);
+  selectedVintedAccountId = stored && vintedAccounts.some(a=>a.id===stored) ? stored : null;
+  renderAccountSwitcher();
+}
+
+function renderAccountSwitcher(){
+  const wrap = document.getElementById('accountSwitcher');
+  const sel = document.getElementById('accountSwitcherSelect');
+  if(!wrap || !sel) return;
+  if(!vintedAccounts.length){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  sel.innerHTML = `<option value="">🔗 Tous les comptes</option>` +
+    vintedAccounts.map(a=>`<option value="${a.id}">@${a.vinted_login||'compte'}</option>`).join('');
+  sel.value = selectedVintedAccountId || '';
+}
+
+window.onAccountSwitch = (id) => {
+  selectedVintedAccountId = id || null;
+  localStorage.setItem('selectedVintedAccountId_'+currentUser.id, selectedVintedAccountId || '');
+  loadArticles();
+  if(document.getElementById('page-settings')?.classList.contains('active')) renderVintedConnectionStatus();
+  if(document.getElementById('page-favoris')?.classList.contains('active')) renderFavoris();
+  if(document.getElementById('page-republier')?.classList.contains('active')) renderRepublier();
+};
+
+// Ajoute le filtre par compte à une requête Supabase déjà construite, si un
+// compte précis est sélectionné (sinon la requête reste inchangée = agrégat
+// de tous les comptes, comportement identique à avant le multicompte).
+function applyAccountFilter(query){
+  return selectedVintedAccountId ? query.eq('vinted_account_id', selectedVintedAccountId) : query;
+}
+
+// Querystring à ajouter aux appels backend qui doivent être scopés au compte
+// sélectionné (réglages d'automatisation, historique de messages envoyés).
+function accountQueryParam(){
+  return selectedVintedAccountId ? `?vinted_account_id=${encodeURIComponent(selectedVintedAccountId)}` : '';
 }
 
 // ── NAV ──
@@ -234,14 +285,22 @@ let allPurchases=[];
 let allExpenses=[];
 let vintedWallet=null;
 async function loadArticles(){
-  const {data}=await sb.from('articles').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  renderAccountSwitcher();
+  const {data}=await applyAccountFilter(sb.from('articles').select('*').eq('user_id',currentUser.id)).order('created_at',{ascending:false});
   allArticles=data||[];
-  const {data:purchasesData}=await sb.from('vinted_purchases').select('*').eq('user_id',currentUser.id).order('purchase_date',{ascending:false});
+  const {data:purchasesData}=await applyAccountFilter(sb.from('vinted_purchases').select('*').eq('user_id',currentUser.id)).order('purchase_date',{ascending:false});
   allPurchases=purchasesData||[];
   const {data:expensesData}=await sb.from('expenses').select('*').eq('user_id',currentUser.id).order('expense_date',{ascending:false});
   allExpenses=expensesData||[];
-  const {data:accountData}=await sb.from('vinted_accounts').select('wallet_balance,wallet_pending_balance').eq('user_id',currentUser.id).single();
-  vintedWallet=accountData||null;
+  // wallet_balance : pas de .single() possible dès qu'il y a 2+ comptes
+  // connectés — on prend soit le compte sélectionné, soit la somme de tous
+  // les comptes (les soldes Vinted s'additionnent naturellement).
+  const {data:accountsData}=await sb.from('vinted_accounts').select('id,wallet_balance,wallet_pending_balance').eq('user_id',currentUser.id);
+  const relevantAccounts = selectedVintedAccountId ? (accountsData||[]).filter(a=>a.id===selectedVintedAccountId) : (accountsData||[]);
+  vintedWallet = accountsData?.length ? {
+    wallet_balance: relevantAccounts.reduce((s,a)=>s+(parseFloat(a.wallet_balance)||0),0),
+    wallet_pending_balance: relevantAccounts.reduce((s,a)=>s+(parseFloat(a.wallet_pending_balance)||0),0),
+  } : null;
   renderAll();
   renderSyncBanner();
   updateMessagesBadge();
@@ -1037,6 +1096,13 @@ async function backendFetch(path, options={}) {
 // ── MESSAGES FAVORIS ──
 window.saveFavMessage = async () => {
   const savedEl = document.getElementById('favMsgSaved');
+  // L'automatisation est par compte Vinted : avec 2+ comptes connectés, il
+  // faut en sélectionner un précis (pas "Tous les comptes") pour savoir
+  // lequel configurer.
+  if (!selectedVintedAccountId && vintedAccounts.length > 1) {
+    savedEl.textContent = '✕ Sélectionnez un compte Vinted précis (en haut de la sidebar) pour configurer l\'automatisation.';
+    return;
+  }
   localStorage.setItem('favMessage_'+currentUser.id, document.getElementById('favMessage').value);
   const payload = {
     enabled: document.getElementById('autoMsgEnabled').checked,
@@ -1044,6 +1110,7 @@ window.saveFavMessage = async () => {
     delay_min_sec: parseInt(document.getElementById('autoMsgDelayMin').value)||60,
     delay_max_sec: parseInt(document.getElementById('autoMsgDelayMax').value)||180,
     daily_limit: parseInt(document.getElementById('autoMsgDailyLimit').value)||0,
+    vinted_account_id: selectedVintedAccountId || '',
   };
   const res = await backendFetch('/api/settings/automessage', {method:'POST', body:JSON.stringify(payload)});
   savedEl.textContent = res ? '✓ Modèle et réglages enregistrés !' : '✕ Erreur, réessayez.';
@@ -1064,11 +1131,11 @@ window.copyFavMessage = (btn) => {
 };
 
 async function renderAutoMsgStatus() {
-  const config = await backendFetch('/api/extension/automessage-config');
+  const config = await backendFetch('/api/extension/automessage-config'+accountQueryParam());
   const el = document.getElementById('autoMsgStatus');
   if(!config){ el.textContent=''; return; }
   el.textContent = `${config.sent_today}/${config.daily_limit} message(s) envoyé(s) automatiquement aujourd'hui.`;
-  const historyData = await backendFetch('/api/extension/sent-messages');
+  const historyData = await backendFetch('/api/extension/sent-messages'+accountQueryParam());
   const history = historyData?.messages || [];
   document.getElementById('autoMsgHistory').innerHTML = history.length ? history.map(m=>`
     <div class="article-card">
@@ -1094,7 +1161,10 @@ async function renderFavoris() {
       <button class="fav-copy-btn" data-name="${a.name.replace(/"/g,'&quot;')}" onclick="copyFavMessage(this)">📋 Copier pour cet article</button>
     </div>`).join('') : emptyState('Aucun article en stock pour le moment.');
 
-  const config = await backendFetch('/api/extension/automessage-config');
+  const el = document.getElementById('favorisAccountWarning');
+  if(el) el.style.display = (!selectedVintedAccountId && vintedAccounts.length > 1) ? 'block' : 'none';
+
+  const config = await backendFetch('/api/extension/automessage-config'+accountQueryParam());
   if(config){
     document.getElementById('favMessage').value = config.template || saved;
     document.getElementById('autoMsgEnabled').checked = !!config.enabled;
@@ -1122,8 +1192,8 @@ function timeAgo(iso){
 async function renderMessages(){
   const container=document.getElementById('messagesList');
   container.innerHTML=emptyState('Chargement...');
-  const {data,error}=await sb.from('vinted_conversations')
-    .select('*').eq('user_id',currentUser.id).order('updated_at',{ascending:false});
+  const {data,error}=await applyAccountFilter(sb.from('vinted_conversations')
+    .select('*').eq('user_id',currentUser.id)).order('updated_at',{ascending:false});
   if(error||!data||!data.length){
     container.innerHTML=emptyState('Aucun message Vinted synchronisé pour le moment. Gardez un onglet vinted.fr ouvert pour que l\'extension synchronise votre messagerie.');
     return;
@@ -1249,8 +1319,8 @@ async function updateMessagesBadge(){
   // debug 2026-07-14). On décale l'appel de 3s pour sortir de la rafale
   // initiale, et on passe en GET + comptage côté client (évite le HEAD).
   setTimeout(async ()=>{
-    const {data,error}=await sb.from('vinted_conversations')
-      .select('id').eq('user_id',currentUser.id).eq('non_lu',true);
+    const {data,error}=await applyAccountFilter(sb.from('vinted_conversations')
+      .select('id').eq('user_id',currentUser.id).eq('non_lu',true));
     if(!error && data && data.length>0){ badge.textContent=data.length; badge.style.display='inline-block'; }
     else { badge.style.display='none'; }
   }, 3000);
@@ -1260,7 +1330,13 @@ async function updateMessagesBadge(){
 async function renderSyncBanner(){
   const el=document.getElementById('dashSyncBanner');
   if(!el)return;
-  const {data}=await sb.from('vinted_accounts').select('*').eq('user_id',currentUser.id).single();
+  const {data:accounts}=await sb.from('vinted_accounts').select('*').eq('user_id',currentUser.id);
+  // Compte à afficher : celui sélectionné dans le switcher, ou — en vue
+  // agrégée — le plus en retard de synchro (pire cas, pour ne rater aucune
+  // alerte "extension déconnectée" quand plusieurs comptes sont connectés).
+  const data = selectedVintedAccountId
+    ? (accounts||[]).find(a=>a.id===selectedVintedAccountId)
+    : (accounts||[]).slice().sort((a,b)=>(a.last_sync||'').localeCompare(b.last_sync||''))[0];
   if(!data||!data.connected){
     el.style.display='flex';
     el.innerHTML=`<div class="sync-banner-text">🔌 Extension Chrome non connectée — <strong>connectez-la dans Paramètres</strong> pour synchroniser automatiquement vos ventes, votre stock et votre messagerie Vinted.</div>`;
@@ -1282,11 +1358,16 @@ async function renderSyncBanner(){
 window.saveRepublishDays = async () => {
   const v = parseInt(document.getElementById('republishDays').value);
   if (isNaN(v) || v <= 0) return;
+  if (!selectedVintedAccountId && vintedAccounts.length > 1) {
+    document.getElementById('republishSaved').textContent = '✕ Sélectionnez un compte Vinted précis (en haut de la sidebar) pour configurer l\'automatisation.';
+    return;
+  }
   localStorage.setItem('republishDays_'+currentUser.id, v);
   const payload = {
     enabled: document.getElementById('autoRepublishEnabled').checked,
     frequency_days: v,
     daily_limit: parseInt(document.getElementById('autoRepublishDailyLimit').value)||0,
+    vinted_account_id: selectedVintedAccountId || '',
   };
   const res = await backendFetch('/api/settings/republish', {method:'POST', body:JSON.stringify(payload)});
   document.getElementById('republishSaved').textContent = res ? '✓ Réglages enregistrés !' : '✕ Erreur, réessayez.';
@@ -1295,7 +1376,7 @@ window.saveRepublishDays = async () => {
 };
 
 async function renderAutoRepublishStatus(){
-  const config = await backendFetch('/api/extension/republish-config');
+  const config = await backendFetch('/api/extension/republish-config'+accountQueryParam());
   const el = document.getElementById('autoRepublishStatus');
   if(!config){ el.textContent=''; return; }
   el.textContent = `${config.republished_today}/${config.daily_limit} article(s) republié(s) automatiquement aujourd'hui.`;
@@ -1316,6 +1397,8 @@ function getArticlesToRepublish(){
 function republishDoneKey(){ return 'republish_done_'+currentUser.id+'_'+today(); }
 
 async function renderRepublier() {
+  const warnEl = document.getElementById('republierAccountWarning');
+  if(warnEl) warnEl.style.display = (!selectedVintedAccountId && vintedAccounts.length > 1) ? 'block' : 'none';
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   document.getElementById('republishDays').value = days;
   const toRepublish = getArticlesToRepublish();
@@ -1329,7 +1412,7 @@ async function renderRepublier() {
       </div>`).join('')}</div>`
     : emptyState('Aucun article à republier pour le moment.');
 
-  const config = await backendFetch('/api/extension/republish-config');
+  const config = await backendFetch('/api/extension/republish-config'+accountQueryParam());
   if(config){
     document.getElementById('autoRepublishEnabled').checked = !!config.enabled;
     document.getElementById('autoRepublishDailyLimit').value = config.daily_limit;
@@ -1403,53 +1486,66 @@ window.removePrepStep=(key)=>{
   renderStockAll();
 };
 
+// Chaque compte Vinted connecté a sa propre carte (login, statut, réputation,
+// bouton déconnecter) — un utilisateur peut en avoir plusieurs en parallèle.
 async function renderVintedConnectionStatus() {
   renderExtensionInstallBtn();
-  const statusEl = document.getElementById('vintedStatus');
-  const badgeEl = document.getElementById('vintedStatusBadge');
-  const loginEl = document.getElementById('vintedLogin');
-  const lastSyncEl = document.getElementById('vintedLastSync');
-  if (!statusEl) return;
+  const listEl = document.getElementById('vintedAccountsList');
+  if (!listEl) return;
 
   try {
     const { data } = await sb.from('vinted_accounts')
-      .select('*').eq('user_id', currentUser.id).single();
+      .select('*').eq('user_id', currentUser.id).order('last_sync', { ascending: false });
+    vintedAccounts = data || [];
+    renderAccountSwitcher();
 
-    if (!data) {
-      statusEl.textContent = 'Aucun compte connecté';
-      badgeEl.innerHTML = '<span style="color:#ef4444;">● Déconnecté</span>';
+    if (!vintedAccounts.length) {
+      listEl.innerHTML = `<div class="setting-row" style="margin-bottom:16px;">
+        <div><div class="setting-label">Statut</div><div class="setting-sub">Aucun compte connecté</div></div>
+        <div style="font-size:13px;font-weight:700;"><span style="color:#ef4444;">● Déconnecté</span></div>
+      </div>`;
       return;
     }
-    if (data.connected) {
-      const daysSinceSync = data.last_sync ? daysBetween(data.last_sync, today()) : null;
+
+    listEl.innerHTML = vintedAccounts.map(acc => {
+      const daysSinceSync = acc.last_sync ? daysBetween(acc.last_sync, today()) : null;
       const isStale = daysSinceSync !== null && daysSinceSync >= 3;
-      statusEl.textContent = isStale ? `Aucune synchro depuis ${daysSinceSync} jours` : 'Extension Chrome active';
-      badgeEl.innerHTML = isStale ? '<span style="color:#f59e0b;">● Synchro en panne</span>' : '<span style="color:#00e5a0;">● Connecté</span>';
-      loginEl.textContent = '@' + (data.vinted_login || '—');
-      lastSyncEl.textContent = data.last_sync
-        ? new Date(data.last_sync).toLocaleDateString('fr-FR') : '—';
-      document.getElementById('vintedLoginRow').style.display = 'flex';
-      renderReputationGrid(data);
-    } else {
-      statusEl.textContent = 'Compte enregistré mais extension inactive';
-      badgeEl.innerHTML = '<span style="color:#f59e0b;">● Inactif</span>';
-    }
+      const statusText = !acc.connected ? 'Compte enregistré mais extension inactive'
+        : (isStale ? `Aucune synchro depuis ${daysSinceSync} jours` : 'Extension Chrome active');
+      const badgeHtml = !acc.connected ? '<span style="color:#f59e0b;">● Inactif</span>'
+        : (isStale ? '<span style="color:#f59e0b;">● Synchro en panne</span>' : '<span style="color:#00e5a0;">● Connecté</span>');
+      return `<div class="setting-row" style="margin-bottom:8px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="setting-label">@${acc.vinted_login || '—'}</div>
+          <div class="setting-sub">${statusText} · dernière synchro ${acc.last_sync ? new Date(acc.last_sync).toLocaleDateString('fr-FR') : '—'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:13px;font-weight:700;">${badgeHtml}</div>
+          <button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="disconnectVintedAccount('${acc.id}')">Déconnecter</button>
+        </div>
+      </div>
+      ${reputationGridHtml(acc)}`;
+    }).join('<hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">');
   } catch(e) {
-    if (statusEl) statusEl.textContent = 'Erreur de chargement';
+    listEl.innerHTML = '<p class="setting-sub">Erreur de chargement.</p>';
   }
 }
 
-function renderReputationGrid(data){
-  const el = document.getElementById('reputationGrid');
-  if(!el) return;
+window.disconnectVintedAccount = async (accountId) => {
+  if(!confirm('Déconnecter ce compte Vinted ? Ses données restent conservées, seule la synchro automatique s\'arrête.')) return;
+  await backendFetch(`/api/extension/accounts/${accountId}/disconnect`, { method: 'POST' });
+  await loadVintedAccounts();
+  renderVintedConnectionStatus();
+};
+
+function reputationGridHtml(data){
   const hasAny = (data.review_count||data.followers_count||data.vinted_item_count);
-  if(!hasAny){ el.style.display = 'none'; return; }
-  el.style.display = 'grid';
-  el.innerHTML = `
+  if(!hasAny) return '';
+  return `<div class="reputation-grid" style="display:grid">
     <div class="reputation-stat"><div class="reputation-val">${((data.feedback_reputation||0)*5).toFixed(1)}/5</div><div class="reputation-label">⭐ Note moyenne</div></div>
     <div class="reputation-stat"><div class="reputation-val">${data.review_count||0}</div><div class="reputation-label">💬 Avis</div></div>
     <div class="reputation-stat"><div class="reputation-val">${data.followers_count||0}</div><div class="reputation-label">👥 Abonnés</div></div>
-  `;
+  </div>`;
 }
 
 // ── HISTORIQUE VUES/FAVORIS ──
@@ -1457,8 +1553,8 @@ window.showHistory = async (itemId, itemName) => {
   document.getElementById('historyTitle').textContent = `Évolution — ${itemName}`;
   document.getElementById('historyBody').innerHTML = emptyState('Chargement...');
   document.getElementById('historyBg').classList.add('open');
-  const { data, error } = await sb.from('vinted_stats_history')
-    .select('*').eq('vinted_item_id', itemId).order('stat_date', { ascending: true });
+  const { data, error } = await applyAccountFilter(sb.from('vinted_stats_history')
+    .select('*').eq('user_id', currentUser.id).eq('vinted_item_id', itemId)).order('stat_date', { ascending: true });
   const bodyEl = document.getElementById('historyBody');
   if(error || !data || !data.length){
     bodyEl.innerHTML = emptyState('Pas encore assez de données. Revenez dans quelques jours pour voir l\'évolution.');
