@@ -1195,8 +1195,14 @@ function renderHistorique(){
 async function updateMessagesBadge(){
   const badge=document.getElementById('navMsgBadge');
   if(!badge)return;
-  const {count}=await sb.from('vinted_conversations')
+  const query=()=>sb.from('vinted_conversations')
     .select('id',{count:'exact',head:true}).eq('user_id',currentUser.id).eq('non_lu',true);
+  // Cette requête part en même temps que ~6 autres appels au chargement initial
+  // et échoue occasionnellement (503, probablement une limite de connexions
+  // simultanées côté Supabase) alors qu'elle réussit à coup sûr rejouée seule —
+  // un seul retry suffit à absorber ça.
+  let {count,error}=await query();
+  if(error){ await new Promise(r=>setTimeout(r,1500)); ({count,error}=await query()); }
   if(count>0){ badge.textContent=count; badge.style.display='inline-block'; }
   else { badge.style.display='none'; }
 }
