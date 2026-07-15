@@ -860,7 +860,7 @@ function articleTileHTML(a, opts={}){
   // sous chaque carte).
   const statusLabel=`<span class="tile-status-pill" style="background:${status.color}">${status.label}</span>`;
   const actionBtn=opts.showMove&&nextStep
-    ?`<button class="tile-action-btn" style="background:${status.color};" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`
+    ?`<button class="tile-action-btn" style="--tile-action-color:${nextStep.color};" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">${nextStep.label}</button>`
     :'';
   const days=a.status!=='vendu'?daysInStock(a):null;
   const ageBadge=(days!==null)?`<span class="tile-age${days>=30?' tile-age-warn':''}" title="En stock depuis ${days} jour${days>1?'s':''}">${days}j</span>`:'';
