@@ -952,9 +952,12 @@ function renderUnmatchedSales(){
   const wrap=document.getElementById('unmatchedSalesWrap');
   if(!wrap) return;
   if(!allUnmatchedSales.length){ wrap.innerHTML=''; return; }
-  const candidates=allArticles.filter(a=>a.status!=='vendu');
+  // Inclut aussi les articles déjà "vendu" : une resynchro d'une vente déjà
+  // traitée (mais sans lien enregistré, ex: articles antérieurs à la
+  // migration SKU) doit pouvoir se relier à sa fiche existante plutôt que de
+  // forcer la création d'un doublon (signalé le 2026-07-15).
   const options=`<option value="">— Choisir un article —</option>` +
-    candidates.map(a=>`<option value="${a.id}">${a.name} (${fmtPrice(a.buy_price||a.sell_price)})</option>`).join('');
+    allArticles.map(a=>`<option value="${a.id}">${a.name} (${fmtPrice(a.buy_price||a.sell_price)})${a.status==='vendu'?' — déjà vendu':''}</option>`).join('');
   wrap.innerHTML=`
     <div class="info-banner" style="background:var(--warning-dim);color:var(--warning);margin-bottom:16px;">
       🔗 ${allUnmatchedSales.length} vente${allUnmatchedSales.length>1?'s':''} Vinted détectée${allUnmatchedSales.length>1?'s':''} sans article correspondant clair — reliez-les à un article existant ou créez-en un nouveau.
