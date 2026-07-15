@@ -1809,6 +1809,20 @@ window.resyncFromVinted = async (id, btn) => {
   setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 3000);
 };
 
+// Même principe que resyncFromVinted() mais pour tout le stock Vinted du
+// compte sélectionné (ou de tous les comptes si "Tous les comptes").
+window.resyncAllFromVinted = async (btn) => {
+  if (!confirm('Forcer TOUS vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min) ? Toute modification manuelle récente sera écrasée par l\'état réel sur Vinted.')) return;
+  const original = btn.textContent;
+  btn.textContent = '...'; btn.disabled = true;
+  const res = await backendFetch('/api/settings/resync-all', {
+    method: 'POST',
+    body: JSON.stringify({ vinted_account_id: selectedVintedAccountId || '' }),
+  });
+  btn.textContent = res ? `✓ ${res.count} article(s) programmé(s)` : '✕ Erreur, réessayez';
+  setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 4000);
+};
+
 // ── CARTE DE VENTE PARTAGEABLE (Ventes & Historique) ──
 window.openSaleCard = (id) => {
   const a=allArticles.find(x=>x.id===id);
