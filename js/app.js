@@ -146,6 +146,8 @@ function loginAs(user) {
   loadVintedAccounts().then(loadArticles);
   maybeShowOnboarding();
   restoreNavGroupsState();
+  restoreNavOrder();
+  initNavDragDrop();
 }
 
 // ── MULTICOMPTE VINTED ──
@@ -230,6 +232,54 @@ function restoreNavGroupsState(){
       header.classList.add('collapsed');
       header.nextElementSibling.classList.add('collapsed');
     }
+  });
+}
+
+// ── SIDEBAR RÉORGANISABLE (glisser-déposer, comme chez Vinteer) ──
+// L'ordre de chaque groupe est sauvegardé par utilisateur, séparément par
+// groupe (on ne mélange pas Calendrier avec Statistiques par exemple — même
+// découpage que les groupes repliables existants).
+function restoreNavOrder(){
+  document.querySelectorAll('.nav-group-body[id^="navGroup-"]').forEach(group=>{
+    const saved=JSON.parse(localStorage.getItem('navOrder_'+group.id+'_'+currentUser.id)||'null');
+    if(!saved) return;
+    saved.forEach(page=>{
+      const btn=group.querySelector(`.nav-btn[data-page="${page}"]`);
+      if(btn) group.appendChild(btn);
+    });
+  });
+}
+
+function saveNavOrder(group){
+  const order=[...group.querySelectorAll('.nav-btn')].map(b=>b.dataset.page);
+  localStorage.setItem('navOrder_'+group.id+'_'+currentUser.id, JSON.stringify(order));
+}
+
+function initNavDragDrop(){
+  document.querySelectorAll('.nav-group-body[id^="navGroup-"]').forEach(group=>{
+    let dragged=null;
+    group.querySelectorAll('.nav-btn').forEach(btn=>{
+      btn.addEventListener('dragstart',()=>{ dragged=btn; btn.classList.add('nav-dragging'); });
+      btn.addEventListener('dragend',()=>{
+        btn.classList.remove('nav-dragging');
+        group.querySelectorAll('.nav-drag-over').forEach(b=>b.classList.remove('nav-drag-over'));
+        saveNavOrder(group);
+      });
+      btn.addEventListener('dragover',(e)=>{
+        e.preventDefault();
+        if(btn===dragged) return;
+        btn.classList.add('nav-drag-over');
+      });
+      btn.addEventListener('dragleave',()=>btn.classList.remove('nav-drag-over'));
+      btn.addEventListener('drop',(e)=>{
+        e.preventDefault();
+        btn.classList.remove('nav-drag-over');
+        if(!dragged||btn===dragged) return;
+        const all=[...group.querySelectorAll('.nav-btn')];
+        const draggedIdx=all.indexOf(dragged), targetIdx=all.indexOf(btn);
+        if(draggedIdx<targetIdx) btn.after(dragged); else btn.before(dragged);
+      });
+    });
   });
 }
 

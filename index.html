@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=9" />
+  <link rel="stylesheet" href="css/style.css?v=10" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -161,22 +161,22 @@
       <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span> Tableau de bord</button>
 
       <button class="nav-group-header" onclick="toggleNavGroup(this)">ACTIVITÉ <i class="ti ti-chevron-down nav-group-caret"></i></button>
-      <div class="nav-group-body">
-        <button class="nav-btn" onclick="goPage('calendrier',this)"><span class="nav-icon"><i class="ti ti-calendar"></i></span> Calendrier</button>
-        <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
-        <button class="nav-btn" onclick="goPage('achats',this)"><span class="nav-icon"><i class="ti ti-shopping-cart"></i></span> Achats</button>
-        <button class="nav-btn" onclick="goPage('ventes',this)"><span class="nav-icon"><i class="ti ti-player-play"></i></span> Ventes</button>
-        <button class="nav-btn" onclick="goPage('historique',this)"><span class="nav-icon"><i class="ti ti-history"></i></span> Historique</button>
-        <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
-        <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
-        <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
+      <div class="nav-group-body" id="navGroup-activite">
+        <button class="nav-btn" draggable="true" data-page="calendrier" onclick="goPage('calendrier',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-calendar"></i></span> Calendrier</button>
+        <button class="nav-btn" draggable="true" data-page="stock" onclick="goPage('stock',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
+        <button class="nav-btn" draggable="true" data-page="achats" onclick="goPage('achats',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-shopping-cart"></i></span> Achats</button>
+        <button class="nav-btn" draggable="true" data-page="ventes" onclick="goPage('ventes',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-player-play"></i></span> Ventes</button>
+        <button class="nav-btn" draggable="true" data-page="historique" onclick="goPage('historique',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-history"></i></span> Historique</button>
+        <button class="nav-btn" draggable="true" data-page="messages" onclick="goPage('messages',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
+        <button class="nav-btn" draggable="true" data-page="favoris" onclick="goPage('favoris',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
+        <button class="nav-btn" draggable="true" data-page="republier" onclick="goPage('republier',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
       </div>
 
       <button class="nav-group-header" onclick="toggleNavGroup(this)">FINANCE &amp; ANALYSE <i class="ti ti-chevron-down nav-group-caret"></i></button>
-      <div class="nav-group-body">
-        <button class="nav-btn" onclick="goPage('analytics',this)"><span class="nav-icon"><i class="ti ti-chart-bar"></i></span> Statistiques</button>
-        <button class="nav-btn" onclick="goPage('objectif',this)"><span class="nav-icon"><i class="ti ti-target"></i></span> Objectifs</button>
-        <button class="nav-btn" onclick="goPage('depenses',this)"><span class="nav-icon"><i class="ti ti-receipt"></i></span> Dépenses</button>
+      <div class="nav-group-body" id="navGroup-finance">
+        <button class="nav-btn" draggable="true" data-page="analytics" onclick="goPage('analytics',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-chart-bar"></i></span> Statistiques</button>
+        <button class="nav-btn" draggable="true" data-page="objectif" onclick="goPage('objectif',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-target"></i></span> Objectifs</button>
+        <button class="nav-btn" draggable="true" data-page="depenses" onclick="goPage('depenses',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-receipt"></i></span> Dépenses</button>
       </div>
 
       <button class="nav-btn" onclick="goPage('settings',this)"><span class="nav-icon"><i class="ti ti-settings"></i></span> Paramètres</button>
@@ -784,7 +784,7 @@
   </div>
 </div>
 
-<script src="js/calc.js?v=9"></script>
-<script src="js/app.js?v=9"></script>
+<script src="js/calc.js?v=10"></script>
+<script src="js/app.js?v=10"></script>
 </body>
 </html>
