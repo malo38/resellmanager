@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
@@ -524,7 +525,7 @@
       <div class="form-grid">
         <div class="field full"><label>Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" /></div>
         <div class="field"><label>Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" /></div>
-        <div class="field"><label>Prix de vente (€)</label><input type="number" id="mSell" placeholder="0,00" step="0.01" /></div>
+        <div class="field"><label>Prix de vente visé (€) <span style="color:var(--muted);font-weight:400;">optionnel</span></label><input type="number" id="mSell" placeholder="ex: prix affiché sur l'annonce" step="0.01" /></div>
         <div class="field"><label>Frais annexes (€)</label><input type="number" id="mExtraCosts" placeholder="0,00" step="0.01" /></div>
         <div class="field"><label>Plateforme</label>
           <select id="mPlatform"><option>Vinted</option><option>eBay</option><option>Leboncoin</option><option>Autre</option></select>
@@ -546,12 +547,9 @@
         </div>
       </div>
       <div class="field full" style="margin-top:8px;">
-        <label>Photo</label>
-        <div class="photo-upload-area" id="photoUploadArea" onclick="document.getElementById('mPhoto').click()">
-          <img id="photoPreview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;" />
-          <div id="photoPlaceholder">📷</div>
-        </div>
-        <input type="file" id="mPhoto" accept="image/*" style="display:none" onchange="previewPhoto(event)" />
+        <label>Photos <span style="color:var(--muted);font-weight:400;">(la première est la principale — cliquez une vignette pour la mettre en avant)</span></label>
+        <div class="photo-gallery" id="photoGallery"></div>
+        <input type="file" id="mPhoto" accept="image/*" multiple style="display:none" onchange="addPhotos(event)" />
       </div>
     </div>
     <div class="modal-actions">
@@ -573,6 +571,35 @@
   </div>
 </div>
 
+<!-- CONFIRMATION DE VENTE (prix réel de vente, saisi au moment de la vente
+     plutôt qu'à la création — il peut varier selon les offres négociées) -->
+<div class="modal-bg" id="sellConfirmBg">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <h3>✅ Article vendu</h3>
+      <button class="modal-close" onclick="closeSellConfirm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="scId" />
+      <p id="scArticleName" style="font-weight:600;margin-bottom:12px;"></p>
+      <div class="form-grid">
+        <div class="field full"><label>Prix de vente (€)</label><input type="number" id="scSellPrice" step="0.01" oninput="updateSellPreview()" /></div>
+        <div class="field full"><label>Frais annexes (€)</label><input type="number" id="scExtraCosts" placeholder="0,00" step="0.01" oninput="updateSellPreview()" /></div>
+        <div class="field full"><label>Date de vente</label><input type="date" id="scSellDate" onchange="updateSellPreview()" /></div>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <div class="detail-row"><span class="detail-row-label">Prix d'achat</span><span class="detail-row-val" id="scBuyPreview">-0,00 €</span></div>
+        <div class="detail-row"><span class="detail-row-label">Vente</span><span class="detail-row-val" id="scSellPreview">+0,00 €</span></div>
+        <div class="detail-row" style="font-weight:700;"><span class="detail-row-label">Bénéfice net</span><span class="detail-row-val" id="scProfitPreview">0,00 €</span></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSellConfirm()">Annuler</button>
+      <button class="btn-confirm" onclick="submitSellConfirm()">Confirmer la vente</button>
+    </div>
+  </div>
+</div>
+
 <!-- HISTORIQUE VUES/FAVORIS -->
 <div class="modal-bg" id="historyBg">
   <div class="modal" style="max-width:420px;">
@@ -589,7 +616,7 @@
 
 <!-- DÉTAIL ARTICLE -->
 <div class="modal-bg" id="detailBg">
-  <div class="modal" style="max-width:440px;">
+  <div class="modal modal-detail-large">
     <div class="modal-header">
       <h3 id="detailTitle">Détail</h3>
       <button class="modal-close" onclick="closeDetail()">✕</button>
@@ -599,6 +626,41 @@
       <button class="btn-cancel" onclick="closeDetail()">Fermer</button>
       <button class="btn-cancel" id="detailDeleteBtn" style="color:var(--danger);border-color:var(--danger);">✕ Supprimer</button>
       <button class="btn-confirm" id="detailEditBtn">✎ Modifier</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARTE DE VENTE PARTAGEABLE -->
+<div class="modal-bg" id="saleCardBg">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header">
+      <h3>Partager cette vente</h3>
+      <button class="modal-close" onclick="closeSaleCard()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="saleCardContent" class="sale-card">
+        <div class="sale-card-brand app-logo-wrap"><img src="" alt="VintControl" class="app-logo sale-card-logo" /></div>
+        <div class="sale-card-badge">✓ VENTE RÉUSSIE</div>
+        <div class="sale-card-name" id="scName"></div>
+        <div class="sale-card-photo-wrap" id="scPhotoWrap"></div>
+        <div class="sale-card-stats">
+          <div class="sale-card-stat"><div class="sale-card-stat-label">PRIX D'ACHAT</div><div class="sale-card-stat-val profit-neg" id="scCardBuy"></div></div>
+          <div class="sale-card-stat"><div class="sale-card-stat-label">PRIX DE VENTE</div><div class="sale-card-stat-val profit-pos" id="scCardSell"></div></div>
+        </div>
+        <div class="sale-card-profit-box">
+          <div class="sale-card-profit-label">BÉNÉFICE NET</div>
+          <div class="sale-card-profit-val" id="scCardProfit"></div>
+          <div class="sale-card-profit-pills">
+            <span class="sale-card-pill" id="scCardRoi"></span>
+            <span class="sale-card-pill" id="scCardMargin"></span>
+          </div>
+        </div>
+        <div class="sale-card-footer">VintControl · Gestion de revente simplifiée</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSaleCard()">Fermer</button>
+      <button class="btn-confirm" onclick="downloadSaleCard()">⬇ Télécharger</button>
     </div>
   </div>
 </div>

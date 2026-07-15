@@ -10,7 +10,11 @@ const EXTENSION_STORE_URL = 'https://chromewebstore.google.com/detail/vinted-man
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentUser = null, allArticles = [], selectedPhotoFile = null, deleteTargetId = null;
+let currentUser = null, allArticles = [], deleteTargetId = null;
+// Galerie photo de l'article en cours d'édition : liste ordonnée de
+// {url} (déjà enregistrée) ou {file, previewUrl} (nouvelle, pas encore
+// uploadée) — index 0 = photo principale. Voir renderPhotoGallery().
+let photoEntries = [];
 let vintedAccounts = [], selectedVintedAccountId = null; // null = "Tous les comptes" (agrégat)
 let currentFilter = { stockall: 'Tous', replay: 'Tous' };
 let selectMode = { stockall: false };
@@ -260,22 +264,42 @@ function heatmapColor(a) {
 
 // isTrending()/calcScore() sont définies dans calc.js (chargé avant ce fichier).
 
-// ── PHOTO ──
-window.previewPhoto=(event)=>{
-  const file=event.target.files[0]; if(!file)return;
-  selectedPhotoFile=file;
-  const reader=new FileReader();
-  reader.onload=(e)=>{
-    document.getElementById('photoPreview').src=e.target.result;
-    document.getElementById('photoPreview').style.display='block';
-    document.getElementById('photoPlaceholder').style.display='none';
-  };
-  reader.readAsDataURL(file);
+// ── PHOTOS (galerie multi-photos) ──
+function renderPhotoGallery(){
+  const el=document.getElementById('photoGallery');
+  if(!el) return;
+  const tiles=photoEntries.map((entry,i)=>`
+    <div class="photo-gallery-item${i===0?' is-main':''}" onclick="setMainPhoto(${i})" title="${i===0?'Photo principale':'Cliquer pour en faire la principale'}">
+      <img src="${entry.url||entry.previewUrl}" alt="">
+      ${i===0?'<span class="photo-main-badge">Principale</span>':''}
+      <button class="photo-remove-btn" onclick="event.stopPropagation();removePhotoEntry(${i})">✕</button>
+    </div>`).join('');
+  el.innerHTML=tiles+`<div class="photo-gallery-add" onclick="document.getElementById('mPhoto').click()">+</div>`;
+}
+window.addPhotos=(event)=>{
+  const files=Array.from(event.target.files||[]);
+  files.forEach(file=>photoEntries.push({file,previewUrl:URL.createObjectURL(file)}));
+  event.target.value='';
+  renderPhotoGallery();
 };
+window.setMainPhoto=(i)=>{
+  if(i===0) return;
+  const [item]=photoEntries.splice(i,1);
+  photoEntries.unshift(item);
+  renderPhotoGallery();
+};
+window.removePhotoEntry=(i)=>{
+  photoEntries.splice(i,1);
+  renderPhotoGallery();
+};
+// Chemin de stockage rendu unique par photo (uuid, pas juste l'id de
+// l'article) : avant ce correctif, remplacer une photo réutilisait le même
+// chemin (upsert sur "{articleId}.{ext}") et le CDN/cache navigateur pouvait
+// continuer de servir l'ancienne image indéfiniment (signalé le 2026-07-15).
 async function uploadPhoto(file,articleId){
   const ext=file.name.split('.').pop();
-  const path=`${currentUser.id}/${articleId}.${ext}`;
-  const {error}=await sb.storage.from('photos').upload(path,file,{upsert:true});
+  const path=`${currentUser.id}/${articleId}-${crypto.randomUUID()}.${ext}`;
+  const {error}=await sb.storage.from('photos').upload(path,file,{upsert:false});
   if(error)return null;
   return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 }
@@ -310,10 +334,14 @@ async function loadArticles(){
 // ── MODAL ──
 window.editArticle=(id)=>{ openModal(allArticles.find(a=>a.id===id)||null); };
 window.openModal=(article=null)=>{
-  selectedPhotoFile=null;
-  document.getElementById('photoPreview').style.display='none';
-  document.getElementById('photoPlaceholder').style.display='flex';
+  // Une seule liste ordonnée (photos déjà enregistrées + nouvelles en attente
+  // d'upload) : l'index 0 est toujours la photo "principale". Voir
+  // renderPhotoGallery()/addPhotos()/setMainPhoto()/removePhotoEntry().
+  photoEntries=(article?.photo_urls&&article.photo_urls.length)
+    ?article.photo_urls.map(url=>({url}))
+    :(article?.photo_url?[{url:article.photo_url}]:[]);
   document.getElementById('mPhoto').value='';
+  renderPhotoGallery();
   document.getElementById('mId').value=article?.id||'';
   document.getElementById('mName').value=article?.name||'';
   document.getElementById('mBuy').value=article?.buy_price||'';
@@ -333,11 +361,6 @@ window.openModal=(article=null)=>{
   document.getElementById('modalTitle').textContent=article?"Modifier l'article":'Ajouter un article';
   document.getElementById('btnSave').textContent=article?'Enregistrer':'Ajouter';
   toggleDates();
-  if(article?.photo_url){
-    document.getElementById('photoPreview').src=article.photo_url;
-    document.getElementById('photoPreview').style.display='block';
-    document.getElementById('photoPlaceholder').style.display='none';
-  }
   document.getElementById('modalBg').classList.add('open');
 };
 window.closeModal=()=>document.getElementById('modalBg').classList.remove('open');
@@ -361,14 +384,21 @@ window.saveArticle=async()=>{
   btn.textContent='...'; btn.disabled=true;
 
   const existing=id?allArticles.find(a=>a.id===id):null;
-  let photoUrl=existing?.photo_url;
   const articleId=id||crypto.randomUUID();
-  if(selectedPhotoFile) photoUrl=await uploadPhoto(selectedPhotoFile,articleId);
+  // Uploade uniquement les entrées encore locales (.file) ; celles déjà
+  // enregistrées (.url) restent telles quelles. L'ordre de photoEntries est
+  // préservé : index 0 = principale.
+  const photoUrls=[];
+  for(const entry of photoEntries){
+    if(entry.url){ photoUrls.push(entry.url); continue; }
+    const uploaded=await uploadPhoto(entry.file,articleId);
+    if(uploaded) photoUrls.push(uploaded);
+  }
   // Date de mise en ligne réelle (distincte de buy_date) : ne se pose qu'une
   // fois, la première fois que l'article passe (ou est créé) au statut stock.
   const published_at=status==='stock'?(existing?.published_at||today()):(existing?.published_at||null);
 
-  const payload={name,buy_price:buy,sell_price:sell,extra_costs,platform,status,buy_date,sell_date,photo_url:photoUrl,location,source,published_at};
+  const payload={name,buy_price:buy,sell_price:sell,extra_costs,platform,status,buy_date,sell_date,photo_url:photoUrls[0]||null,photo_urls:photoUrls,location,source,published_at};
 
   if(id){
     const {data}=await sb.from('articles').update(payload).eq('id',id).eq('user_id',currentUser.id).select();
@@ -396,11 +426,56 @@ window.closeConfirm=()=>{document.getElementById('confirmBg').classList.remove('
 
 // ── PREP STEP ──
 window.moveToStep=async(id,step)=>{
+  // Passer à "vendu" ouvre une confirmation dédiée (prix de vente réel, qui
+  // peut différer du prix visé si négocié) plutôt que de valider en silence.
+  if(step==='vendu'){ openSellConfirm(id); return; }
   const sell_date=!isPreSaleStatus(step)?today():null;
   const patch={status:step,sell_date};
   if(step==='stock') patch.published_at=today();
   const {data}=await sb.from('articles').update(patch).eq('id',id).eq('user_id',currentUser.id).select();
   if(data){const idx=allArticles.findIndex(a=>a.id===id);if(idx>=0)allArticles[idx]=data[0];}
+  renderAll();
+};
+
+// ── CONFIRMATION DE VENTE (prix réel, saisi au moment de la vente) ──
+window.openSellConfirm=(id)=>{
+  const a=allArticles.find(x=>x.id===id);
+  if(!a) return;
+  document.getElementById('scId').value=id;
+  document.getElementById('scArticleName').textContent=a.name;
+  document.getElementById('scSellPrice').value=a.sell_price||'';
+  document.getElementById('scExtraCosts').value=a.extra_costs||'';
+  document.getElementById('scSellDate').value=today();
+  updateSellPreview();
+  document.getElementById('sellConfirmBg').classList.add('open');
+};
+window.closeSellConfirm=()=>document.getElementById('sellConfirmBg').classList.remove('open');
+
+window.updateSellPreview=()=>{
+  const id=document.getElementById('scId').value;
+  const a=allArticles.find(x=>x.id===id);
+  const buy=parseFloat(a?.buy_price)||0;
+  const sell=parseFloat(document.getElementById('scSellPrice').value)||0;
+  const fees=parseFloat(document.getElementById('scExtraCosts').value)||0;
+  const profit=sell-buy-fees;
+  document.getElementById('scBuyPreview').textContent='-'+fmtPrice(buy);
+  document.getElementById('scSellPreview').textContent='+'+fmtPrice(sell);
+  const profitEl=document.getElementById('scProfitPreview');
+  profitEl.textContent=(profit>=0?'+':'')+fmtPrice(profit);
+  profitEl.className='detail-row-val '+(profit>=0?'profit-pos':'profit-neg');
+};
+
+window.submitSellConfirm=async()=>{
+  const id=document.getElementById('scId').value;
+  const patch={
+    status:'vendu',
+    sell_price:parseFloat(document.getElementById('scSellPrice').value)||0,
+    extra_costs:parseFloat(document.getElementById('scExtraCosts').value)||0,
+    sell_date:document.getElementById('scSellDate').value||today(),
+  };
+  const {data}=await sb.from('articles').update(patch).eq('id',id).eq('user_id',currentUser.id).select();
+  if(data){const idx=allArticles.findIndex(a=>a.id===id);if(idx>=0)allArticles[idx]=data[0];}
+  closeSellConfirm();
   renderAll();
 };
 
@@ -1063,6 +1138,7 @@ function renderReplay(){
           <div class="replay-meta">${a.platform}${days!==null&&!isRefunded?' · Vendu en '+days+'j':''} · Score ${score}/100</div>
         </div>
         <div class="replay-profit ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div>
+        <button class="btn-edit" onclick="event.stopPropagation();openSaleCard('${a.id}')" title="Partager cette vente">📤</button>
       </div>
       <div class="replay-flow">
         <div class="replay-flow-step">
@@ -1461,20 +1537,45 @@ function getArticlesToRepublish(){
 
 function republishDoneKey(){ return 'republish_done_'+currentUser.id+'_'+today(); }
 
+// Marque un article pour republication prioritaire : l'extension l'exécute
+// au tout prochain cycle de synchro (≤5 min, alarme chrome.alarms), qu'elle
+// soit connectée au compte Vinted correspondant à ce moment-là.
+window.republishNow = async (vintedItemId, btn) => {
+  if (!selectedVintedAccountId && vintedAccounts.length > 1) {
+    alert('Sélectionnez un compte Vinted précis (en haut de la sidebar) avant de republier.');
+    return;
+  }
+  const original = btn.textContent;
+  btn.textContent = '...'; btn.disabled = true;
+  const res = await backendFetch('/api/settings/republish-now', {
+    method: 'POST',
+    body: JSON.stringify({ vinted_item_id: vintedItemId, vinted_account_id: selectedVintedAccountId || '' }),
+  });
+  btn.textContent = res ? '✓ Programmé (≤5 min)' : '✕ Erreur, réessayez';
+  setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 3000);
+};
+
 async function renderRepublier() {
   const warnEl = document.getElementById('republierAccountWarning');
   if(warnEl) warnEl.style.display = (!selectedVintedAccountId && vintedAccounts.length > 1) ? 'block' : 'none';
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   document.getElementById('republishDays').value = days;
   const toRepublish = getArticlesToRepublish();
+  const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   const doneToday = JSON.parse(localStorage.getItem(republishDoneKey())||'[]');
   document.getElementById('republierList').innerHTML = toRepublish.length
-    ? `<div class="checklist-card"><div class="checklist-title">✅ À republier aujourd'hui</div>${toRepublish.map(a=>`
+    ? `<div class="checklist-card"><div class="checklist-title">✅ À republier aujourd'hui</div>${toRepublish.map(a=>{
+        const since=daysBetween(a.published_at||a.buy_date||a.created_at?.split('T')[0],today());
+        const overdue=since!==null?Math.max(0,since-days):0;
+        return `
       <div class="checklist-item">
         <input type="checkbox" id="rep_${a.id}" ${doneToday.includes(a.id)?'checked':''} onchange="toggleRepublishDone('${a.id}',this)" />
         <label for="rep_${a.id}" class="${doneToday.includes(a.id)?'done':''}">${a.name}</label>
+        <span class="badge" style="background:var(--warning-dim);color:var(--warning);flex-shrink:0;" title="Éligible depuis ${since}j, ${days}j visés">${overdue>0?`⏱ en retard de ${overdue}j`:'⏱ éligible aujourd\'hui'}</span>
+        ${a.vinted_item_id?`<button class="btn-edit" style="flex-shrink:0;" onclick="republishNow('${a.vinted_item_id}',this)">🔄 Republier maintenant</button>`:''}
         ${a.vinted_item_id?`<a href="https://www.vinted.fr/items/${a.vinted_item_id}" target="_blank" rel="noopener" class="btn-edit" style="text-decoration:none;flex-shrink:0;">Voir sur Vinted →</a>`:''}
-      </div>`).join('')}</div>`
+      </div>`;
+      }).join('')}</div>`
     : emptyState('Aucun article à republier pour le moment.');
 
   const config = await backendFetch('/api/extension/republish-config'+accountQueryParam());
@@ -1647,22 +1748,32 @@ window.showDetail = (id) => {
   const days=daysBetween(a.buy_date,a.sell_date);
   const score=a.status==='vendu'?calcScore(a):null;
   document.getElementById('detailTitle').textContent=a.name;
+  const photos=(a.photo_urls&&a.photo_urls.length)?a.photo_urls:(a.photo_url?[a.photo_url]:[]);
+  const photosHTML=photos.length?`
+    <div class="detail-photos">
+      <img class="detail-photo-main" id="detailMainPhoto" src="${photos[0]}" alt="">
+      ${photos.length>1?`<div class="detail-photo-thumbs">${photos.map((url,i)=>`<img class="detail-photo-thumb${i===0?' active':''}" src="${url}" onclick="swapDetailPhoto('${url.replace(/'/g,"\\'")}',this)">`).join('')}</div>`:''}
+    </div>`:'';
   document.getElementById('detailBody').innerHTML=`
-    ${a.photo_url?`<img src="${a.photo_url}" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:var(--radius-lg);margin-bottom:12px;">`:''}
-    <div class="article-badges" style="margin-bottom:12px;">
-      <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
-      ${stepBadge(a.status)}
-      ${a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:''}
+    <div class="detail-layout">
+      ${photosHTML}
+      <div class="detail-info">
+        <div class="article-badges" style="margin-bottom:12px;">
+          <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
+          ${stepBadge(a.status)}
+          ${a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:''}
+        </div>
+        ${detailRow('🛒 Achat', fmtPrice(a.buy_price)+(a.buy_date?' · '+a.buy_date:''))}
+        ${a.status==='vendu'?detailRow('💸 Vente', (isRefunded?fmtPrice(0):fmtPrice(a.sell_price))+(a.sell_date?' · '+a.sell_date:'')):''}
+        ${a.extra_costs?detailRow('🧾 Frais annexes', fmtPrice(a.extra_costs)):''}
+        ${a.status==='vendu'?detailRow('📊 Profit', `<span class="${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</span> · ROI ${roi.toFixed(0)}%`):''}
+        ${days!==null&&!isRefunded?detailRow('⏱ Délai', 'Vendu en '+days+' jour(s)'):''}
+        ${score!==null?detailRow('⭐ Score', score+'/100'):''}
+        ${a.vinted_item_id&&a.status==='stock'?detailRow('👁️ Stats Vinted', `${a.vinted_vues||0} vues · ❤️ ${a.vinted_favoris||0} favoris`):''}
+        ${a.vinted_shipping_status?detailRow('📦 Statut Vinted', a.vinted_shipping_status):''}
+        ${a.source?detailRow('🔗 Source', a.source):''}
+      </div>
     </div>
-    ${detailRow('🛒 Achat', fmtPrice(a.buy_price)+(a.buy_date?' · '+a.buy_date:''))}
-    ${a.status==='vendu'?detailRow('💸 Vente', (isRefunded?fmtPrice(0):fmtPrice(a.sell_price))+(a.sell_date?' · '+a.sell_date:'')):''}
-    ${a.extra_costs?detailRow('🧾 Frais annexes', fmtPrice(a.extra_costs)):''}
-    ${a.status==='vendu'?detailRow('📊 Profit', `<span class="${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</span> · ROI ${roi.toFixed(0)}%`):''}
-    ${days!==null&&!isRefunded?detailRow('⏱ Délai', 'Vendu en '+days+' jour(s)'):''}
-    ${score!==null?detailRow('⭐ Score', score+'/100'):''}
-    ${a.vinted_item_id&&a.status==='stock'?detailRow('👁️ Stats Vinted', `${a.vinted_vues||0} vues · ❤️ ${a.vinted_favoris||0} favoris`):''}
-    ${a.vinted_shipping_status?detailRow('📦 Statut Vinted', a.vinted_shipping_status):''}
-    ${a.source?detailRow('🔗 Source', a.source):''}
   `;
   document.getElementById('detailEditBtn').style.display='inline-block';
   document.getElementById('detailEditBtn').onclick=()=>{ closeDetail(); editArticle(id); };
@@ -1670,6 +1781,41 @@ window.showDetail = (id) => {
   document.getElementById('detailBg').classList.add('open');
 };
 window.closeDetail = () => document.getElementById('detailBg').classList.remove('open');
+window.swapDetailPhoto = (url, thumbEl) => {
+  document.getElementById('detailMainPhoto').src = url;
+  thumbEl.parentElement.querySelectorAll('.detail-photo-thumb').forEach(t=>t.classList.remove('active'));
+  thumbEl.classList.add('active');
+};
+
+// ── CARTE DE VENTE PARTAGEABLE (Ventes & Historique) ──
+window.openSaleCard = (id) => {
+  const a=allArticles.find(x=>x.id===id);
+  if(!a) return;
+  const profit=calcProfit(a);
+  const roi=a.buy_price>0?(profit/a.buy_price*100):0;
+  const margin=a.sell_price>0?(profit/a.sell_price*100):0;
+  document.getElementById('scName').textContent=a.name;
+  document.getElementById('scPhotoWrap').innerHTML=a.photo_url?`<img src="${a.photo_url}" alt="">`:'';
+  document.getElementById('scPhotoWrap').style.display=a.photo_url?'block':'none';
+  document.getElementById('scCardBuy').textContent='-'+fmtPrice(a.buy_price);
+  document.getElementById('scCardSell').textContent='+'+fmtPrice(a.sell_price);
+  document.getElementById('scCardProfit').textContent=(profit>=0?'+':'')+fmtPrice(profit);
+  document.getElementById('scCardRoi').textContent='ROI x'+(a.buy_price>0?(profit/a.buy_price+1).toFixed(1):'—');
+  document.getElementById('scCardMargin').textContent='Marge '+margin.toFixed(1)+'%';
+  const logo=document.querySelector('#saleCardContent .sale-card-logo');
+  if(logo) logo.src=document.querySelector('.app-logo')?.src||'';
+  document.getElementById('saleCardBg').classList.add('open');
+};
+window.closeSaleCard = () => document.getElementById('saleCardBg').classList.remove('open');
+window.downloadSaleCard = () => {
+  if(typeof html2canvas==='undefined'){ alert('Erreur de chargement, réessayez.'); return; }
+  html2canvas(document.getElementById('saleCardContent'), {backgroundColor:'#ffffff', scale:2}).then(canvas=>{
+    const link=document.createElement('a');
+    link.download='vintcontrol-vente-'+today()+'.png';
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  });
+};
 
 // ── INFO GÉNÉRIQUE (explication des badges) ──
 window.showInfo = (title, bodyHtml) => {
