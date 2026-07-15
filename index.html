@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=6" />
+  <link rel="stylesheet" href="css/style.css?v=7" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -164,6 +164,7 @@
       <div class="nav-group-body">
         <button class="nav-btn" onclick="goPage('calendrier',this)"><span class="nav-icon"><i class="ti ti-calendar"></i></span> Calendrier</button>
         <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
+        <button class="nav-btn" onclick="goPage('achats',this)"><span class="nav-icon"><i class="ti ti-shopping-cart"></i></span> Achats</button>
         <button class="nav-btn" onclick="goPage('ventes',this)"><span class="nav-icon"><i class="ti ti-player-play"></i></span> Ventes &amp; Historique</button>
         <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
         <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
@@ -249,6 +250,18 @@
       <section class="page" id="page-calendrier">
         <div class="calendar-header" id="calendarHeader"></div>
         <div id="calendarTasks"></div>
+      </section>
+
+      <!-- ACHATS (achats Vinted, distincts du Stock — comme chez Vinteer) -->
+      <section class="page" id="page-achats">
+        <div class="stock-ministats" id="achatsMinistats"></div>
+        <div class="stock-toolbar">
+          <div class="stock-search-wrap">
+            <input type="text" id="achatsSearchInput" class="stock-search" placeholder="🔎 Rechercher un achat..." oninput="onAchatsSearch(this.value)" />
+          </div>
+          <button class="pf-btn" style="margin-left:auto;" onclick="exportAchatsCSV()">⬇ CSV</button>
+        </div>
+        <div id="achatsList"></div>
       </section>
 
       <!-- STOCK (unifié : préparation + stock + expédition, filtré par catégorie) -->
@@ -776,7 +789,7 @@
   </div>
 </div>
 
-<script src="js/calc.js?v=6"></script>
-<script src="js/app.js?v=6"></script>
+<script src="js/calc.js?v=7"></script>
+<script src="js/app.js?v=7"></script>
 </body>
 </html>

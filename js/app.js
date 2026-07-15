@@ -45,7 +45,7 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 // (personnalisables) : pas encore vendu, donc pas de date de vente.
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes & Historique', settings:'Paramètres' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes & Historique', settings:'Paramètres' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -203,6 +203,7 @@ window.goPage = (id, btn) => {
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
   if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); }
   if(id==='ventes') { renderReplay(); renderHistorique(); }
+  if(id==='achats') renderAchats();
   if(id==='calendrier') renderCalendar();
   if(id==='favoris') renderFavoris();
   if(id==='republier') renderRepublier();
@@ -1628,6 +1629,47 @@ function renderHistorique(){
     </div>`;
   }).join('');
 }
+
+// ── ACHATS (page dédiée, séparée du Stock — comme "Achats" chez Vinteer) ──
+let achatsSearchTerm='';
+window.onAchatsSearch=(value)=>{ achatsSearchTerm=value.trim().toLowerCase(); renderAchats(); };
+
+function renderAchats(){
+  const list=document.getElementById('achatsList');
+  if(!list) return;
+  const arts=selectedVintedAccountId?allPurchases.filter(p=>p.vinted_account_id===selectedVintedAccountId):allPurchases;
+  const isToday=d=>d===today();
+  const isThisMonth=d=>d&&d.slice(0,7)===today().slice(0,7);
+  const totalToday=arts.filter(p=>isToday(p.purchase_date)).reduce((s,p)=>s+(parseFloat(p.price)||0),0);
+  const totalMonth=arts.filter(p=>isThisMonth(p.purchase_date)).reduce((s,p)=>s+(parseFloat(p.price)||0),0);
+  const totalAll=arts.reduce((s,p)=>s+(parseFloat(p.price)||0),0);
+  document.getElementById('achatsMinistats').innerHTML=`
+    <div class="ministat"><div class="ministat-label">Achats aujourd'hui</div><div class="ministat-val">${fmtPrice(totalToday)}</div></div>
+    <div class="ministat"><div class="ministat-label">Achats ce mois-ci</div><div class="ministat-val">${fmtPrice(totalMonth)}</div></div>
+    <div class="ministat"><div class="ministat-label">Total achats</div><div class="ministat-val">${fmtPrice(totalAll)}</div></div>
+    <div class="ministat"><div class="ministat-label">Nombre d'achats</div><div class="ministat-val">${arts.length}</div></div>
+  `;
+  let shown=achatsSearchTerm?arts.filter(p=>(p.title||'').toLowerCase().includes(achatsSearchTerm)):arts;
+  shown=[...shown].sort((a,b)=>new Date(b.purchase_date||0)-new Date(a.purchase_date||0));
+  list.innerHTML=shown.length?shown.map(p=>`
+    <div class="tile-list-row" onclick="window.open('https://www.vinted.fr','_blank')">
+      <div class="tile-list-photo">${p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'🛍️'}</div>
+      <div class="tile-list-name">${p.title||'(sans titre)'}</div>
+      <span class="tile-list-status" style="background:#60a5fa;">${fmtDate(p.purchase_date)}</span>
+      <div class="tile-list-price">${fmtPrice(p.price)}</div>
+    </div>
+  `).join(''):emptyState('Aucun achat pour le moment.');
+}
+
+window.exportAchatsCSV=()=>{
+  const headers=[
+    {label:'Titre', get:p=>p.title},
+    {label:'Prix', get:p=>p.price||0},
+    {label:'Date achat', get:p=>p.purchase_date||''},
+    {label:'Statut', get:p=>p.status||''},
+  ];
+  downloadCSV(toCSV(allPurchases, headers), `vintcontrol-achats-${today()}.csv`);
+};
 
 async function updateMessagesBadge(){
   const badge=document.getElementById('navMsgBadge');
