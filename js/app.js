@@ -1561,7 +1561,6 @@ async function renderRepublier() {
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   document.getElementById('republishDays').value = days;
   const toRepublish = getArticlesToRepublish();
-  const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   const doneToday = JSON.parse(localStorage.getItem(republishDoneKey())||'[]');
   document.getElementById('republierList').innerHTML = toRepublish.length
     ? `<div class="checklist-card"><div class="checklist-title">✅ À republier aujourd'hui</div>${toRepublish.map(a=>{
