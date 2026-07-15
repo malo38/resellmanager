@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=3" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -259,11 +259,18 @@
           <div class="stock-search-wrap">
             <input type="text" id="stockSearchInput" class="stock-search" placeholder="🔎 Rechercher un article..." oninput="onStockSearch(this.value)" />
           </div>
+          <select id="stockSortSelect" onchange="onStockSort(this.value)">
+            <option value="recent">Plus récent</option>
+            <option value="oldest">En stock depuis le plus longtemps</option>
+            <option value="price_desc">Prix décroissant</option>
+            <option value="price_asc">Prix croissant</option>
+          </select>
           <div class="view-toggle" id="stockViewToggle">
             <button class="view-toggle-btn" data-view="grid" onclick="setStockView('grid')" title="Vue grille">⊞</button>
             <button class="view-toggle-btn" data-view="list" onclick="setStockView('list')" title="Vue liste">☰</button>
           </div>
           <button class="pf-btn" id="resyncAllBtn" onclick="resyncAllFromVinted(this)" title="Force tous vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min)">🔄 Tout réinitialiser depuis Vinted</button>
+          <button class="pf-btn" id="duplicatesBtn" onclick="openDuplicates()" title="Repère les articles qui semblent être en double (même nom)">🧬 Doublons</button>
         </div>
 
         <div class="page-filters">
@@ -280,6 +287,9 @@
           <select id="bulkTarget-stockall"></select>
           <button class="btn-confirm" onclick="applyBulkMove('stockall')">Appliquer</button>
         </div>
+
+        <!-- Chips "qualité de fiche" (sans photo, sans prix d'achat...) -->
+        <div class="stock-chips" id="stockQualityChips"></div>
 
         <!-- Chips de catégorie (à laver, à photographier, en stock...), générées par renderStockAll() -->
         <div class="stock-chips" id="stockCategoryChips"></div>
@@ -615,6 +625,20 @@
   </div>
 </div>
 
+<!-- DOUBLONS -->
+<div class="modal-bg" id="duplicatesBg">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3>🧬 Articles en double probables</h3>
+      <button class="modal-close" onclick="closeDuplicates()">✕</button>
+    </div>
+    <div class="modal-body" id="duplicatesBody"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDuplicates()">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- DÉTAIL ARTICLE -->
 <div class="modal-bg" id="detailBg">
   <div class="modal modal-detail-large">
@@ -747,7 +771,7 @@
   </div>
 </div>
 
-<script src="js/calc.js"></script>
-<script src="js/app.js"></script>
+<script src="js/calc.js?v=3"></script>
+<script src="js/app.js?v=3"></script>
 </body>
 </html>

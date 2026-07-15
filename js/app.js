@@ -853,23 +853,29 @@ function articleTileHTML(a, opts={}){
   else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
   else { priceLabel='-'+fmtPrice(a.buy_price); priceClass='profit-neg'; }
   const status=statusMeta(a.status);
-  // Le badge de statut coloré remplace le bouton "passer à l'étape suivante"
-  // au survol/clic — on garde le raccourci "étape suivante" mais affiché en
-  // permanence en bas de la photo, coloré selon le statut courant (inspiré
-  // d'un concurrent repéré par l'utilisateur le 2026-07-15).
-  const pill=opts.showMove&&nextStep
-    ?`<button class="tile-status-pill" style="background:${status.color};border:none;cursor:pointer;" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">${status.label}</button>`
-    :`<span class="tile-status-pill" style="background:${status.color}">${status.label}</span>`;
+  // Statut affiché en simple étiquette (non cliquable) en bas de la photo ;
+  // l'action "passer à l'étape suivante" est désormais un vrai bouton pleine
+  // largeur sous le prix, bien visible plutôt qu'une pastille discrète en
+  // overlay — repéré chez un concurrent le 2026-07-15 (bouton "Vendu"/"Reçu"
+  // sous chaque carte).
+  const statusLabel=`<span class="tile-status-pill" style="background:${status.color}">${status.label}</span>`;
+  const actionBtn=opts.showMove&&nextStep
+    ?`<button class="tile-action-btn" style="background:${status.color};" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`
+    :'';
+  const days=a.status!=='vendu'?daysInStock(a):null;
+  const ageBadge=(days!==null)?`<span class="tile-age${days>=30?' tile-age-warn':''}" title="En stock depuis ${days} jour${days>1?'s':''}">${days}j</span>`:'';
   return `<div class="article-tile" onclick="showDetail('${a.id}')">
     <div class="tile-photo">
       ${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}">`:'📦'}
       ${checkbox}
       ${heat?`<span class="tile-dot" style="background:${heat.color}" title="${heat.label}"></span>`:''}
       ${trending?`<span class="tile-trend" title="Tendance">🔥</span>`:''}
-      ${pill}
+      ${ageBadge}
+      ${statusLabel}
     </div>
     <div class="tile-name">${a.name}</div>
     <div class="tile-price ${priceClass}">${priceLabel}</div>
+    ${actionBtn}
   </div>`;
 }
 
@@ -882,23 +888,53 @@ function articleListRowHTML(a){
   else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
   else { priceLabel='-'+fmtPrice(a.buy_price); priceClass='profit-neg'; }
   const status=statusMeta(a.status);
+  const days=a.status!=='vendu'?daysInStock(a):null;
+  const ageLabel=(days!==null)?`<span class="tile-list-age${days>=30?' tile-age-warn':''}">${days}j</span>`:'';
   return `<div class="tile-list-row" onclick="showDetail('${a.id}')">
     <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
     <div class="tile-list-name">${a.name}</div>
     <span class="tile-list-status" style="background:${status.color}">${status.label}</span>
+    ${ageLabel}
     <div class="tile-list-price ${priceClass}">${priceLabel}</div>
   </div>`;
 }
 
 // Catégorie sélectionnée sur la page Stock (chips) : "Tous" ou une clé de statut.
 let stockCategoryFilter='Tous';
+let stockQualityFilter=null; // null, 'no_photo' ou 'no_buy_price'
 let stockSearchTerm='';
 let stockViewMode='grid'; // 'grid' ou 'list', persisté par utilisateur
+let stockSortMode='recent';
+
+window.filterStockQuality=(key,btn)=>{
+  stockQualityFilter=stockQualityFilter===key?null:key;
+  renderStockAll();
+};
 
 window.onStockSearch=(value)=>{
   stockSearchTerm=value.trim().toLowerCase();
   renderStockAll();
 };
+
+window.onStockSort=(value)=>{
+  stockSortMode=value;
+  renderStockAll();
+};
+
+// Nombre de jours écoulés depuis l'entrée en stock de l'article (mise en
+// ligne réelle si connue, sinon date d'achat, sinon date de création).
+function daysInStock(a){
+  return daysBetween(a.published_at||a.buy_date||a.created_at?.split('T')[0], today());
+}
+
+function sortStockArticles(arts){
+  const copy=[...arts];
+  if(stockSortMode==='oldest') copy.sort((a,b)=>(daysInStock(b)||0)-(daysInStock(a)||0));
+  else if(stockSortMode==='price_desc') copy.sort((a,b)=>(parseFloat(b.sell_price)||0)-(parseFloat(a.sell_price)||0));
+  else if(stockSortMode==='price_asc') copy.sort((a,b)=>(parseFloat(a.sell_price)||0)-(parseFloat(b.sell_price)||0));
+  else copy.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  return copy;
+}
 
 window.setStockView=(mode)=>{
   stockViewMode=mode;
@@ -930,11 +966,16 @@ function renderStockAll(){
   const avgDelay=expWaiting.length
     ?Math.round(expWaiting.reduce((s,a)=>s+(daysBetween(a.sell_date,today())||0),0)/expWaiting.length)
     :null;
+  // Taux de rotation : part du stock (actif + déjà vendu) qui a effectivement
+  // été vendue — indique si le stock "tourne" ou s'accumule sans se vendre.
+  const rotationBase=activeArts.length+vendus.length;
+  const rotationRate=rotationBase?Math.round(vendus.length/rotationBase*100):null;
   document.getElementById('stockMinistats').innerHTML=`
     <div class="ministat"><div class="ministat-label">Articles</div><div class="ministat-val">${activeArts.length}</div></div>
     <div class="ministat"><div class="ministat-label">Vendus</div><div class="ministat-val">${vendus.length}</div></div>
     <div class="ministat"><div class="ministat-label">CA</div><div class="ministat-val">${fmtPrice(ca)}</div></div>
     <div class="ministat"><div class="ministat-label">Délai d'envoi moyen</div><div class="ministat-val">${avgDelay===null?'—':avgDelay+'j'}</div></div>
+    <div class="ministat"><div class="ministat-label">Taux de rotation</div><div class="ministat-val">${rotationRate===null?'—':rotationRate+'%'}</div></div>
   `;
 
   if(!categories.some(c=>c.key===stockCategoryFilter)) stockCategoryFilter='Tous';
@@ -944,13 +985,32 @@ function renderStockAll(){
     return `<button class="pf-btn stock-chip${stockCategoryFilter===c.key?' active':''}" onclick="filterStockCategory('${c.key}',this)">${c.label} (${count})</button>`;
   }).join('');
 
+  // Filtres "qualité de fiche" : repèrent les fiches incomplètes (pas de
+  // photo, pas de prix d'achat renseigné) plutôt qu'un statut d'avancement —
+  // inspiré des chips "sans SKU"/"non liés" vues chez un concurrent.
+  const noPhotoCount=activeArts.filter(a=>!a.photo_url).length;
+  const noBuyPriceCount=activeArts.filter(a=>!a.buy_price).length;
+  document.getElementById('stockQualityChips').innerHTML=`
+    <button class="pf-btn stock-chip${stockQualityFilter==='no_photo'?' active':''}" onclick="filterStockQuality('no_photo',this)">🖼️ Sans photo (${noPhotoCount})</button>
+    <button class="pf-btn stock-chip${stockQualityFilter==='no_buy_price'?' active':''}" onclick="filterStockQuality('no_buy_price',this)">💸 Sans prix d'achat (${noBuyPriceCount})</button>
+  `;
+
+  const dupCount=findDuplicateArticles().length;
+  const dupBtn=document.getElementById('duplicatesBtn');
+  if(dupBtn) dupBtn.textContent=dupCount?`🧬 Doublons (${dupCount})`:'🧬 Doublons';
+
   const bulkTarget=document.getElementById('bulkTarget-stockall');
   if(bulkTarget) bulkTarget.innerHTML=getAllSteps().map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
 
   document.querySelectorAll('#stockViewToggle .view-toggle-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===stockViewMode));
+  const sortSelect=document.getElementById('stockSortSelect');
+  if(sortSelect) sortSelect.value=stockSortMode;
 
   let shown=stockCategoryFilter==='Tous'?activeArts:byPlatform(allArticles.filter(a=>a.status===stockCategoryFilter));
+  if(stockQualityFilter==='no_photo') shown=shown.filter(a=>!a.photo_url);
+  else if(stockQualityFilter==='no_buy_price') shown=shown.filter(a=>!a.buy_price);
   if(stockSearchTerm) shown=shown.filter(a=>a.name.toLowerCase().includes(stockSearchTerm));
+  shown=sortStockArticles(shown);
   const gridEl=document.getElementById('stockallGrid');
   gridEl.classList.toggle('view-list', stockViewMode==='list');
   gridEl.innerHTML=shown.length
@@ -972,6 +1032,41 @@ function renderStockAll(){
         </div>`).join('')}
     </div>`:'';
 }
+
+// ── DÉTECTEUR DE DOUBLONS ──
+// Regroupe les articles par nom normalisé (espaces/casse ignorés) : un même
+// nom présent plusieurs fois est probablement le même article dupliqué par
+// une synchro (ex: bug d'identifiant Vinted signalé le 2026-07-15), pas une
+// vraie coïncidence — les revendeurs ne postent presque jamais deux fiches
+// avec l'intitulé strictement identique.
+function findDuplicateArticles(){
+  const groups={};
+  allArticles.forEach(a=>{
+    const key=(a.name||'').trim().toLowerCase().replace(/\s+/g,' ');
+    if(!key) return;
+    (groups[key]=groups[key]||[]).push(a);
+  });
+  return Object.values(groups).filter(g=>g.length>1);
+}
+
+window.openDuplicates=()=>{
+  const groups=findDuplicateArticles();
+  const body=document.getElementById('duplicatesBody');
+  body.innerHTML=groups.length?groups.map(g=>`
+    <div class="checklist-card" style="margin-bottom:10px;">
+      <div class="checklist-title">${g[0].name}</div>
+      ${g.map(a=>{
+        const status=statusMeta(a.status);
+        return `<div class="checklist-item" style="justify-content:space-between;">
+          <span>${a.photo_url?`<img src="${a.photo_url}" style="width:24px;height:24px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:6px;">`:''}<span class="tile-status-pill" style="position:static;display:inline-block;background:${status.color};margin-right:6px;">${status.label}</span>${fmtPrice(a.status==='vendu'?a.sell_price:(a.buy_price||a.sell_price))} — ${fmtDate(a.created_at)}</span>
+          <button class="pf-btn" onclick="confirmDelete('${a.id}');setTimeout(openDuplicates,300)">🗑 Supprimer</button>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join(''):`<p class="stockall-empty">Aucun doublon probable détecté 👍</p>`;
+  document.getElementById('duplicatesBg').classList.add('open');
+};
+window.closeDuplicates=()=>document.getElementById('duplicatesBg').classList.remove('open');
 
 window.filterStockCategory=(key,btn)=>{
   stockCategoryFilter=key;
