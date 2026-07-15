@@ -1771,12 +1771,16 @@ window.showDetail = (id) => {
         ${a.vinted_item_id&&a.status==='stock'?detailRow('👁️ Stats Vinted', `${a.vinted_vues||0} vues · ❤️ ${a.vinted_favoris||0} favoris`):''}
         ${a.vinted_shipping_status?detailRow('📦 Statut Vinted', a.vinted_shipping_status):''}
         ${a.source?detailRow('🔗 Source', a.source):''}
+        ${a.vinted_item_id?`<p style="font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;">⚠️ Lié à Vinted — un changement manuel (statut, prix...) peut diverger de l'état réel de l'annonce tant qu'une synchro n'a pas eu lieu. Utilisez "Réinitialiser depuis Vinted" pour forcer la reprise du vrai statut au prochain cycle.</p>`:''}
       </div>
     </div>
   `;
   document.getElementById('detailEditBtn').style.display='inline-block';
   document.getElementById('detailEditBtn').onclick=()=>{ closeDetail(); editArticle(id); };
   document.getElementById('detailDeleteBtn').onclick=()=>{ closeDetail(); confirmDelete(id); };
+  const resyncBtn=document.getElementById('detailResyncBtn');
+  resyncBtn.style.display=a.vinted_item_id?'inline-block':'none';
+  resyncBtn.onclick=()=>resyncFromVinted(id,resyncBtn);
   document.getElementById('detailBg').classList.add('open');
 };
 window.closeDetail = () => document.getElementById('detailBg').classList.remove('open');
@@ -1784,6 +1788,25 @@ window.swapDetailPhoto = (url, thumbEl) => {
   document.getElementById('detailMainPhoto').src = url;
   thumbEl.parentElement.querySelectorAll('.detail-photo-thumb').forEach(t=>t.classList.remove('active'));
   thumbEl.classList.add('active');
+};
+
+// Force la reprise du vrai statut Vinted au prochain cycle de synchro
+// (≤5 min), en passant devant le garde-fou anti-régression normal —
+// utile quand un changement manuel a fait diverger VintControl de la
+// vraie annonce sur Vinted.
+window.resyncFromVinted = async (id, btn) => {
+  if (!selectedVintedAccountId && vintedAccounts.length > 1) {
+    alert('Sélectionnez un compte Vinted précis (en haut de la sidebar) avant de réinitialiser.');
+    return;
+  }
+  const original = btn.textContent;
+  btn.textContent = '...'; btn.disabled = true;
+  const res = await backendFetch('/api/settings/resync-article', {
+    method: 'POST',
+    body: JSON.stringify({ id, vinted_account_id: selectedVintedAccountId || '' }),
+  });
+  btn.textContent = res ? '✓ Programmé (≤5 min)' : '✕ Erreur, réessayez';
+  setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 3000);
 };
 
 // ── CARTE DE VENTE PARTAGEABLE (Ventes & Historique) ──
