@@ -178,10 +178,21 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .ministat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 18px; flex: 1; }
 .ministat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
 .ministat-val { font-size: 20px; font-weight: 700; color: var(--text); }
+
+/* ── BARRE RECHERCHE + BASCULE VUE (page Stock) ── */
+.stock-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.stock-search-wrap { flex: 1; }
+.stock-search { width: 100%; padding: 9px 14px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface2); color: var(--text); font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.15s; }
+.stock-search:focus { border-color: var(--accent); }
+.view-toggle { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2px; flex-shrink: 0; }
+.view-toggle-btn { width: 32px; height: 32px; border: none; background: transparent; border-radius: 6px; font-size: 15px; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.view-toggle-btn.active { background: var(--accent); color: #000; }
+
 .stock-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .article-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 @media (max-width: 900px) { .article-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 700px) { .article-grid { grid-template-columns: repeat(2, 1fr); } }
+.article-grid.view-list { display: flex; flex-direction: column; gap: 8px; }
 .article-tile { cursor: pointer; }
 .tile-photo { position: relative; aspect-ratio: 1; border-radius: var(--radius); background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; overflow: hidden; transition: border-color 0.15s; }
 .article-tile:hover .tile-photo { border-color: var(--accent); }
@@ -194,6 +205,15 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .tile-trend { position: absolute; bottom: 26px; left: 4px; font-size: 12px; }
 .tile-move-btn { position: absolute; bottom: 0; left: 0; right: 0; padding: 5px 4px; border: none; border-radius: 0 0 var(--radius) var(--radius); background: rgba(0,0,0,0.65); color: #fff; font-size: 10.5px; font-family: inherit; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile-move-btn:hover { background: var(--accent); color: #000; }
+.tile-status-pill { position: absolute; bottom: 4px; left: 4px; right: 4px; padding: 3px 6px; border-radius: 20px; font-size: 9.5px; font-weight: 700; text-align: center; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+/* ── VUE LISTE (bascule grille/liste) ── */
+.tile-list-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 10px 14px; cursor: pointer; transition: border-color 0.15s; }
+.tile-list-row:hover { border-color: var(--accent); }
+.tile-list-photo { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.tile-list-name { flex: 1; font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-list-status { flex-shrink: 0; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; white-space: nowrap; }
+.tile-list-price { flex-shrink: 0; font-size: 13px; font-weight: 700; min-width: 70px; text-align: right; }
 .article-actions { display: flex; gap: 4px; }
 .btn-edit { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; font-size: 11px; color: var(--muted); cursor: pointer; font-family: inherit; transition: all 0.15s; }
 .btn-edit:hover { color: var(--text); border-color: var(--accent); }

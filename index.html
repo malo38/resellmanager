@@ -254,6 +254,16 @@
       <section class="page" id="page-stock">
         <div class="stock-ministats" id="stockMinistats"></div>
 
+        <div class="stock-toolbar">
+          <div class="stock-search-wrap">
+            <input type="text" id="stockSearchInput" class="stock-search" placeholder="🔎 Rechercher un article..." oninput="onStockSearch(this.value)" />
+          </div>
+          <div class="view-toggle" id="stockViewToggle">
+            <button class="view-toggle-btn" data-view="grid" onclick="setStockView('grid')" title="Vue grille">⊞</button>
+            <button class="view-toggle-btn" data-view="list" onclick="setStockView('list')" title="Vue liste">☰</button>
+          </div>
+        </div>
+
         <div class="page-filters">
           <button class="pf-btn active" onclick="filterPlatform('Tous',this,'stockall')">Tous</button>
           <button class="pf-btn" onclick="filterPlatform('Vinted',this,'stockall')">Vinted</button>

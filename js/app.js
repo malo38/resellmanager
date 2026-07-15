@@ -756,6 +756,12 @@ function generateCoach(){
 }
 
 // ── STOCK UNIFIÉ (laver/photo/publier/stock/expédition/vendus en une page) ──
+// Label + couleur du statut d'un article, pour le badge coloré des cartes
+// (réutilise les mêmes couleurs que stepBadge()/getAllSteps()).
+function statusMeta(status){
+  return getAllSteps().find(p=>p.key===status) || {label:status, color:'#888'};
+}
+
 function articleTileHTML(a, opts={}){
   const allSteps=getAllSteps();
   const nextStep=allSteps[allSteps.findIndex(p=>p.key===a.status)+1];
@@ -764,8 +770,6 @@ function articleTileHTML(a, opts={}){
   const profit=a.status==='vendu'?calcProfit(a):0;
   const checkbox=opts.selectSection&&selectMode[opts.selectSection]
     ?`<span class="tile-checkbox-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="tile-select-checkbox" ${selectedIds[opts.selectSection].has(a.id)?'checked':''} onchange="toggleArticleSelect('${opts.selectSection}','${a.id}',this.checked)" /></span>`:'';
-  const quickBtn=opts.showMove&&nextStep
-    ?`<button class="tile-move-btn" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">→ ${nextStep.label}</button>`:'';
   // Pas encore en stock (à laver/photographier/publier/...) : le prix affiché
   // est le prix d'ACHAT, donc une dépense — signe moins et couleur rouge pour
   // ne pas le confondre avec le prix de vente (positif) des autres sections.
@@ -773,23 +777,69 @@ function articleTileHTML(a, opts={}){
   if(a.status==='vendu'){ priceLabel=(profit>=0?'+':'')+fmtPrice(profit); priceClass=profit>=0?'profit-pos':'profit-neg'; }
   else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
   else { priceLabel='-'+fmtPrice(a.buy_price); priceClass='profit-neg'; }
+  const status=statusMeta(a.status);
+  // Le badge de statut coloré remplace le bouton "passer à l'étape suivante"
+  // au survol/clic — on garde le raccourci "étape suivante" mais affiché en
+  // permanence en bas de la photo, coloré selon le statut courant (inspiré
+  // d'un concurrent repéré par l'utilisateur le 2026-07-15).
+  const pill=opts.showMove&&nextStep
+    ?`<button class="tile-status-pill" style="background:${status.color};border:none;cursor:pointer;" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">${status.label}</button>`
+    :`<span class="tile-status-pill" style="background:${status.color}">${status.label}</span>`;
   return `<div class="article-tile" onclick="showDetail('${a.id}')">
     <div class="tile-photo">
       ${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}">`:'📦'}
       ${checkbox}
       ${heat?`<span class="tile-dot" style="background:${heat.color}" title="${heat.label}"></span>`:''}
       ${trending?`<span class="tile-trend" title="Tendance">🔥</span>`:''}
-      ${quickBtn}
+      ${pill}
     </div>
     <div class="tile-name">${a.name}</div>
     <div class="tile-price ${priceClass}">${priceLabel}</div>
   </div>`;
 }
 
+// Rendu "vue liste" (compact, une ligne par article) — bascule avec la vue
+// grille via setStockView(). Réutilise statusMeta() pour le même badge coloré.
+function articleListRowHTML(a){
+  const profit=a.status==='vendu'?calcProfit(a):0;
+  let priceLabel, priceClass='';
+  if(a.status==='vendu'){ priceLabel=(profit>=0?'+':'')+fmtPrice(profit); priceClass=profit>=0?'profit-pos':'profit-neg'; }
+  else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
+  else { priceLabel='-'+fmtPrice(a.buy_price); priceClass='profit-neg'; }
+  const status=statusMeta(a.status);
+  return `<div class="tile-list-row" onclick="showDetail('${a.id}')">
+    <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
+    <div class="tile-list-name">${a.name}</div>
+    <span class="tile-list-status" style="background:${status.color}">${status.label}</span>
+    <div class="tile-list-price ${priceClass}">${priceLabel}</div>
+  </div>`;
+}
+
 // Catégorie sélectionnée sur la page Stock (chips) : "Tous" ou une clé de statut.
 let stockCategoryFilter='Tous';
+let stockSearchTerm='';
+let stockViewMode='grid'; // 'grid' ou 'list', persisté par utilisateur
+
+window.onStockSearch=(value)=>{
+  stockSearchTerm=value.trim().toLowerCase();
+  renderStockAll();
+};
+
+window.setStockView=(mode)=>{
+  stockViewMode=mode;
+  localStorage.setItem('stockViewMode_'+currentUser.id, mode);
+  renderStockAll();
+};
 
 function renderStockAll(){
+  // Restaure la vue grille/liste choisie par l'utilisateur (lu une seule fois,
+  // au premier rendu — stockViewMode reste ensuite en mémoire).
+  if(!renderStockAll._viewRestored){
+    const storedView=localStorage.getItem('stockViewMode_'+currentUser.id);
+    if(storedView==='list') stockViewMode='list';
+    renderStockAll._viewRestored=true;
+  }
+
   const platformFilter=currentFilter.stockall;
   const byPlatform=arts=>platformFilter==='Tous'?arts:arts.filter(a=>a.platform===platformFilter);
   const prepSteps=getPrepSteps();
@@ -798,10 +848,18 @@ function renderStockAll(){
   const activeArts=byPlatform(allArticles.filter(a=>isPreSaleStatus(a.status)||a.status==='expedition'));
   const vendus=byPlatform(allArticles.filter(a=>a.status==='vendu'));
   const ca=vendus.reduce((s,a)=>s+calcCA(a),0);
+  // Délai moyen d'expédition : depuis combien de temps, en moyenne, les
+  // articles "à expédier" actuels attendent d'être envoyés (basé sur
+  // sell_date) — signale un retard d'envoi qui traîne, pas juste un total.
+  const expWaiting=byPlatform(allArticles.filter(a=>a.status==='expedition'&&a.sell_date));
+  const avgDelay=expWaiting.length
+    ?Math.round(expWaiting.reduce((s,a)=>s+(daysBetween(a.sell_date,today())||0),0)/expWaiting.length)
+    :null;
   document.getElementById('stockMinistats').innerHTML=`
     <div class="ministat"><div class="ministat-label">Articles</div><div class="ministat-val">${activeArts.length}</div></div>
     <div class="ministat"><div class="ministat-label">Vendus</div><div class="ministat-val">${vendus.length}</div></div>
     <div class="ministat"><div class="ministat-label">CA</div><div class="ministat-val">${fmtPrice(ca)}</div></div>
+    <div class="ministat"><div class="ministat-label">Délai d'envoi moyen</div><div class="ministat-val">${avgDelay===null?'—':avgDelay+'j'}</div></div>
   `;
 
   if(!categories.some(c=>c.key===stockCategoryFilter)) stockCategoryFilter='Tous';
@@ -814,9 +872,16 @@ function renderStockAll(){
   const bulkTarget=document.getElementById('bulkTarget-stockall');
   if(bulkTarget) bulkTarget.innerHTML=getAllSteps().map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
 
-  const shown=stockCategoryFilter==='Tous'?activeArts:byPlatform(allArticles.filter(a=>a.status===stockCategoryFilter));
-  document.getElementById('stockallGrid').innerHTML=shown.length
-    ?shown.map(a=>articleTileHTML(a,{showMove:true,selectSection:'stockall'})).join('')
+  document.querySelectorAll('#stockViewToggle .view-toggle-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===stockViewMode));
+
+  let shown=stockCategoryFilter==='Tous'?activeArts:byPlatform(allArticles.filter(a=>a.status===stockCategoryFilter));
+  if(stockSearchTerm) shown=shown.filter(a=>a.name.toLowerCase().includes(stockSearchTerm));
+  const gridEl=document.getElementById('stockallGrid');
+  gridEl.classList.toggle('view-list', stockViewMode==='list');
+  gridEl.innerHTML=shown.length
+    ?(stockViewMode==='list'
+        ?shown.map(a=>articleListRowHTML(a)).join('')
+        :shown.map(a=>articleTileHTML(a,{showMove:true,selectSection:'stockall'})).join(''))
     :`<p class="stockall-empty">Aucun article.</p>`;
 
   // Checklist expédition : visible seulement quand ce filtre est actif.
