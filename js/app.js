@@ -410,7 +410,11 @@ window.saveArticle=async()=>{
     const {data}=await sb.from('articles').update(payload).eq('id',id).eq('user_id',currentUser.id).select();
     if(data){const idx=allArticles.findIndex(a=>a.id===id);if(idx>=0)allArticles[idx]=data[0];}
   } else {
-    const {data}=await sb.from('articles').insert([{id:articleId,user_id:currentUser.id,...payload}]).select();
+    // sku : identifiant stable généré ici, comme pour un article importé
+    // depuis un achat Vinted (voir resolve_sku côté backend) — colonne
+    // NOT NULL depuis la migration SKU du 2026-07-15.
+    const sku=crypto.randomUUID().replace(/-/g,'').slice(0,8);
+    const {data}=await sb.from('articles').insert([{id:articleId,user_id:currentUser.id,sku,...payload}]).select();
     if(data) allArticles.unshift(data[0]);
   }
 
