@@ -45,7 +45,7 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 // (personnalisables) : pas encore vendu, donc pas de date de vente.
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes & Historique', settings:'Paramètres' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', historique:'Historique', settings:'Paramètres' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -202,7 +202,8 @@ window.goPage = (id, btn) => {
   btn.classList.add('active');
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
   if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); }
-  if(id==='ventes') { renderReplay(); renderHistorique(); }
+  if(id==='ventes') renderReplay();
+  if(id==='historique') renderHistorique();
   if(id==='achats') renderAchats();
   if(id==='calendrier') renderCalendar();
   if(id==='favoris') renderFavoris();
@@ -212,12 +213,6 @@ window.goPage = (id, btn) => {
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
 
-window.goVentesTab=(tab,btn)=>{
-  document.getElementById('ventesTabBtn-ventes').classList.toggle('active',tab==='ventes');
-  document.getElementById('ventesTabBtn-historique').classList.toggle('active',tab==='historique');
-  document.getElementById('ventesTab-ventes').style.display=tab==='ventes'?'':'none';
-  document.getElementById('ventesTab-historique').style.display=tab==='historique'?'':'none';
-};
 window.toggleSidebar=()=>document.querySelector('.sidebar').classList.toggle('open');
 
 // ── SECTIONS REPLIABLES DE LA SIDEBAR ──

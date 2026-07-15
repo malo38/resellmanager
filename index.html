@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=7" />
+  <link rel="stylesheet" href="css/style.css?v=8" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -165,7 +165,8 @@
         <button class="nav-btn" onclick="goPage('calendrier',this)"><span class="nav-icon"><i class="ti ti-calendar"></i></span> Calendrier</button>
         <button class="nav-btn" onclick="goPage('stock',this)"><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
         <button class="nav-btn" onclick="goPage('achats',this)"><span class="nav-icon"><i class="ti ti-shopping-cart"></i></span> Achats</button>
-        <button class="nav-btn" onclick="goPage('ventes',this)"><span class="nav-icon"><i class="ti ti-player-play"></i></span> Ventes &amp; Historique</button>
+        <button class="nav-btn" onclick="goPage('ventes',this)"><span class="nav-icon"><i class="ti ti-player-play"></i></span> Ventes</button>
+        <button class="nav-btn" onclick="goPage('historique',this)"><span class="nav-icon"><i class="ti ti-history"></i></span> Historique</button>
         <button class="nav-btn" onclick="goPage('messages',this)"><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
         <button class="nav-btn" onclick="goPage('favoris',this)"><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
         <button class="nav-btn" onclick="goPage('republier',this)"><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
@@ -322,36 +323,30 @@
         <div id="messagesList"></div>
       </section>
 
-      <!-- VENTES & HISTORIQUE (Resell Replay + Historique réunis, par onglets) -->
+      <!-- VENTES (articles vendus — page dédiée, séparée d'Achats et Stock comme chez Vinteer) -->
       <section class="page" id="page-ventes">
+        <div class="info-banner">▶ Revivez le parcours complet de chaque article vendu</div>
         <div class="page-filters">
-          <button class="pf-btn active" id="ventesTabBtn-ventes" onclick="goVentesTab('ventes',this)">💰 Ventes</button>
-          <button class="pf-btn" id="ventesTabBtn-historique" onclick="goVentesTab('historique',this)">📜 Historique</button>
+          <button class="pf-btn active" onclick="filterPlatform('Tous',this,'replay')">Tous</button>
+          <button class="pf-btn" onclick="filterPlatform('Vinted',this,'replay')">Vinted</button>
+          <button class="pf-btn" onclick="filterPlatform('eBay',this,'replay')">eBay</button>
+          <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'replay')">Leboncoin</button>
+          <button class="pf-btn" onclick="filterPlatform('Autre',this,'replay')">Autre</button>
+          <select id="vendusSort" class="stock-sort-select" onchange="renderReplay()" style="margin-left:auto;">
+            <option value="recent">Plus récent</option>
+            <option value="fastest">Vendu le plus vite</option>
+            <option value="profit">Plus rentable</option>
+            <option value="margin">Meilleure marge</option>
+          </select>
+          <button class="pf-btn" onclick="exportArticlesCSV('vendus')">⬇ CSV</button>
         </div>
+        <div id="replayList"></div>
+      </section>
 
-        <div id="ventesTab-ventes">
-          <div class="info-banner">▶ Revivez le parcours complet de chaque article vendu</div>
-          <div class="page-filters">
-            <button class="pf-btn active" onclick="filterPlatform('Tous',this,'replay')">Tous</button>
-            <button class="pf-btn" onclick="filterPlatform('Vinted',this,'replay')">Vinted</button>
-            <button class="pf-btn" onclick="filterPlatform('eBay',this,'replay')">eBay</button>
-            <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'replay')">Leboncoin</button>
-            <button class="pf-btn" onclick="filterPlatform('Autre',this,'replay')">Autre</button>
-            <select id="vendusSort" onchange="renderReplay()" style="margin-left:auto;">
-              <option value="recent">Plus récent</option>
-              <option value="fastest">Vendu le plus vite</option>
-              <option value="profit">Plus rentable</option>
-              <option value="margin">Meilleure marge</option>
-            </select>
-            <button class="pf-btn" onclick="exportArticlesCSV('vendus')">⬇ CSV</button>
-          </div>
-          <div id="replayList"></div>
-        </div>
-
-        <div id="ventesTab-historique" style="display:none">
-          <div class="info-banner">📜 Chaque mouvement d'argent : achats, ventes et dépenses, classés par mois.</div>
-          <div id="historiqueList"></div>
-        </div>
+      <!-- HISTORIQUE (tous les mouvements d'argent : achats, ventes, dépenses) -->
+      <section class="page" id="page-historique">
+        <div class="info-banner">📜 Chaque mouvement d'argent : achats, ventes et dépenses, classés par mois.</div>
+        <div id="historiqueList"></div>
       </section>
 
       <!-- MESSAGES FAVORIS -->
@@ -789,7 +784,7 @@
   </div>
 </div>
 
-<script src="js/calc.js?v=7"></script>
-<script src="js/app.js?v=7"></script>
+<script src="js/calc.js?v=8"></script>
+<script src="js/app.js?v=8"></script>
 </body>
 </html>
