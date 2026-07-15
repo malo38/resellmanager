@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=4" />
+  <link rel="stylesheet" href="css/style.css?v=5" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -253,6 +253,11 @@
 
       <!-- STOCK (unifié : préparation + stock + expédition, filtré par catégorie) -->
       <section class="page" id="page-stock">
+        <!-- Ventes détectées par Vinted que le backend n'a pas pu relier avec
+             confiance à un article existant (voir resolve_sku côté backend) —
+             généré uniquement si non vide, par renderStockAll(). -->
+        <div id="unmatchedSalesWrap"></div>
+
         <div class="stock-ministats" id="stockMinistats"></div>
 
         <div class="stock-toolbar">
@@ -771,7 +776,7 @@
   </div>
 </div>
 
-<script src="js/calc.js?v=4"></script>
-<script src="js/app.js?v=4"></script>
+<script src="js/calc.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>

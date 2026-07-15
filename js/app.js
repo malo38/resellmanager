@@ -307,6 +307,7 @@ async function uploadPhoto(file,articleId){
 // ── LOAD ──
 let allPurchases=[];
 let allExpenses=[];
+let allUnmatchedSales=[];
 let vintedWallet=null;
 async function loadArticles(){
   renderAccountSwitcher();
@@ -314,6 +315,11 @@ async function loadArticles(){
   allArticles=data||[];
   const {data:purchasesData}=await applyAccountFilter(sb.from('vinted_purchases').select('*').eq('user_id',currentUser.id)).order('purchase_date',{ascending:false});
   allPurchases=purchasesData||[];
+  // Ventes que le backend n'a pas réussi à relier avec confiance à un article
+  // existant (voir resolve_sku côté backend) — à réconcilier manuellement
+  // plutôt que de laisser une fausse fiche de stock se créer toute seule.
+  const {data:unmatchedData}=await applyAccountFilter(sb.from('unmatched_sales').select('*').eq('user_id',currentUser.id)).order('created_at',{ascending:false});
+  allUnmatchedSales=unmatchedData||[];
   const {data:expensesData}=await sb.from('expenses').select('*').eq('user_id',currentUser.id).order('expense_date',{ascending:false});
   allExpenses=expensesData||[];
   // wallet_balance : pas de .single() possible dès qu'il y a 2+ comptes
@@ -936,6 +942,78 @@ function sortStockArticles(arts){
   return copy;
 }
 
+// ── VENTES À RÉCONCILIER ──
+// Une vente que le backend n'a pas pu relier avec confiance à un article
+// existant (voir resolve_sku côté backend) atterrit dans unmatched_sales
+// plutôt que de fabriquer une fausse fiche de stock (ancienne source des
+// "Lot N articles" fantômes, signalé le 2026-07-15). L'utilisateur choisit
+// ici, une fois, à quel article ça correspond — ou crée un nouvel article.
+function renderUnmatchedSales(){
+  const wrap=document.getElementById('unmatchedSalesWrap');
+  if(!wrap) return;
+  if(!allUnmatchedSales.length){ wrap.innerHTML=''; return; }
+  const candidates=allArticles.filter(a=>a.status!=='vendu');
+  const options=`<option value="">— Choisir un article —</option>` +
+    candidates.map(a=>`<option value="${a.id}">${a.name} (${fmtPrice(a.buy_price||a.sell_price)})</option>`).join('');
+  wrap.innerHTML=`
+    <div class="info-banner" style="background:var(--warning-dim);color:var(--warning);margin-bottom:16px;">
+      🔗 ${allUnmatchedSales.length} vente${allUnmatchedSales.length>1?'s':''} Vinted détectée${allUnmatchedSales.length>1?'s':''} sans article correspondant clair — reliez-les à un article existant ou créez-en un nouveau.
+    </div>
+    <div class="checklist-card" style="margin-bottom:16px;">
+      ${allUnmatchedSales.map(u=>`
+        <div class="checklist-item" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span>${u.photo_url?`<img src="${u.photo_url}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;">`:''}<strong>${u.name||'(sans nom)'}</strong> — ${fmtPrice(u.sell_price)} — ${fmtDate(u.sell_date)}${u.vinted_shipping_status?' — '+u.vinted_shipping_status:''}</span>
+          <span style="display:flex;gap:6px;align-items:center;">
+            <select id="unmatchedSelect-${u.id}" class="stock-sort-select">${options}</select>
+            <button class="pf-btn" onclick="linkUnmatchedSale('${u.id}')">Lier</button>
+            <button class="pf-btn" onclick="createFromUnmatchedSale('${u.id}')">+ Nouvel article</button>
+          </span>
+        </div>`).join('')}
+    </div>
+  `;
+}
+
+// Relie une vente en attente à un article de stock déjà existant : met à
+// jour l'article (statut/prix/date de vente) et enregistre le lien pour que
+// les prochaines synchros retrouvent directement cet article.
+window.linkUnmatchedSale=async(unmatchedId)=>{
+  const select=document.getElementById('unmatchedSelect-'+unmatchedId);
+  const articleId=select?.value;
+  if(!articleId){ alert('Choisissez un article dans la liste.'); return; }
+  const u=allUnmatchedSales.find(x=>x.id===unmatchedId);
+  const article=allArticles.find(a=>a.id===articleId);
+  if(!u||!article) return;
+  const status=(u.vinted_transaction_status||'').toLowerCase()==='completed'?'vendu':'expedition';
+  await sb.from('articles').update({
+    status, sell_price:u.sell_price, sell_date:u.sell_date,
+    vinted_shipping_status:u.vinted_shipping_status, vinted_transaction_status:u.vinted_transaction_status,
+  }).eq('id',articleId).eq('user_id',currentUser.id);
+  await sb.from('vinted_links').upsert({sku:article.sku, context:'order_sale', vinted_id:u.vinted_order_id}, {onConflict:'context,vinted_id'});
+  await sb.from('unmatched_sales').delete().eq('id',unmatchedId).eq('user_id',currentUser.id);
+  await loadArticles();
+  renderAll();
+};
+
+// Aucun article existant ne correspond : crée-en un nouveau directement
+// depuis la vente (avec un sku frais) plutôt que de laisser la vente en
+// attente indéfiniment.
+window.createFromUnmatchedSale=async(unmatchedId)=>{
+  const u=allUnmatchedSales.find(x=>x.id===unmatchedId);
+  if(!u) return;
+  const sku=(crypto.randomUUID?crypto.randomUUID():String(Math.random())).replace(/-/g,'').slice(0,8);
+  const status=(u.vinted_transaction_status||'').toLowerCase()==='completed'?'vendu':'expedition';
+  const {data}=await sb.from('articles').insert([{
+    user_id:currentUser.id, vinted_account_id:u.vinted_account_id, sku,
+    name:u.name, sell_price:u.sell_price, sell_date:u.sell_date, platform:'Vinted', status,
+    photo_url:u.photo_url, source:'Vinted', synced_at:today(),
+    vinted_shipping_status:u.vinted_shipping_status, vinted_transaction_status:u.vinted_transaction_status,
+  }]).select();
+  if(data) await sb.from('vinted_links').insert({sku, context:'order_sale', vinted_id:u.vinted_order_id});
+  await sb.from('unmatched_sales').delete().eq('id',unmatchedId).eq('user_id',currentUser.id);
+  await loadArticles();
+  renderAll();
+};
+
 window.setStockView=(mode)=>{
   stockViewMode=mode;
   localStorage.setItem('stockViewMode_'+currentUser.id, mode);
@@ -950,6 +1028,8 @@ function renderStockAll(){
     if(storedView==='list') stockViewMode='list';
     renderStockAll._viewRestored=true;
   }
+
+  renderUnmatchedSales();
 
   const platformFilter=currentFilter.stockall;
   const byPlatform=arts=>platformFilter==='Tous'?arts:arts.filter(a=>a.platform===platformFilter);
