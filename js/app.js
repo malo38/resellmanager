@@ -1380,9 +1380,13 @@ function renderHallOfFame(){
     </div>`).join('') : emptyState('Vendez un article avec profit pour apparaître ici !');
 }
 
+let ventesSearchTerm='';
+window.onVentesSearch=(value)=>{ ventesSearchTerm=value.trim().toLowerCase(); renderReplay(); };
+
 function renderReplay(){
   let arts=allArticles.filter(a=>a.status==='vendu');
   if(currentFilter.replay!=='Tous') arts=arts.filter(a=>a.platform===currentFilter.replay);
+  if(ventesSearchTerm) arts=arts.filter(a=>a.name.toLowerCase().includes(ventesSearchTerm));
   const sortMode=document.getElementById('vendusSort')?.value||'recent';
   arts=[...arts].sort((a,b)=>{
     if(sortMode==='fastest'){
@@ -1399,14 +1403,51 @@ function renderReplay(){
     }
     return new Date(b.sell_date||b.created_at)-new Date(a.sell_date||a.created_at);
   });
+
+  // Ministats, même format que la page Achats.
+  const isToday=d=>d===today();
+  const isThisMonth=d=>d&&d.slice(0,7)===today().slice(0,7);
+  const allVentes=allArticles.filter(a=>a.status==='vendu');
+  const totalToday=allVentes.filter(a=>isToday(a.sell_date)).reduce((s,a)=>s+calcProfit(a),0);
+  const totalMonth=allVentes.filter(a=>isThisMonth(a.sell_date)).reduce((s,a)=>s+calcProfit(a),0);
+  const totalProfit=allVentes.reduce((s,a)=>s+calcProfit(a),0);
+  const ministatsEl=document.getElementById('ventesMinistats');
+  if(ministatsEl) ministatsEl.innerHTML=`
+    <div class="ministat"><div class="ministat-label">Profit aujourd'hui</div><div class="ministat-val">${fmtPrice(totalToday)}</div></div>
+    <div class="ministat"><div class="ministat-label">Profit ce mois-ci</div><div class="ministat-val">${fmtPrice(totalMonth)}</div></div>
+    <div class="ministat"><div class="ministat-label">Profit total</div><div class="ministat-val">${fmtPrice(totalProfit)}</div></div>
+    <div class="ministat"><div class="ministat-label">Nombre de ventes</div><div class="ministat-val">${allVentes.length}</div></div>
+  `;
+  const platformSelect=document.getElementById('ventesPlatformSelect');
+  if(platformSelect) platformSelect.value=currentFilter.replay;
+
   const container=document.getElementById('replayList');
   if(!arts.length){container.innerHTML=emptyState('Aucun article vendu encore.');return;}
+  // Liste compacte (comme la page Achats) : le détail du parcours achat →
+  // vente s'ouvre au clic dans une fenêtre dédiée, plutôt que d'être étalé
+  // en permanence sur chaque ligne.
   container.innerHTML=arts.map(a=>{
-    const isRefunded=a.vinted_transaction_status==='failed';
     const profit=calcProfit(a);
-    const days=daysBetween(a.buy_date,a.sell_date);
-    const score=calcScore(a);
-    return `<div class="replay-card" onclick="showDetail('${a.id}')">
+    return `<div class="tile-list-row" onclick="openReplayDetail('${a.id}')">
+      <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
+      <div class="tile-list-name">${a.name}</div>
+      <span class="tile-list-status" style="background:#60a5fa;">${fmtDate(a.sell_date)}</span>
+      <div class="tile-list-price ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Détail d'une vente (parcours achat → vente), ouvert au clic depuis la
+// liste compacte — reprend le contenu de l'ancienne carte "replay" en place. ──
+window.openReplayDetail=(id)=>{
+  const a=allArticles.find(x=>x.id===id);
+  if(!a) return;
+  const isRefunded=a.vinted_transaction_status==='failed';
+  const profit=calcProfit(a);
+  const days=daysBetween(a.buy_date,a.sell_date);
+  const score=calcScore(a);
+  document.getElementById('replayDetailBody').innerHTML=`
+    <div class="replay-card" style="cursor:default;">
       <div class="replay-header">
         ${a.photo_url?`<img src="${a.photo_url}" class="replay-photo" />`:'<div class="replay-photo">📦</div>'}
         <div class="replay-headinfo">
@@ -1430,9 +1471,12 @@ function renderReplay(){
         </div>
       </div>
       ${a.vinted_shipping_status?`<div class="replay-shipping">${orderStatusBadge(a.vinted_transaction_status,a.vinted_shipping_status)}</div>`:''}
-    </div>`;
-  }).join('');
-}
+    </div>
+    <button class="pf-btn" style="margin-top:12px;width:100%;" onclick="closeReplayDetail();showDetail('${a.id}')">Voir la fiche complète de l'article</button>
+  `;
+  document.getElementById('replayDetailBg').classList.add('open');
+};
+window.closeReplayDetail=()=>document.getElementById('replayDetailBg').classList.remove('open');
 
 function renderObjectif(){
   const goal=parseFloat(localStorage.getItem('goal_'+currentUser.id)||'500');

@@ -328,23 +328,42 @@
 
       <!-- VENTES (articles vendus — page dédiée, séparée d'Achats et Stock comme chez Vinteer) -->
       <section class="page" id="page-ventes">
-        <div class="info-banner">▶ Revivez le parcours complet de chaque article vendu</div>
-        <div class="page-filters">
-          <button class="pf-btn active" onclick="filterPlatform('Tous',this,'replay')">Tous</button>
-          <button class="pf-btn" onclick="filterPlatform('Vinted',this,'replay')">Vinted</button>
-          <button class="pf-btn" onclick="filterPlatform('eBay',this,'replay')">eBay</button>
-          <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'replay')">Leboncoin</button>
-          <button class="pf-btn" onclick="filterPlatform('Autre',this,'replay')">Autre</button>
-          <select id="vendusSort" class="stock-sort-select" onchange="renderReplay()" style="margin-left:auto;">
+        <div class="stock-ministats" id="ventesMinistats"></div>
+        <div class="stock-toolbar">
+          <div class="stock-search-wrap">
+            <input type="text" id="ventesSearchInput" class="stock-search" placeholder="🔎 Rechercher une vente..." oninput="onVentesSearch(this.value)" />
+          </div>
+          <select id="ventesPlatformSelect" class="stock-sort-select" onchange="filterPlatform(this.value,null,'replay')">
+            <option value="Tous">Toutes plateformes</option>
+            <option value="Vinted">Vinted</option>
+            <option value="eBay">eBay</option>
+            <option value="Leboncoin">Leboncoin</option>
+            <option value="Autre">Autre</option>
+          </select>
+          <select id="vendusSort" class="stock-sort-select" onchange="renderReplay()">
             <option value="recent">Plus récent</option>
             <option value="fastest">Vendu le plus vite</option>
             <option value="profit">Plus rentable</option>
             <option value="margin">Meilleure marge</option>
           </select>
-          <button class="pf-btn" onclick="exportArticlesCSV('vendus')">⬇ CSV</button>
+          <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('vendus')">⬇ CSV</button>
         </div>
         <div id="replayList"></div>
       </section>
+
+      <!-- DÉTAIL D'UNE VENTE (parcours achat → vente, ouvert au clic depuis la liste) -->
+      <div class="modal-bg" id="replayDetailBg">
+        <div class="modal" style="max-width:420px;">
+          <div class="modal-header">
+            <h3>▶ Parcours de la vente</h3>
+            <button class="modal-close" onclick="closeReplayDetail()">✕</button>
+          </div>
+          <div class="modal-body" id="replayDetailBody"></div>
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeReplayDetail()">Fermer</button>
+          </div>
+        </div>
+      </div>
 
       <!-- HISTORIQUE (tous les mouvements d'argent : achats, ventes, dépenses) -->
       <section class="page" id="page-historique">
@@ -788,6 +807,6 @@
 </div>
 
 <script src="js/calc.js?v=13"></script>
-<script src="js/app.js?v=18"></script>
+<script src="js/app.js?v=19"></script>
 </body>
 </html>
