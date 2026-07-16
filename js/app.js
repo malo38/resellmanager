@@ -1753,14 +1753,21 @@ function renderAchats(){
   const toPickup=arts.filter(p=>/point relais|bureau de poste|point de retrait/i.test(p.status||''));
   const pickupWrap=document.getElementById('achatsPickupWrap');
   if(pickupWrap){
+    // pickup_since : date d'arrivée réelle au point relais (pas une échéance
+    // — Vinted n'expose aucune date limite de retrait, ni dans l'app ni
+    // dans l'API, c'est le transporteur qui la gère en interne).
+    const pickupRow=p=>{
+      const since=p.pickup_since?daysBetween(p.pickup_since,today()):null;
+      const waitLabel=since!==null?` — en attente depuis ${since} jour${since>1?'s':''}`:'';
+      return `<div class="checklist-item">
+        ${p.photo_url?`<img src="${p.photo_url}" style="width:28px;height:28px;object-fit:cover;border-radius:6px;margin-right:8px;">`:''}
+        <label>${p.title||'(sans titre)'} — ${p.pickup_location||p.status}${waitLabel}</label>
+      </div>`;
+    };
     pickupWrap.innerHTML=`
       <div class="checklist-card" style="margin-bottom:16px;">
         <div class="checklist-title">📍 Colis à récupérer — ${toPickup.length}</div>
-        ${toPickup.length?toPickup.map(p=>`
-          <div class="checklist-item">
-            ${p.photo_url?`<img src="${p.photo_url}" style="width:28px;height:28px;object-fit:cover;border-radius:6px;margin-right:8px;">`:''}
-            <label>${p.title||'(sans titre)'} — ${p.status}</label>
-          </div>`).join(''):'<p class="setting-sub">Aucun colis à récupérer pour le moment.</p>'}
+        ${toPickup.length?toPickup.map(pickupRow).join(''):'<p class="setting-sub">Aucun colis à récupérer pour le moment.</p>'}
       </div>`;
   }
 
