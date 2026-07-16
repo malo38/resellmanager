@@ -1753,15 +1753,26 @@ function renderAchats(){
   const toPickup=arts.filter(p=>/point relais|bureau de poste|point de retrait/i.test(p.status||''));
   const pickupWrap=document.getElementById('achatsPickupWrap');
   if(pickupWrap){
-    // pickup_since : date d'arrivée réelle au point relais (pas une échéance
-    // — Vinted n'expose aucune date limite de retrait, ni dans l'app ni
-    // dans l'API, c'est le transporteur qui la gère en interne).
+    // pickup_since : date d'arrivée réelle au point relais (donnée fiable).
+    // La date limite en revanche n'existe nulle part chez Vinted (vérifié le
+    // 2026-07-16, jusque dans son suivi de colis le plus détaillé) — on
+    // ESTIME donc un délai à partir des durées habituelles par transporteur
+    // (connaissance générale, pas une donnée Vinted), toujours annoncée
+    // comme approximative pour ne jamais faire rater un vrai colis.
+    const CARRIER_HOLD_DAYS={CHRONOPOST:10,MONDIAL_RELAY:10,COLISSIMO:15,UPS:7,DPD:7,GLS:7};
+    const CARRIER_LABELS={CHRONOPOST:'Chronopost',MONDIAL_RELAY:'Mondial Relay',COLISSIMO:'Colissimo',UPS:'UPS',DPD:'DPD',GLS:'GLS'};
     const pickupRow=p=>{
       const since=p.pickup_since?daysBetween(p.pickup_since,today()):null;
       const waitLabel=since!==null?` — en attente depuis ${since} jour${since>1?'s':''}`:'';
+      let estimateLabel='';
+      if(p.pickup_since&&p.pickup_carrier&&CARRIER_HOLD_DAYS[p.pickup_carrier]){
+        const deadline=new Date(p.pickup_since);
+        deadline.setDate(deadline.getDate()+CARRIER_HOLD_DAYS[p.pickup_carrier]);
+        estimateLabel=` · <span title="Estimation basée sur le délai habituel de ${CARRIER_LABELS[p.pickup_carrier]||p.pickup_carrier} — à vérifier, Vinted ne communique aucune date officielle.">≈ à retirer avant le ${fmtDate(deadline)} (estimation)</span>`;
+      }
       return `<div class="checklist-item">
         ${p.photo_url?`<img src="${p.photo_url}" style="width:28px;height:28px;object-fit:cover;border-radius:6px;margin-right:8px;">`:''}
-        <label>${p.title||'(sans titre)'} — ${p.pickup_location||p.status}${waitLabel}</label>
+        <label>${p.title||'(sans titre)'} — ${p.pickup_location||p.status}${waitLabel}${estimateLabel}</label>
       </div>`;
     };
     pickupWrap.innerHTML=`
