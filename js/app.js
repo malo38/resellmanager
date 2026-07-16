@@ -925,15 +925,15 @@ function articleTileHTML(a, opts={}){
   else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
   else { priceLabel='-'+fmtPrice(a.buy_price); priceClass='profit-neg'; }
   const status=statusMeta(a.status);
-  // Statut affiché en simple étiquette (non cliquable) en bas de la photo ;
-  // l'action "passer à l'étape suivante" est désormais un vrai bouton pleine
-  // largeur sous le prix, bien visible plutôt qu'une pastille discrète en
-  // overlay — repéré chez un concurrent le 2026-07-15 (bouton "Vendu"/"Reçu"
-  // sous chaque carte).
-  const statusLabel=`<span class="tile-status-pill" style="background:${status.color}">${status.label}</span>`;
+  // Un seul indicateur de statut par carte au lieu de deux (badge coloré sur
+  // la photo + bouton coloré sous le prix, jugé too much le 2026-07-15) : un
+  // simple point coloré discret sur la photo indique l'étape actuelle, et le
+  // texte sous le prix sert à la fois d'étiquette et d'action (cliquer pour
+  // passer à l'étape suivante) — plus léger visuellement.
+  const statusDot=`<span class="tile-status-dot" style="background:${status.color}" title="${status.label}"></span>`;
   const actionBtn=opts.showMove&&nextStep
-    ?`<button class="tile-action-btn" style="--tile-action-color:${nextStep.color};" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">${nextStep.label}</button>`
-    :'';
+    ?`<button class="tile-action-link" style="color:${nextStep.color};" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">${status.label} → ${nextStep.label}</button>`
+    :`<span class="tile-action-link" style="color:${status.color};">${status.label}</span>`;
   const days=a.status!=='vendu'?daysInStock(a):null;
   const ageBadge=(days!==null)?`<span class="tile-age${days>=30?' tile-age-warn':''}" title="En stock depuis ${days} jour${days>1?'s':''}">${days}j</span>`:'';
   return `<div class="article-tile" onclick="showDetail('${a.id}')">
@@ -943,7 +943,7 @@ function articleTileHTML(a, opts={}){
       ${heat?`<span class="tile-dot" style="background:${heat.color}" title="${heat.label}"></span>`:''}
       ${trending?`<span class="tile-trend" title="Tendance">🔥</span>`:''}
       ${ageBadge}
-      ${statusLabel}
+      ${statusDot}
     </div>
     <div class="tile-name">${a.name}</div>
     <div class="tile-price ${priceClass}">${priceLabel}</div>
