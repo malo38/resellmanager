@@ -217,6 +217,20 @@ window.goPage = (id, btn) => {
 
 window.toggleSidebar=()=>document.querySelector('.sidebar').classList.toggle('open');
 
+// ── MENU D'ACTIONS COMPACT (regroupe les actions secondaires de la page
+// Stock — resync, doublons, export, sélection — dans un seul bouton "⋯"
+// plutôt que 4 boutons permanents, pour désencombrer la barre d'outils). ──
+window.toggleActionsMenu=(btn)=>{
+  const menu=btn.closest('.actions-menu');
+  const wasOpen=menu.classList.contains('open');
+  document.querySelectorAll('.actions-menu.open').forEach(m=>m.classList.remove('open'));
+  if(!wasOpen) menu.classList.add('open');
+};
+window.closeActionsMenu=()=>document.querySelectorAll('.actions-menu.open').forEach(m=>m.classList.remove('open'));
+document.addEventListener('click',(e)=>{
+  if(!e.target.closest('.actions-menu')) closeActionsMenu();
+});
+
 // ── SECTIONS REPLIABLES DE LA SIDEBAR ──
 window.toggleNavGroup=(header)=>{
   const body=header.nextElementSibling;
@@ -538,8 +552,10 @@ window.submitSellConfirm=async()=>{
 // ── FILTERS ──
 window.filterPlatform=(p,btn,section)=>{
   currentFilter[section]=p;
-  btn.closest('.page-filters').querySelectorAll('.pf-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn){
+    btn.closest('.page-filters').querySelectorAll('.pf-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  }
   if(section==='stockall') renderStockAll();
   if(section==='replay') renderReplay();
 };
@@ -1113,20 +1129,24 @@ function renderStockAll(){
 
   if(!categories.some(c=>c.key===stockCategoryFilter)) stockCategoryFilter='Tous';
   const chips=[{key:'Tous',label:'Tous'}, ...categories];
-  document.getElementById('stockCategoryChips').innerHTML=chips.map(c=>{
+  const categoryChipsHTML=chips.map(c=>{
     const count=c.key==='Tous'?activeArts.length:byPlatform(allArticles.filter(a=>a.status===c.key)).length;
     return `<button class="pf-btn stock-chip${stockCategoryFilter===c.key?' active':''}" onclick="filterStockCategory('${c.key}',this)">${c.label} (${count})</button>`;
   }).join('');
 
   // Filtres "qualité de fiche" : repèrent les fiches incomplètes (pas de
   // photo, pas de prix d'achat renseigné) plutôt qu'un statut d'avancement —
-  // inspiré des chips "sans SKU"/"non liés" vues chez un concurrent.
+  // inspiré des chips "sans SKU"/"non liés" vues chez un concurrent. Fusionnées
+  // avec les chips de catégorie dans une seule ligne (au lieu de deux) pour
+  // désencombrer la page.
   const noPhotoCount=activeArts.filter(a=>!a.photo_url).length;
   const noBuyPriceCount=activeArts.filter(a=>!a.buy_price).length;
-  document.getElementById('stockQualityChips').innerHTML=`
+  const qualityChipsHTML=`
+    <span class="stock-chip-sep"></span>
     <button class="pf-btn stock-chip${stockQualityFilter==='no_photo'?' active':''}" onclick="filterStockQuality('no_photo',this)">🖼️ Sans photo (${noPhotoCount})</button>
     <button class="pf-btn stock-chip${stockQualityFilter==='no_buy_price'?' active':''}" onclick="filterStockQuality('no_buy_price',this)">💸 Sans prix d'achat (${noBuyPriceCount})</button>
   `;
+  document.getElementById('stockCategoryChips').innerHTML=categoryChipsHTML+qualityChipsHTML;
 
   const dupCount=findDuplicateArticles().length;
   const dupBtn=document.getElementById('duplicatesBtn');
@@ -1138,6 +1158,8 @@ function renderStockAll(){
   document.querySelectorAll('#stockViewToggle .view-toggle-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===stockViewMode));
   const sortSelect=document.getElementById('stockSortSelect');
   if(sortSelect) sortSelect.value=stockSortMode;
+  const platformSelect=document.getElementById('stockPlatformSelect');
+  if(platformSelect) platformSelect.value=platformFilter;
 
   let shown=stockCategoryFilter==='Tous'?activeArts:byPlatform(allArticles.filter(a=>a.status===stockCategoryFilter));
   if(stockQualityFilter==='no_photo') shown=shown.filter(a=>!a.photo_url);

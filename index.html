@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=10" />
+  <link rel="stylesheet" href="css/style.css?v=12" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -278,6 +278,13 @@
           <div class="stock-search-wrap">
             <input type="text" id="stockSearchInput" class="stock-search" placeholder="🔎 Rechercher un article..." oninput="onStockSearch(this.value)" />
           </div>
+          <select id="stockPlatformSelect" class="stock-sort-select" onchange="filterPlatform(this.value,null,'stockall')">
+            <option value="Tous">Toutes plateformes</option>
+            <option value="Vinted">Vinted</option>
+            <option value="eBay">eBay</option>
+            <option value="Leboncoin">Leboncoin</option>
+            <option value="Autre">Autre</option>
+          </select>
           <select id="stockSortSelect" class="stock-sort-select" onchange="onStockSort(this.value)">
             <option value="recent">Plus récent</option>
             <option value="oldest">En stock depuis le plus longtemps</option>
@@ -288,29 +295,24 @@
             <button class="view-toggle-btn" data-view="grid" onclick="setStockView('grid')" title="Vue grille">⊞</button>
             <button class="view-toggle-btn" data-view="list" onclick="setStockView('list')" title="Vue liste">☰</button>
           </div>
-          <button class="pf-btn" id="resyncAllBtn" onclick="resyncAllFromVinted(this)" title="Force tous vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min)">🔄 Tout réinitialiser depuis Vinted</button>
-          <button class="pf-btn" id="duplicatesBtn" onclick="openDuplicates()" title="Repère les articles qui semblent être en double (même nom)">🧬 Doublons</button>
+          <div class="actions-menu">
+            <button class="pf-btn" onclick="toggleActionsMenu(this)">⋯ Plus</button>
+            <div class="actions-menu-body">
+              <button onclick="toggleSelectMode('stockall');closeActionsMenu()">☑ Sélection multiple</button>
+              <button onclick="exportArticlesCSV('stock');closeActionsMenu()">⬇ Export CSV</button>
+              <button id="duplicatesBtn" onclick="openDuplicates();closeActionsMenu()" title="Repère les articles qui semblent être en double (même nom)">🧬 Doublons</button>
+              <button id="resyncAllBtn" onclick="resyncAllFromVinted(this);closeActionsMenu()" title="Force tous vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min)">🔄 Tout réinitialiser depuis Vinted</button>
+            </div>
+          </div>
         </div>
 
-        <div class="page-filters">
-          <button class="pf-btn active" onclick="filterPlatform('Tous',this,'stockall')">Tous</button>
-          <button class="pf-btn" onclick="filterPlatform('Vinted',this,'stockall')">Vinted</button>
-          <button class="pf-btn" onclick="filterPlatform('eBay',this,'stockall')">eBay</button>
-          <button class="pf-btn" onclick="filterPlatform('Leboncoin',this,'stockall')">Leboncoin</button>
-          <button class="pf-btn" onclick="filterPlatform('Autre',this,'stockall')">Autre</button>
-          <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('stock')">⬇ CSV</button>
-          <button class="pf-btn" onclick="toggleSelectMode('stockall')" id="selectModeBtn-stockall">☑ Sélection multiple</button>
-        </div>
         <div class="bulk-bar" id="bulkBar-stockall" style="display:none">
           <span id="bulkCount-stockall">0 sélectionné(s)</span>
           <select id="bulkTarget-stockall"></select>
           <button class="btn-confirm" onclick="applyBulkMove('stockall')">Appliquer</button>
         </div>
 
-        <!-- Chips "qualité de fiche" (sans photo, sans prix d'achat...) -->
-        <div class="stock-chips" id="stockQualityChips"></div>
-
-        <!-- Chips de catégorie (à laver, à photographier, en stock...), générées par renderStockAll() -->
+        <!-- Chips fusionnées : catégorie (à laver, en stock...) + qualité de fiche (sans photo...), générées par renderStockAll() -->
         <div class="stock-chips" id="stockCategoryChips"></div>
 
         <div id="checklistWrap"></div>
@@ -784,7 +786,7 @@
   </div>
 </div>
 
-<script src="js/calc.js?v=10"></script>
-<script src="js/app.js?v=10"></script>
+<script src="js/calc.js?v=11"></script>
+<script src="js/app.js?v=11"></script>
 </body>
 </html>
