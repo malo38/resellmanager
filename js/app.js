@@ -1952,10 +1952,15 @@ window.republishNow = async (vintedItemId, btn) => {
   }
   const original = btn.textContent;
   btn.textContent = '...'; btn.disabled = true;
-  const res = await backendFetch('/api/settings/republish-now', {
+  // Sans try/catch, un simple accroc réseau (perte de connexion, token à
+  // rafraîchir...) laissait le bouton bloqué sur "..." indéfiniment, sans
+  // aucun message — impossible de savoir si ça avait marché ou pas
+  // (signalé le 2026-07-16, même défaut que saveArticle()).
+  let res=null;
+  try{ res = await backendFetch('/api/settings/republish-now', {
     method: 'POST',
     body: JSON.stringify({ vinted_item_id: vintedItemId, vinted_account_id: selectedVintedAccountId || '' }),
-  });
+  }); }catch(e){ res=null; }
   btn.textContent = res ? '✓ Programmé (≤5 min)' : '✕ Erreur, réessayez';
   setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 3000);
 };
