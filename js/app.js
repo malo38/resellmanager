@@ -1745,10 +1745,29 @@ function renderAchats(){
     <div class="ministat"><div class="ministat-label">Total achats</div><div class="ministat-val">${fmtPrice(totalAll)}</div></div>
     <div class="ministat"><div class="ministat-label">Nombre d'achats</div><div class="ministat-val">${arts.length}</div></div>
   `;
+
+  // "Colis à récupérer" : Vinted décrit déjà ça en texte dans le statut de
+  // la commande ("colis déposé en bureau de Poste ou point relais") — pas
+  // besoin d'un champ structuré séparé, un simple mot-clé suffit. Inspiré
+  // d'une carte équivalente repérée chez Vinteer le 2026-07-16.
+  const toPickup=arts.filter(p=>/point relais|bureau de poste|point de retrait/i.test(p.status||''));
+  const pickupWrap=document.getElementById('achatsPickupWrap');
+  if(pickupWrap){
+    pickupWrap.innerHTML=`
+      <div class="checklist-card" style="margin-bottom:16px;">
+        <div class="checklist-title">📍 Colis à récupérer — ${toPickup.length}</div>
+        ${toPickup.length?toPickup.map(p=>`
+          <div class="checklist-item">
+            ${p.photo_url?`<img src="${p.photo_url}" style="width:28px;height:28px;object-fit:cover;border-radius:6px;margin-right:8px;">`:''}
+            <label>${p.title||'(sans titre)'} — ${p.status}</label>
+          </div>`).join(''):'<p class="setting-sub">Aucun colis à récupérer pour le moment.</p>'}
+      </div>`;
+  }
+
   let shown=achatsSearchTerm?arts.filter(p=>(p.title||'').toLowerCase().includes(achatsSearchTerm)):arts;
   shown=[...shown].sort((a,b)=>new Date(b.purchase_date||0)-new Date(a.purchase_date||0));
   list.innerHTML=shown.length?shown.map(p=>`
-    <div class="tile-list-row" onclick="window.open('https://www.vinted.fr','_blank')">
+    <div class="tile-list-row" onclick="window.open('https://www.vinted.fr','_blank')" title="${(p.status||'').replace(/"/g,'&quot;')}">
       <div class="tile-list-photo">${p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'🛍️'}</div>
       <div class="tile-list-name">${p.title||'(sans titre)'}</div>
       <span class="tile-list-status" style="background:#60a5fa;">${fmtDate(p.purchase_date)}</span>
