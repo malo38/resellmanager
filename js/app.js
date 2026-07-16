@@ -1761,6 +1761,13 @@ function renderAchats(){
     // comme approximative pour ne jamais faire rater un vrai colis.
     const CARRIER_HOLD_DAYS={CHRONOPOST:10,MONDIAL_RELAY:10,COLISSIMO:15,UPS:7,DPD:7,GLS:7};
     const CARRIER_LABELS={CHRONOPOST:'Chronopost',MONDIAL_RELAY:'Mondial Relay',COLISSIMO:'Colissimo',UPS:'UPS',DPD:'DPD',GLS:'GLS'};
+    // p.pickup_location est la phrase Vinted complète ("Ton colis a été
+    // livré dans le Point Relais X, ADRESSE. Tu peux dès maintenant...") —
+    // on n'en garde que le nom + l'adresse, plus lisible sur une carte.
+    const shortLocation=loc=>{
+      const m=(loc||'').match(/(?:Point Relais|Bureau de Poste|point de retrait)[^.]*/i);
+      return m?m[0].trim():loc;
+    };
     const pickupRow=p=>{
       const since=p.pickup_since?daysBetween(p.pickup_since,today()):null;
       const waitLabel=since!==null?` — en attente depuis ${since} jour${since>1?'s':''}`:'';
@@ -1772,7 +1779,7 @@ function renderAchats(){
       }
       return `<div class="checklist-item">
         ${p.photo_url?`<img src="${p.photo_url}" style="width:28px;height:28px;object-fit:cover;border-radius:6px;margin-right:8px;">`:''}
-        <label>${p.title||'(sans titre)'} — ${p.pickup_location||p.status}${waitLabel}${estimateLabel}</label>
+        <label>${p.title||'(sans titre)'} — ${shortLocation(p.pickup_location)||p.status}${waitLabel}${estimateLabel}</label>
       </div>`;
     };
     pickupWrap.innerHTML=`
