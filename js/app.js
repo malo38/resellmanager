@@ -962,7 +962,7 @@ function articleTileHTML(a, opts={}){
         ${statusDot}
       </div>
       <div class="tile-big-info">
-        <div class="tile-big-name">${a.name}</div>
+        <div class="tile-big-name">${a.name}${a.vinted_boosted?' <span class="badge badge-vinted" title="Boost Vinted payant actif">🚀 Boosté</span>':''}</div>
         <div class="tile-big-tags"><span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>${a.location?`<span class="tile-big-loc">📍 ${a.location}</span>`:''}</div>
         <div class="tile-big-date">📅 ${fmtDate(a.buy_date||a.created_at)}</div>
       </div>
@@ -2205,6 +2205,7 @@ window.showDetail = (id) => {
         ${days!==null&&!isRefunded?detailRow('⏱ Délai', 'Vendu en '+days+' jour(s)'):''}
         ${score!==null?detailRow('⭐ Score', score+'/100'):''}
         ${a.vinted_item_id&&a.status==='stock'?detailRow('👁️ Stats Vinted', `${a.vinted_vues||0} vues · ❤️ ${a.vinted_favoris||0} favoris`):''}
+        ${a.vinted_item_id&&a.status==='stock'?detailRow('🚀 Boost', a.vinted_boosted?'Actif (payant, acheté sur Vinted)':'Aucun'):''}
         ${a.vinted_shipping_status?detailRow('📦 Statut Vinted', a.vinted_shipping_status):''}
         ${a.source?detailRow('🔗 Source', a.source):''}
         ${a.vinted_item_id?`<p style="font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;">⚠️ Lié à Vinted — un changement manuel (statut, prix...) peut diverger de l'état réel de l'annonce tant qu'une synchro n'a pas eu lieu. Utilisez "Réinitialiser depuis Vinted" pour forcer la reprise du vrai statut au prochain cycle.</p>`:''}
