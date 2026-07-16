@@ -166,6 +166,7 @@
         <button class="nav-btn" draggable="true" data-page="stock" onclick="goPage('stock',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
         <button class="nav-btn" draggable="true" data-page="achats" onclick="goPage('achats',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-shopping-cart"></i></span> Achats</button>
         <button class="nav-btn" draggable="true" data-page="ventes" onclick="goPage('ventes',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-player-play"></i></span> Ventes</button>
+        <button class="nav-btn" draggable="true" data-page="boost" onclick="goPage('boost',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-rocket"></i></span> Boost</button>
         <button class="nav-btn" draggable="true" data-page="historique" onclick="goPage('historique',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-history"></i></span> Historique</button>
         <button class="nav-btn" draggable="true" data-page="messages" onclick="goPage('messages',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
         <button class="nav-btn" draggable="true" data-page="favoris" onclick="goPage('favoris',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
@@ -264,6 +265,18 @@
         </div>
         <div id="achatsPickupWrap"></div>
         <div id="achatsList"></div>
+      </section>
+
+      <!-- BOOST (articles avec un Boost Vinted payant actif — affichage seul,
+           VintControl n'achète jamais de Boost automatiquement) -->
+      <section class="page" id="page-boost">
+        <div class="stock-ministats" id="boostMinistats"></div>
+        <div class="stock-toolbar">
+          <div class="stock-search-wrap">
+            <input type="text" id="boostSearchInput" class="stock-search" placeholder="🔎 Rechercher un article boosté..." oninput="onBoostSearch(this.value)" />
+          </div>
+        </div>
+        <div id="boostList"></div>
       </section>
 
       <!-- STOCK (unifié : préparation + stock + expédition, filtré par catégorie) -->
@@ -813,6 +826,6 @@
 </div>
 
 <script src="js/calc.js?v=13"></script>
-<script src="js/app.js?v=24"></script>
+<script src="js/app.js?v=25"></script>
 </body>
 </html>

@@ -45,7 +45,7 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 // (personnalisables) : pas encore vendu, donc pas de date de vente.
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', historique:'Historique', settings:'Paramètres' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', historique:'Historique', settings:'Paramètres', boost:'Boost' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -207,6 +207,7 @@ window.goPage = (id, btn) => {
   if(id==='ventes') renderReplay();
   if(id==='historique') renderHistorique();
   if(id==='achats') renderAchats();
+  if(id==='boost') renderBoost();
   if(id==='calendrier') renderCalendar();
   if(id==='favoris') renderFavoris();
   if(id==='republier') renderRepublier();
@@ -1866,6 +1867,34 @@ function renderAchats(){
       <div class="tile-list-price">${fmtPrice(p.price)}</div>
     </div>
   `).join(''):emptyState('Aucun achat pour le moment.');
+}
+
+// ── BOOST (articles avec un Boost Vinted payant actif — comme "Achats"/
+// "Ventes", présentation dédiée plutôt qu'un simple badge perdu dans Stock).
+// Affichage seul : VintControl n'achète jamais de Boost automatiquement,
+// c'est un service payant Vinted (voir bouton "Booster" sur l'annonce).
+let boostSearchTerm='';
+window.onBoostSearch=(value)=>{ boostSearchTerm=value.trim().toLowerCase(); renderBoost(); };
+
+function renderBoost(){
+  const list=document.getElementById('boostList');
+  if(!list) return;
+  const base=selectedVintedAccountId?allArticles.filter(a=>a.vinted_account_id===selectedVintedAccountId):allArticles;
+  const boosted=base.filter(a=>a.vinted_boosted);
+  document.getElementById('boostMinistats').innerHTML=`
+    <div class="ministat"><div class="ministat-label">Articles boostés</div><div class="ministat-val">${boosted.length}</div></div>
+    <div class="ministat"><div class="ministat-label">Valeur du stock boosté</div><div class="ministat-val">${fmtPrice(boosted.reduce((s,a)=>s+(parseFloat(a.sell_price)||0),0))}</div></div>
+  `;
+  let shown=boostSearchTerm?boosted.filter(a=>a.name.toLowerCase().includes(boostSearchTerm)):boosted;
+  shown=[...shown].sort((a,b)=>new Date(b.synced_at||0)-new Date(a.synced_at||0));
+  list.innerHTML=shown.length?shown.map(a=>`
+    <div class="tile-list-row" onclick="${a.vinted_item_id?`window.open('https://www.vinted.fr/items/${a.vinted_item_id}','_blank')`:`showDetail('${a.id}')`}">
+      <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
+      <div class="tile-list-name">${a.name}</div>
+      <span class="tile-list-status" style="background:#f97316;">🚀 Boosté</span>
+      <div class="tile-list-price">${fmtPrice(a.sell_price)}</div>
+    </div>
+  `).join(''):emptyState('Aucun article boosté pour le moment — active un Boost depuis Vinted, il apparaîtra ici au prochain cycle de synchro.');
 }
 
 window.exportAchatsCSV=()=>{
