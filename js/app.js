@@ -1814,22 +1814,27 @@ function renderAchats(){
     };
     const pickupRow=p=>{
       const since=p.pickup_since?daysBetween(p.pickup_since,today()):null;
-      const waitLabel=since!==null?` — en attente depuis ${since} jour${since>1?'s':''}`:'';
-      let estimateLabel='';
+      const waitBadge=since!==null?`<span class="pickup-badge">⏱ ${since} jour${since>1?'s':''} d'attente</span>`:'';
+      let estBadge='';
       if(p.pickup_since&&p.pickup_carrier&&CARRIER_HOLD_DAYS[p.pickup_carrier]){
         const deadline=new Date(p.pickup_since);
         deadline.setDate(deadline.getDate()+CARRIER_HOLD_DAYS[p.pickup_carrier]);
-        estimateLabel=` · <span title="Estimation basée sur le délai habituel de ${CARRIER_LABELS[p.pickup_carrier]||p.pickup_carrier} — à vérifier, Vinted ne communique aucune date officielle.">≈ à retirer avant le ${fmtDate(deadline)} (estimation)</span>`;
+        estBadge=`<span class="pickup-badge pickup-badge-est" title="Estimation basée sur le délai habituel de ${CARRIER_LABELS[p.pickup_carrier]||p.pickup_carrier} — à vérifier, Vinted ne communique aucune date officielle.">≈ avant le ${fmtDate(deadline)}</span>`;
       }
-      return `<div class="checklist-item">
-        ${p.photo_url?`<img src="${p.photo_url}" style="width:28px;height:28px;object-fit:cover;border-radius:6px;margin-right:8px;">`:''}
-        <label>${p.title||'(sans titre)'} — ${shortLocation(p.pickup_location)||p.status}${waitLabel}${estimateLabel}</label>
+      const location=shortLocation(p.pickup_location)||p.status;
+      return `<div class="pickup-item">
+        ${p.photo_url?`<img class="pickup-photo" src="${p.photo_url}">`:'<div class="pickup-photo">🛍️</div>'}
+        <div class="pickup-info">
+          <div class="pickup-title">${p.title||'(sans titre)'}</div>
+          <div class="pickup-location" title="${location.replace(/"/g,'&quot;')}">📍 ${location}</div>
+          <div class="pickup-badges">${waitBadge}${estBadge}</div>
+        </div>
       </div>`;
     };
     pickupWrap.innerHTML=`
       <div class="checklist-card" style="margin-bottom:16px;">
         <div class="checklist-title">📍 Colis à récupérer — ${toPickup.length}</div>
-        ${toPickup.length?toPickup.map(pickupRow).join(''):'<p class="setting-sub">Aucun colis à récupérer pour le moment.</p>'}
+        <div class="pickup-list">${toPickup.length?toPickup.map(pickupRow).join(''):'<p class="setting-sub">Aucun colis à récupérer pour le moment.</p>'}</div>
       </div>`;
   }
 
