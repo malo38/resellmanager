@@ -1814,12 +1814,18 @@ function renderAchats(){
     };
     const pickupRow=p=>{
       const since=p.pickup_since?daysBetween(p.pickup_since,today()):null;
-      const waitBadge=since!==null?`<span class="pickup-badge">⏱ ${since} jour${since>1?'s':''} d'attente</span>`:'';
+      // "Arrivé il y a" (écoulé) et "jours restants" (calculé à partir de la
+      // MÊME date limite estimée) plutôt que deux badges indépendants — pour
+      // que les deux nombres se recoupent sans ambiguïté (confusion signalée
+      // le 2026-07-16 : "6 jours d'attente" lu comme "6 jours restants").
+      const waitBadge=since!==null?`<span class="pickup-badge">📦 Arrivé il y a ${since} jour${since>1?'s':''}</span>`:'';
       let estBadge='';
       if(p.pickup_since&&p.pickup_carrier&&CARRIER_HOLD_DAYS[p.pickup_carrier]){
         const deadline=new Date(p.pickup_since);
         deadline.setDate(deadline.getDate()+CARRIER_HOLD_DAYS[p.pickup_carrier]);
-        estBadge=`<span class="pickup-badge pickup-badge-est" title="Estimation basée sur le délai habituel de ${CARRIER_LABELS[p.pickup_carrier]||p.pickup_carrier} — à vérifier, Vinted ne communique aucune date officielle.">≈ avant le ${fmtDate(deadline)}</span>`;
+        const remaining=daysBetween(today(),deadline);
+        const remainingLabel=remaining!==null?(remaining>0?`≈ ${remaining} jour${remaining>1?'s':''} restant${remaining>1?'s':''}`:'≈ délai probablement dépassé'):'';
+        estBadge=`<span class="pickup-badge pickup-badge-est" title="Estimation basée sur le délai habituel de ${CARRIER_LABELS[p.pickup_carrier]||p.pickup_carrier} — à vérifier, Vinted ne communique aucune date officielle.">${remainingLabel} (jusqu'au ${fmtDate(deadline)})</span>`;
       }
       const location=shortLocation(p.pickup_location)||p.status;
       return `<div class="pickup-item">
