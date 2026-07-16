@@ -466,19 +466,27 @@ window.saveArticle=async()=>{
 
   const payload={name,buy_price:buy,sell_price:sell,extra_costs,platform,status,buy_date,sell_date,photo_url:photoUrls[0]||null,photo_urls:photoUrls,location,source,published_at};
 
+  let saveError=null;
   if(id){
-    const {data}=await sb.from('articles').update(payload).eq('id',id).eq('user_id',currentUser.id).select();
+    const {data,error}=await sb.from('articles').update(payload).eq('id',id).eq('user_id',currentUser.id).select();
     if(data){const idx=allArticles.findIndex(a=>a.id===id);if(idx>=0)allArticles[idx]=data[0];}
+    saveError=error;
   } else {
     // sku : identifiant stable généré ici, comme pour un article importé
     // depuis un achat Vinted (voir resolve_sku côté backend) — colonne
     // NOT NULL depuis la migration SKU du 2026-07-15.
     const sku=crypto.randomUUID().replace(/-/g,'').slice(0,8);
-    const {data}=await sb.from('articles').insert([{id:articleId,user_id:currentUser.id,sku,...payload}]).select();
+    const {data,error}=await sb.from('articles').insert([{id:articleId,user_id:currentUser.id,sku,...payload}]).select();
     if(data) allArticles.unshift(data[0]);
+    saveError=error;
   }
 
   btn.textContent=id?'Enregistrer':'Ajouter'; btn.disabled=false;
+  // Une erreur Supabase (ex: colonne manquante, contrainte violée) ne
+  // déclenche pas d'exception JS — sans cette vérification explicite, la
+  // fenêtre se fermait en silence en laissant croire que tout avait été
+  // enregistré, alors que rien ne l'était (signalé le 2026-07-16).
+  if(saveError){ alert("Échec de l'enregistrement : "+saveError.message); return; }
   closeModal(); renderAll();
 };
 
