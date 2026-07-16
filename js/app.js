@@ -1554,6 +1554,15 @@ async function backendFetch(path, options={}) {
   return r.json();
 }
 
+// Affiche un avertissement quand l'utilisateur augmente le nombre d'actions
+// par cycle au-dessus de 1 (moins discret vis-à-vis de Vinted).
+window.toggleBatchWarning = (inputId, warningId) => {
+  const input = document.getElementById(inputId);
+  const warn = document.getElementById(warningId);
+  if(!input || !warn) return;
+  warn.style.display = (parseInt(input.value)||1) > 1 ? 'block' : 'none';
+};
+
 // ── MESSAGES FAVORIS ──
 window.saveFavMessage = async () => {
   const savedEl = document.getElementById('favMsgSaved');
@@ -1571,6 +1580,7 @@ window.saveFavMessage = async () => {
     delay_min_sec: parseInt(document.getElementById('autoMsgDelayMin').value)||60,
     delay_max_sec: parseInt(document.getElementById('autoMsgDelayMax').value)||180,
     daily_limit: parseInt(document.getElementById('autoMsgDailyLimit').value)||0,
+    batch_size: parseInt(document.getElementById('autoMsgBatchSize').value)||1,
     vinted_account_id: selectedVintedAccountId || '',
   };
   const res = await backendFetch('/api/settings/automessage', {method:'POST', body:JSON.stringify(payload)});
@@ -1632,6 +1642,8 @@ async function renderFavoris() {
     document.getElementById('autoMsgDailyLimit').value = config.daily_limit;
     document.getElementById('autoMsgDelayMin').value = config.delay_min_sec;
     document.getElementById('autoMsgDelayMax').value = config.delay_max_sec;
+    document.getElementById('autoMsgBatchSize').value = config.batch_size || 1;
+    toggleBatchWarning('autoMsgBatchSize','autoMsgBatchWarning');
   }
   renderAutoMsgStatus();
 }
@@ -1924,6 +1936,7 @@ window.saveRepublishDays = async () => {
     enabled: document.getElementById('autoRepublishEnabled').checked,
     frequency_days: v,
     daily_limit: parseInt(document.getElementById('autoRepublishDailyLimit').value)||0,
+    batch_size: parseInt(document.getElementById('autoRepublishBatchSize').value)||1,
     vinted_account_id: selectedVintedAccountId || '',
   };
   const res = await backendFetch('/api/settings/republish', {method:'POST', body:JSON.stringify(payload)});
@@ -2002,6 +2015,8 @@ async function renderRepublier() {
   if(config){
     document.getElementById('autoRepublishEnabled').checked = !!config.enabled;
     document.getElementById('autoRepublishDailyLimit').value = config.daily_limit;
+    document.getElementById('autoRepublishBatchSize').value = config.batch_size || 1;
+    toggleBatchWarning('autoRepublishBatchSize','autoRepublishBatchWarning');
   }
   renderAutoRepublishStatus();
   updateRepublishBadge();
