@@ -936,17 +936,35 @@ function articleTileHTML(a, opts={}){
     :`<span class="tile-action-link" style="color:${status.color};">${status.label}</span>`;
   const days=a.status!=='vendu'?daysInStock(a):null;
   const ageBadge=(days!==null)?`<span class="tile-age${days>=30?' tile-age-warn':''}" title="En stock depuis ${days} jour${days>1?'s':''}">${days}j</span>`:'';
+
+  // Carte grande & horizontale (photo à gauche, détails à droite), inspirée
+  // d'une carte repérée chez Vinteer le 2026-07-15 — remplace l'ancienne
+  // vignette carrée compacte en vue "grille".
+  const margin=(parseFloat(a.sell_price)||0)-(parseFloat(a.buy_price)||0)-(parseFloat(a.extra_costs)||0);
+  const statLabel=a.status==='vendu'?'Profit':'Marge potentielle';
+  const statVal=a.status==='vendu'?profit:margin;
   return `<div class="article-tile" onclick="showDetail('${a.id}')">
-    <div class="tile-photo">
-      ${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}">`:'📦'}
-      ${checkbox}
-      ${heat?`<span class="tile-dot" style="background:${heat.color}" title="${heat.label}"></span>`:''}
-      ${trending?`<span class="tile-trend" title="Tendance">🔥</span>`:''}
-      ${ageBadge}
-      ${statusDot}
+    <div class="tile-big-top">
+      <div class="tile-photo">
+        ${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}">`:'📦'}
+        ${checkbox}
+        ${heat?`<span class="tile-dot" style="background:${heat.color}" title="${heat.label}"></span>`:''}
+        ${trending?`<span class="tile-trend" title="Tendance">🔥</span>`:''}
+        ${ageBadge}
+        ${statusDot}
+      </div>
+      <div class="tile-big-info">
+        <div class="tile-big-name">${a.name}</div>
+        <div class="tile-big-tags"><span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>${a.location?`<span class="tile-big-loc">📍 ${a.location}</span>`:''}</div>
+        <div class="tile-big-date">📅 ${fmtDate(a.buy_date||a.created_at)}</div>
+      </div>
     </div>
-    <div class="tile-name">${a.name}</div>
-    <div class="tile-price ${priceClass}">${priceLabel}</div>
+    <div class="tile-big-divider"></div>
+    <div class="tile-big-stats">
+      <div class="tile-big-stat"><span class="tile-big-stat-label">Prix d'achat</span><span class="tile-big-stat-val">${fmtPrice(a.buy_price)}</span></div>
+      <div class="tile-big-stat"><span class="tile-big-stat-label">Prix de vente</span><span class="tile-big-stat-val">${fmtPrice(a.sell_price)}</span></div>
+      <div class="tile-big-stat"><span class="tile-big-stat-label">${statLabel}</span><span class="tile-big-stat-val ${statVal>=0?'profit-pos':'profit-neg'}">${statVal>=0?'+':''}${fmtPrice(statVal)}</span></div>
+    </div>
     ${actionBtn}
   </div>`;
 }
