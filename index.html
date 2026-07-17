@@ -590,6 +590,7 @@
       <input type="hidden" id="mId" />
       <div class="form-grid">
         <div class="field full"><label>Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" /></div>
+        <div class="field" id="mQuantityField"><label>Quantité <span style="color:var(--muted);font-weight:400;">(articles identiques, ex: revente en gros)</span></label><input type="number" id="mQuantity" min="1" value="1" /></div>
         <div class="field"><label>Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" /></div>
         <div class="field"><label>Prix de vente visé (€) <span style="color:var(--muted);font-weight:400;">optionnel</span></label><input type="number" id="mSell" placeholder="ex: prix affiché sur l'annonce" step="0.01" /></div>
         <div class="field"><label>Frais annexes (€)</label><input type="number" id="mExtraCosts" placeholder="0,00" step="0.01" /></div>
@@ -827,6 +828,6 @@
 </div>
 
 <script src="js/calc.js?v=13"></script>
-<script src="js/app.js?v=26"></script>
+<script src="js/app.js?v=27"></script>
 </body>
 </html>

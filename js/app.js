@@ -437,6 +437,11 @@ window.openModal=(article=null)=>{
   document.getElementById('mSource').value=article?.source||'Vinted';
   document.getElementById('modalTitle').textContent=article?"Modifier l'article":'Ajouter un article';
   document.getElementById('btnSave').textContent=article?'Enregistrer':'Ajouter';
+  // Quantité (créer N fiches identiques d'un coup, ex: revente en gros
+  // AliExpress où le même article existe en plusieurs exemplaires) n'a de
+  // sens qu'à la création — un article déjà en stock est une fiche unique.
+  document.getElementById('mQuantityField').style.display=article?'none':'block';
+  document.getElementById('mQuantity').value='1';
   toggleDates();
   document.getElementById('modalBg').classList.add('open');
 };
@@ -483,12 +488,17 @@ window.saveArticle=async()=>{
     if(data){const idx=allArticles.findIndex(a=>a.id===id);if(idx>=0)allArticles[idx]=data[0];}
     saveError=error;
   } else {
+    // Quantité > 1 : autant de fiches indépendantes que d'exemplaires
+    // identiques (revente en gros, ex: AliExpress) — chacune a son propre id
+    // + sku car elles seront publiées/vendues séparément sur Vinted, pas
+    // comme un seul article avec un "stock" de N (signalé le 2026-07-16).
+    const quantity=Math.max(1,parseInt(document.getElementById('mQuantity').value)||1);
     // sku : identifiant stable généré ici, comme pour un article importé
     // depuis un achat Vinted (voir resolve_sku côté backend) — colonne
     // NOT NULL depuis la migration SKU du 2026-07-15.
-    const sku=crypto.randomUUID().replace(/-/g,'').slice(0,8);
-    const {data,error}=await sb.from('articles').insert([{id:articleId,user_id:currentUser.id,sku,...payload}]).select();
-    if(data) allArticles.unshift(data[0]);
+    const rows=Array.from({length:quantity},()=>({id:crypto.randomUUID(),user_id:currentUser.id,sku:crypto.randomUUID().replace(/-/g,'').slice(0,8),...payload}));
+    const {data,error}=await sb.from('articles').insert(rows).select();
+    if(data) allArticles.unshift(...data);
     saveError=error;
   }
 
