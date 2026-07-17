@@ -1609,19 +1609,6 @@ window.saveFavMessage = async () => {
   renderAutoMsgStatus();
 };
 
-window.copyFavMessage = (btn) => {
-  const template = document.getElementById('favMessage').value;
-  const msg = template.replace(/\{item\}/g, btn.dataset.name || 'cet article');
-  const original = btn.textContent;
-  navigator.clipboard.writeText(msg).then(() => {
-    btn.textContent = '✓ Copié !';
-    setTimeout(() => btn.textContent = original, 1500);
-  }).catch(() => {
-    btn.textContent = '✕ Échec, réessayez';
-    setTimeout(() => btn.textContent = original, 1500);
-  });
-};
-
 async function renderAutoMsgStatus() {
   const config = await backendFetch('/api/extension/automessage-config'+accountQueryParam());
   const el = document.getElementById('autoMsgStatus');
@@ -1642,16 +1629,6 @@ async function renderAutoMsgStatus() {
 async function renderFavoris() {
   const saved = localStorage.getItem('favMessage_'+currentUser.id) || '';
   document.getElementById('favMessage').value = saved;
-  const stock = allArticles.filter(a=>a.status==='stock');
-  document.getElementById('favorisList').innerHTML = stock.length ? stock.map(a => `
-    <div class="fav-card">
-      ${photoEl(a)}
-      <div class="article-info">
-        <div class="article-name">${a.name}</div>
-        <div class="article-meta">${a.platform} · ${fmtPrice(a.sell_price)}</div>
-      </div>
-      <button class="fav-copy-btn" data-name="${a.name.replace(/"/g,'&quot;')}" onclick="copyFavMessage(this)">📋 Copier pour cet article</button>
-    </div>`).join('') : emptyState('Aucun article en stock pour le moment.');
 
   const el = document.getElementById('favorisAccountWarning');
   if(el) el.style.display = (!selectedVintedAccountId && vintedAccounts.length > 1) ? 'block' : 'none';
