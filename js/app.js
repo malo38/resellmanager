@@ -163,20 +163,30 @@ async function loadVintedAccounts(){
   renderAccountSwitcher();
 }
 
+// Pastille verte/orange par compte (connected vient tel quel de
+// vinted_accounts.connected en base) plutôt qu'un <select> natif brut — les
+// <option> ne peuvent pas afficher de pastille colorée, remplacé par le même
+// menu déroulant que "actions-menu" (Stock) pour rester cohérent visuellement.
 function renderAccountSwitcher(){
   const wrap = document.getElementById('accountSwitcher');
-  const sel = document.getElementById('accountSwitcherSelect');
-  if(!wrap || !sel) return;
+  const btn = document.getElementById('accountSwitcherBtn');
+  const body = document.getElementById('accountSwitcherBody');
+  if(!wrap || !btn || !body) return;
   if(!vintedAccounts.length){ wrap.style.display='none'; return; }
   wrap.style.display='block';
-  sel.innerHTML = `<option value="">🔗 Tous les comptes</option>` +
-    vintedAccounts.map(a=>`<option value="${a.id}">@${a.vinted_login||'compte'}</option>`).join('');
-  sel.value = selectedVintedAccountId || '';
+  const dot=connected=>`<span class="account-dot ${connected?'account-dot-on':'account-dot-off'}"></span>`;
+  const current = vintedAccounts.find(a=>a.id===selectedVintedAccountId);
+  btn.innerHTML = current
+    ? `${dot(current.connected)}<span class="account-switcher-label">@${current.vinted_login||'compte'}</span><i class="ti ti-chevron-down" style="margin-left:auto;"></i>`
+    : `<span class="account-switcher-label">🔗 Tous les comptes</span><i class="ti ti-chevron-down" style="margin-left:auto;"></i>`;
+  body.innerHTML = `<button type="button" onclick="onAccountSwitch('');this.closest('.actions-menu').classList.remove('open')">🔗 Tous les comptes</button>` +
+    vintedAccounts.map(a=>`<button type="button" onclick="onAccountSwitch('${a.id}');this.closest('.actions-menu').classList.remove('open')">${dot(a.connected)}@${a.vinted_login||'compte'}</button>`).join('');
 }
 
 window.onAccountSwitch = (id) => {
   selectedVintedAccountId = id || null;
   localStorage.setItem('selectedVintedAccountId_'+currentUser.id, selectedVintedAccountId || '');
+  renderAccountSwitcher();
   loadArticles();
   if(document.getElementById('page-settings')?.classList.contains('active')) renderVintedConnectionStatus();
   if(document.getElementById('page-favoris')?.classList.contains('active')) renderFavoris();
