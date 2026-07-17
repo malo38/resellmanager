@@ -1073,8 +1073,7 @@ function renderUnmatchedSales(){
     allArticles.map(a=>`<option value="${a.id}">${a.name} (${fmtPrice(a.buy_price||a.sell_price)})${a.status==='vendu'?' — déjà vendu':''}</option>`).join('');
   wrap.innerHTML=`
     <div class="info-banner" style="background:var(--warning-dim);color:var(--warning);margin-bottom:16px;">
-      🔗 ${allUnmatchedSales.length} vente${allUnmatchedSales.length>1?'s':''} Vinted détectée${allUnmatchedSales.length>1?'s':''} sans article correspondant clair — reliez-les à un article existant, ou créez-les d'un coup si ce sont des articles jamais suivis dans VintControl avant leur vente.
-      ${allUnmatchedSales.length>1?`<button class="pf-btn" style="margin-left:10px;" onclick="createAllUnmatchedSales(this)">+ Créer les ${allUnmatchedSales.length} en nouveaux articles</button>`:''}
+      🔗 ${allUnmatchedSales.length} vente${allUnmatchedSales.length>1?'s':''} Vinted détectée${allUnmatchedSales.length>1?'s':''} sans article correspondant clair — reliez-les à un article existant ou créez-en un nouveau.
     </div>
     <div class="checklist-card" style="margin-bottom:16px;">
       ${allUnmatchedSales.map(u=>`
@@ -1127,32 +1126,6 @@ window.createFromUnmatchedSale=async(unmatchedId)=>{
   }]).select();
   if(data) await sb.from('vinted_links').insert({sku, context:'order_sale', vinted_id:u.vinted_order_id});
   await sb.from('unmatched_sales').delete().eq('id',unmatchedId).eq('user_id',currentUser.id);
-  await loadArticles();
-  renderAll();
-};
-
-// Même logique que createFromUnmatchedSale, mais pour TOUTES les ventes en
-// attente d'un coup — utile après une grosse resynchro qui remplit la file
-// d'un seul coup (ex: bug historique corrigé, gros arriéré de ventes jamais
-// suivies dans VintControl) : cliquer un par un devient trop long, alors
-// qu'il n'y a en réalité aucune décision à prendre pour la plupart (signalé
-// le 2026-07-17).
-window.createAllUnmatchedSales=async(btn)=>{
-  if(!allUnmatchedSales.length) return;
-  if(btn){ btn.textContent='...'; btn.disabled=true; }
-  const rows=allUnmatchedSales.map(u=>({
-    id:crypto.randomUUID(), user_id:currentUser.id, vinted_account_id:u.vinted_account_id,
-    sku:crypto.randomUUID().replace(/-/g,'').slice(0,8),
-    name:u.name, sell_price:u.sell_price, sell_date:u.sell_date, platform:'Vinted',
-    status:(u.vinted_transaction_status||'').toLowerCase()==='completed'?'vendu':'expedition',
-    photo_url:u.photo_url, source:'Vinted', synced_at:today(),
-    vinted_shipping_status:u.vinted_shipping_status, vinted_transaction_status:u.vinted_transaction_status,
-  }));
-  const {data,error}=await sb.from('articles').insert(rows).select();
-  if(error){ alert("Échec de la création en masse : "+error.message); if(btn){btn.textContent='Réessayer';btn.disabled=false;} return; }
-  const links=rows.map((r,i)=>({sku:r.sku, context:'order_sale', vinted_id:allUnmatchedSales[i].vinted_order_id}));
-  await sb.from('vinted_links').insert(links);
-  await sb.from('unmatched_sales').delete().in('id', allUnmatchedSales.map(u=>u.id)).eq('user_id',currentUser.id);
   await loadArticles();
   renderAll();
 };
