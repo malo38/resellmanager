@@ -708,7 +708,41 @@ function renderDashboard(){
   renderMiniChart('dashChartBars','dashChartLabels');
   renderWeeklySummary();
   renderQuickCalc();
+  renderAccountsBreakdown();
   applyDashboardWidgets();
+}
+
+// ── VUE CONSOLIDÉE MULTI-COMPTES ── (visible seulement en mode "Tous les
+// comptes" avec 2+ comptes connectés — allArticles contient alors déjà les
+// articles de tous les comptes, filtrés côté client par compte).
+function renderAccountsBreakdown(){
+  const el=document.getElementById('accountsBreakdown');
+  if(!el) return;
+  if(selectedVintedAccountId || vintedAccounts.length<2){ el.innerHTML=''; return; }
+  const cards=vintedAccounts.map(acc=>{
+    const arts=allArticles.filter(a=>a.vinted_account_id===acc.id);
+    const vendus=arts.filter(a=>a.status==='vendu');
+    const stock=arts.filter(a=>isPreSaleStatus(a.status));
+    const profit=vendus.reduce((s,a)=>s+calcProfit(a),0);
+    const ca=vendus.reduce((s,a)=>s+calcCA(a),0);
+    return `
+      <div class="account-breakdown-card" onclick="onAccountSwitch('${acc.id}')">
+        <div class="account-breakdown-header">
+          <span class="account-dot ${acc.connected?'account-dot-on':'account-dot-off'}"></span>
+          <span class="account-breakdown-name">@${acc.vinted_login||'compte'}</span>
+        </div>
+        <div class="account-breakdown-stats">
+          <div><div class="kpi-label">Profit</div><div class="kpi-val ${profit>=0?'green':'red'}">${fmtPrice(profit)}</div></div>
+          <div><div class="kpi-label">CA</div><div class="kpi-val">${fmtPrice(ca)}</div></div>
+          <div><div class="kpi-label">Stock</div><div class="kpi-val">${stock.length}</div></div>
+          <div><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>
+        </div>
+      </div>`;
+  }).join('');
+  el.innerHTML=`
+    <div class="section-header" style="margin-top:4px;"><h2>Vos comptes</h2></div>
+    <div class="accounts-breakdown">${cards}</div>
+  `;
 }
 
 // ── PERSONNALISATION DU TABLEAU DE BORD ──
