@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=17" />
+  <link rel="stylesheet" href="css/style.css?v=19" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -39,24 +39,24 @@
     <p class="hero-sub">Ventes, stock, messages : tout se synchronise automatiquement.<br />Concentre-toi sur tes ventes, VintControl s'occupe du reste.</p>
     <div class="hero-highlights">
       <div class="hero-highlight-card">
-        <div class="hero-highlight-icon">🔄</div>
-        <div class="hero-highlight-title">Synchronisation auto</div>
-        <div class="hero-highlight-desc">Ventes, stock et messages à jour tout seuls.</div>
+        <div class="hero-highlight-icon">💬</div>
+        <div class="hero-highlight-title">Messages à vos favoris</div>
+        <div class="hero-highlight-desc">Relance automatique des personnes qui ont mis vos articles en favoris.</div>
+      </div>
+      <div class="hero-highlight-card">
+        <div class="hero-highlight-icon">🔁</div>
+        <div class="hero-highlight-title">Republication automatique</div>
+        <div class="hero-highlight-desc">Vos annonces remontent toutes seules, sans y penser.</div>
       </div>
       <div class="hero-highlight-card">
         <div class="hero-highlight-icon">📦</div>
-        <div class="hero-highlight-title">Stock &amp; préparation</div>
-        <div class="hero-highlight-desc">De l'achat à l'expédition, sans rien oublier.</div>
+        <div class="hero-highlight-title">Gestion de stock</div>
+        <div class="hero-highlight-desc">Achat, préparation, expédition — chaque article suivi de bout en bout.</div>
       </div>
       <div class="hero-highlight-card">
-        <div class="hero-highlight-icon">📊</div>
-        <div class="hero-highlight-title">Statistiques réelles</div>
-        <div class="hero-highlight-desc">Profit, ROI, capital immobilisé — en un coup d'œil.</div>
-      </div>
-      <div class="hero-highlight-card">
-        <div class="hero-highlight-icon">💬</div>
-        <div class="hero-highlight-title">Messagerie centralisée</div>
-        <div class="hero-highlight-desc">Toute ta messagerie Vinted, dans un seul endroit.</div>
+        <div class="hero-highlight-icon">🔄</div>
+        <div class="hero-highlight-title">Synchronisation auto</div>
+        <div class="hero-highlight-desc">Ventes, stock et messages à jour tout seuls.</div>
       </div>
     </div>
     <div class="landing-cta-row">
@@ -99,8 +99,13 @@
     </div>
     <div class="feature-card">
       <div class="feature-icon">💬</div>
-      <div class="feature-title">Messagerie centralisée</div>
-      <div class="feature-desc">Retrouvez votre messagerie Vinted directement dans votre tableau de bord, sans jongler entre les onglets.</div>
+      <div class="feature-title">Messages à vos favoris</div>
+      <div class="feature-desc">VintControl relance automatiquement les personnes qui ont mis vos articles en favoris, pour déclencher plus de ventes sans y penser.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔁</div>
+      <div class="feature-title">Republication automatique</div>
+      <div class="feature-desc">Vos annonces remontent régulièrement en tête des résultats Vinted, sans que vous ayez à y penser.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📊</div>
@@ -108,14 +113,53 @@
       <div class="feature-desc">Profit réel, ROI, temps de vente moyen, capital immobilisé — pilotez votre activité comme un vrai business.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">📅</div>
-      <div class="feature-title">Calendrier &amp; rappels</div>
-      <div class="feature-desc">Sachez en un coup d'œil ce qu'il reste à faire aujourd'hui : laver, photographier, publier ou expédier.</div>
-    </div>
-    <div class="feature-card">
       <div class="feature-icon">▶</div>
       <div class="feature-title">Resell Replay</div>
       <div class="feature-desc">Revivez le parcours complet de chaque article vendu, de l'achat jusqu'au profit final.</div>
+    </div>
+  </section>
+
+  <section class="landing-calc">
+    <h2>Testez tout de suite, sans compte</h2>
+    <p class="landing-sub" style="margin-bottom:28px;">Calculez la marge et le ROI d'un article avant même de vous inscrire.</p>
+    <div class="calc-card">
+      <div class="quick-calc-row">
+        <div class="quick-calc-field">
+          <label>Prix d'achat</label>
+          <input type="number" id="publicCalcBuy" placeholder="0" step="0.01" oninput="renderPublicCalc()">
+        </div>
+        <div class="quick-calc-field">
+          <label>Prix de vente</label>
+          <input type="number" id="publicCalcSell" placeholder="0" step="0.01" oninput="renderPublicCalc()">
+        </div>
+      </div>
+      <div class="quick-calc-result" id="publicCalcResult"></div>
+    </div>
+  </section>
+
+  <section class="landing-faq">
+    <h2>Questions fréquentes</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">C'est gratuit ?<span class="faq-caret">+</span></button>
+        <div class="faq-answer">Oui, la création de compte et la synchronisation de base sont gratuites. Vous pouvez commencer à utiliser VintControl sans rien payer.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">Est-ce que c'est autorisé par Vinted ?<span class="faq-caret">+</span></button>
+        <div class="faq-answer">L'extension utilise votre propre session Vinted, exactement comme si vous naviguiez normalement sur le site — elle ne fait rien que vous ne pourriez faire vous-même. Les automatisations (messages, republication) respectent un rythme volontairement lent pour rester discrètes.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">Mes données sont-elles en sécurité ?<span class="faq-caret">+</span></button>
+        <div class="faq-answer">Vos données sont stockées de façon sécurisée et ne sont jamais partagées. VintControl ne demande jamais votre mot de passe Vinted — la connexion se fait via votre navigateur, comme d'habitude.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">Il faut installer quoi exactement ?<span class="faq-caret">+</span></button>
+        <div class="faq-answer">Juste une extension Chrome gratuite. Une fois installée et connectée à votre compte Vinted, elle synchronise vos données automatiquement toutes les 5 minutes, tant qu'un onglet vinted.fr est ouvert.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">Ça marche avec plusieurs comptes Vinted ?<span class="faq-caret">+</span></button>
+        <div class="faq-answer">Oui, vous pouvez connecter plusieurs comptes Vinted à un seul compte VintControl et basculer entre eux depuis la barre latérale.</div>
+      </div>
     </div>
   </section>
 
@@ -148,37 +192,52 @@
 
 <!-- AUTH -->
 <div id="authScreen" class="auth-screen" style="display:none">
-  <div class="auth-wrap">
-    <button class="btn-back-landing" onclick="showLanding()">← Retour à l'accueil</button>
-    <div class="auth-brand">
-      <img src="" alt="VintControl" class="auth-logo app-logo" />
-      <p class="brand-sub">Gérez votre business de resell</p>
+  <div class="auth-layout">
+    <div class="auth-side">
+      <div class="auth-side-inner">
+        <div class="hero-badge"><img src="" alt="" class="auth-side-logo app-logo" /> VintControl</div>
+        <h2 class="auth-side-title">Tout votre business Vinted, au même endroit.</h2>
+        <p class="auth-side-sub">Ventes, stock, messages et statistiques synchronisés automatiquement — vous n'avez plus qu'à vendre.</p>
+        <ul class="auth-side-list">
+          <li><span class="auth-side-icon">🔄</span> Synchro automatique toutes les 5 minutes</li>
+          <li><span class="auth-side-icon">📦</span> Stock et préparation sans oubli</li>
+          <li><span class="auth-side-icon">📊</span> Profit, ROI et capital immobilisé en direct</li>
+          <li><span class="auth-side-icon">💬</span> Messagerie centralisée, réponses automatiques</li>
+        </ul>
+      </div>
     </div>
-    <div class="auth-card">
-      <div class="tab-row">
-        <button class="tab active" onclick="switchTab('login')">Connexion</button>
-        <button class="tab" onclick="switchTab('register')">Créer un compte</button>
+    <div class="auth-wrap">
+      <button class="btn-back-landing" onclick="showLanding()">← Retour à l'accueil</button>
+      <div class="auth-brand">
+        <img src="" alt="VintControl" class="auth-logo app-logo" />
+        <p class="brand-sub">Gérez votre business de resell</p>
       </div>
-      <div id="loginForm">
-        <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="vous@exemple.com" /></div>
-        <div class="field"><label>Mot de passe</label><input type="password" id="loginPwd" placeholder="••••••••" /></div>
-        <button class="btn-primary" onclick="doLogin()">Se connecter</button>
-        <button class="btn-forgot" onclick="switchTab('forgot')">Mot de passe oublié ?</button>
+      <div class="auth-card">
+        <div class="tab-row">
+          <button class="tab active" onclick="switchTab('login')">Connexion</button>
+          <button class="tab" onclick="switchTab('register')">Créer un compte</button>
+        </div>
+        <div id="loginForm">
+          <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="vous@exemple.com" /></div>
+          <div class="field"><label>Mot de passe</label><input type="password" id="loginPwd" placeholder="••••••••" /></div>
+          <button class="btn-primary" onclick="doLogin()">Se connecter</button>
+          <button class="btn-forgot" onclick="switchTab('forgot')">Mot de passe oublié ?</button>
+        </div>
+        <div id="registerForm" style="display:none">
+          <div class="field"><label>Prénom</label><input type="text" id="regName" placeholder="Alex" /></div>
+          <div class="field"><label>Email</label><input type="email" id="regEmail" placeholder="vous@exemple.com" /></div>
+          <div class="field"><label>Mot de passe</label><input type="password" id="regPwd" placeholder="••••••••" /></div>
+          <button class="btn-primary" onclick="doRegister()">Créer mon compte</button>
+        </div>
+        <div id="forgotForm" style="display:none">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Entrez votre email pour recevoir un lien de réinitialisation.</p>
+          <div class="field"><label>Email</label><input type="email" id="forgotEmail" placeholder="vous@exemple.com" /></div>
+          <button class="btn-primary" onclick="doForgot()">Envoyer le lien</button>
+          <button class="btn-forgot" onclick="switchTab('login')">← Retour</button>
+        </div>
+        <p id="authError" class="error-msg"></p>
+        <p id="authSuccess" class="success-msg"></p>
       </div>
-      <div id="registerForm" style="display:none">
-        <div class="field"><label>Prénom</label><input type="text" id="regName" placeholder="Alex" /></div>
-        <div class="field"><label>Email</label><input type="email" id="regEmail" placeholder="vous@exemple.com" /></div>
-        <div class="field"><label>Mot de passe</label><input type="password" id="regPwd" placeholder="••••••••" /></div>
-        <button class="btn-primary" onclick="doRegister()">Créer mon compte</button>
-      </div>
-      <div id="forgotForm" style="display:none">
-        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Entrez votre email pour recevoir un lien de réinitialisation.</p>
-        <div class="field"><label>Email</label><input type="email" id="forgotEmail" placeholder="vous@exemple.com" /></div>
-        <button class="btn-primary" onclick="doForgot()">Envoyer le lien</button>
-        <button class="btn-forgot" onclick="switchTab('login')">← Retour</button>
-      </div>
-      <p id="authError" class="error-msg"></p>
-      <p id="authSuccess" class="success-msg"></p>
     </div>
   </div>
 </div>
@@ -860,6 +919,6 @@
 </div>
 
 <script src="js/calc.js?v=13"></script>
-<script src="js/app.js?v=31"></script>
+<script src="js/app.js?v=33"></script>
 </body>
 </html>

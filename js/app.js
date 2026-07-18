@@ -58,14 +58,14 @@ function setTheme(t) {
 }
 window.setTheme = setTheme;
 function initTheme() {
-  // Bascule tout le monde une seule fois vers le nouveau défaut "clair" (même les
-  // visiteurs déjà passés sur le site avant ce changement, qui avaient "sombre"
-  // enregistré sans l'avoir choisi). Les choix faits après cette bascule sont respectés.
-  if (!localStorage.getItem('theme_default_migrated')) {
-    localStorage.setItem('theme_default_migrated', '1');
-    localStorage.setItem('theme', 'light');
+  // Bascule tout le monde une seule fois vers le nouveau défaut "sombre", pour rester
+  // cohérent avec la landing page et l'écran de connexion (thème sombre façon Vinteer).
+  // Les choix faits après cette bascule sont respectés.
+  if (!localStorage.getItem('theme_default_migrated_v2')) {
+    localStorage.setItem('theme_default_migrated_v2', '1');
+    localStorage.setItem('theme', 'dark');
   }
-  setTheme(localStorage.getItem('theme') || 'light');
+  setTheme(localStorage.getItem('theme') || 'dark');
 }
 
 // ── LANDING ──
@@ -753,6 +753,30 @@ window.renderQuickCalc = () => {
     <div class="quick-calc-stat"><div class="quick-calc-stat-label">Marge</div><div class="quick-calc-stat-val">${margin.toFixed(0)}%</div></div>
     <div class="quick-calc-stat"><div class="quick-calc-stat-label">ROI</div><div class="quick-calc-stat-val">${roi.toFixed(0)}%</div></div>
   `;
+};
+
+// ── CALCULATEUR PUBLIC (page vitrine, sans compte) ──
+window.renderPublicCalc = () => {
+  const el=document.getElementById('publicCalcResult');
+  if(!el) return;
+  const buy=parseFloat(document.getElementById('publicCalcBuy').value)||0;
+  const sell=parseFloat(document.getElementById('publicCalcSell').value)||0;
+  const profit=sell-buy;
+  const margin=sell>0?(profit/sell*100):0;
+  const roi=buy>0?(profit/buy*100):0;
+  el.innerHTML=`
+    <div class="quick-calc-stat"><div class="quick-calc-stat-label">Profit</div><div class="quick-calc-stat-val ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div></div>
+    <div class="quick-calc-stat"><div class="quick-calc-stat-label">Marge</div><div class="quick-calc-stat-val">${margin.toFixed(0)}%</div></div>
+    <div class="quick-calc-stat"><div class="quick-calc-stat-label">ROI</div><div class="quick-calc-stat-val">${roi.toFixed(0)}%</div></div>
+  `;
+};
+
+// ── FAQ (page vitrine) ──
+window.toggleFaq = (btn) => {
+  const item = btn.closest('.faq-item');
+  const wasOpen = item.classList.contains('open');
+  item.parentElement.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if(!wasOpen) item.classList.add('open');
 };
 
 // ── PRIX DU MARCHÉ (recherche publique Vinted) ──
