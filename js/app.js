@@ -213,7 +213,7 @@ window.goPage = (id, btn) => {
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
-  if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); }
+  if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); renderAccountantLink(); }
   if(id==='ventes') renderReplay();
   if(id==='historique') renderHistorique();
   if(id==='achats') renderAchats();
@@ -885,6 +885,42 @@ window.exportMyData = () => {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
+
+// ── ACCÈS COMPTABLE (lien de partage en lecture seule) ──
+async function renderAccountantLink(){
+  const el=document.getElementById('accountantLinkBox');
+  if(!el) return;
+  el.innerHTML='Chargement...';
+  const {data}=await sb.from('accountant_links').select('token').eq('user_id',currentUser.id).eq('revoked',false).limit(1).maybeSingle();
+  if(!data){
+    el.innerHTML=`<button class="btn-confirm" onclick="generateAccountantLink()">🔗 Générer un lien comptable</button>`;
+    return;
+  }
+  const url=`${location.origin}/comptable.html?token=${data.token}`;
+  el.innerHTML=`
+    <div class="expense-form-row">
+      <input type="text" readonly value="${url}" style="flex:1;" onclick="this.select()" />
+      <button class="btn-confirm" onclick="copyAccountantLink('${url}')">📋 Copier</button>
+      <button class="btn-danger" onclick="revokeAccountantLink()">Révoquer</button>
+    </div>
+  `;
+}
+window.generateAccountantLink = async () => {
+  const {error}=await sb.from('accountant_links').insert({user_id:currentUser.id});
+  if(error){ alert('Erreur : '+error.message); return; }
+  renderAccountantLink();
+};
+window.revokeAccountantLink = async () => {
+  if(!confirm('Révoquer ce lien ? Votre comptable ne pourra plus y accéder.')) return;
+  await sb.from('accountant_links').update({revoked:true}).eq('user_id',currentUser.id).eq('revoked',false);
+  renderAccountantLink();
+};
+window.copyAccountantLink = (url) => {
+  navigator.clipboard.writeText(url);
+  const msg=document.getElementById('settingsMsg');
+  if(msg){ msg.textContent='Lien copié !'; setTimeout(()=>msg.textContent='',2000); }
+};
+
 window.exportArticlesCSV = (section) => {
   const arts = section==='stock' ? allArticles.filter(a=>a.status==='stock') : allArticles.filter(a=>a.status==='vendu');
   const headers=[

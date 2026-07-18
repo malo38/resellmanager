@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Accès comptable — VintControl</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="stylesheet" href="css/style.css?v=21" />
+<style>
+  body { padding: 24px; max-width: 900px; margin: 0 auto; }
+  .accountant-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .accountant-header img { height: 28px; }
+  .accountant-header h1 { font-size: 18px; font-weight: 700; }
+  .accountant-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  #list .article-card { cursor: default; }
+  #list .article-card:hover { border-color: var(--border); }
+</style>
+</head>
+<body>
+
+<div class="accountant-header">
+  <img src="img/logo-dark.png" alt="VintControl" />
+  <h1>Accès comptable — lecture seule</h1>
+</div>
+
+<div id="content">Chargement...</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/calc.js?v=14"></script>
+<script>
+const SUPABASE_URL = 'https://iprrnmrndjfdlozxjbsu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcnJubXJuZGpmZGxvenhqYnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NjUxOTksImV4cCI6MjA5ODA0MTE5OX0.JAteIwydCEoOe6S3z-Isq6-TwRLBdGpU8akn_1FvQb0';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const REGIMES = {
+  micro_vente:   { label:'URSSAF', rate:0.123, base:'ca' },
+  micro_service: { label:'URSSAF', rate:0.212, base:'ca' },
+  tva_marge:     { label:'TVA sur marge', rate:0.2/1.2, base:'marge' },
+};
+let articles = [], expenses = [];
+
+function periodRange(period){
+  const now=new Date();
+  if(period==='month') return {start:new Date(now.getFullYear(),now.getMonth(),1), end:new Date(now.getFullYear(),now.getMonth()+1,1)};
+  if(period==='lastmonth') return {start:new Date(now.getFullYear(),now.getMonth()-1,1), end:new Date(now.getFullYear(),now.getMonth(),1)};
+  if(period==='year') return {start:new Date(now.getFullYear(),0,1), end:new Date(now.getFullYear()+1,0,1)};
+  return {start:null, end:null};
+}
+function chargeInfo(){
+  const regime=document.getElementById('regime').value;
+  if(regime==='custom'){
+    const rate=(parseFloat(document.getElementById('customRate').value)||0)/100;
+    return {label:'Charges', rate, base:'ca'};
+  }
+  return REGIMES[regime];
+}
+function charge(ca, marge, info){
+  const base = info.base==='marge' ? marge : ca;
+  return Math.max(0, base) * info.rate;
+}
+
+function render(){
+  document.getElementById('customRateWrap').style.display = document.getElementById('regime').value==='custom' ? 'flex' : 'none';
+  const period=document.getElementById('period').value;
+  const {start,end}=periodRange(period);
+  const vendus=articles.filter(a=>{
+    if(!start) return true;
+    const d=new Date(a.sell_date||a.created_at);
+    return d>=start && d<end;
+  });
+  const periodExpenses=expenses.filter(e=>{
+    if(!start) return true;
+    const d=new Date(e.expense_date);
+    return d>=start && d<end;
+  });
+  const info=chargeInfo();
+  const ca=vendus.reduce((s,a)=>s+calcCA(a),0);
+  const margeBrute=vendus.reduce((s,a)=>s+calcProfit(a),0);
+  const charges=charge(ca, margeBrute, info);
+  const totalDepenses=periodExpenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const margeReelle=margeBrute-charges-totalDepenses;
+
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi-card"><div class="kpi-label">Chiffre d'affaires</div><div class="kpi-val">${fmtPrice(ca)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Marge brute</div><div class="kpi-val">${fmtPrice(margeBrute)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">${info.label} (${(info.rate*100).toFixed(1)}%)</div><div class="kpi-val">${fmtPrice(charges)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Dépenses générales</div><div class="kpi-val">${fmtPrice(totalDepenses)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Marge réelle</div><div class="kpi-val ${margeReelle>=0?'green':'red'}">${fmtPrice(margeReelle)}</div></div>
+  `;
+  const sorted=[...vendus].sort((a,b)=>new Date(b.sell_date||b.created_at)-new Date(a.sell_date||a.created_at));
+  document.getElementById('list').innerHTML = sorted.length ? sorted.map(a=>{
+    const caA=calcCA(a), margeA_brute=calcProfit(a), chargeA=charge(caA, margeA_brute, info);
+    return `<div class="article-card">
+      <div class="article-info">
+        <div class="article-name">${a.name||'Sans nom'}</div>
+        <div class="article-sub">${fmtDate(a.sell_date||a.created_at)} · CA ${fmtPrice(caA)} · Charges ${fmtPrice(chargeA)}</div>
+      </div>
+      <div class="article-profit ${(margeA_brute-chargeA)>=0?'profit-pos':'profit-neg'}">${(margeA_brute-chargeA)>=0?'+':''}${fmtPrice(margeA_brute-chargeA)}</div>
+    </div>`;
+  }).join('') : '<p class="empty-state">Aucune vente sur cette période.</p>';
+}
+
+(async () => {
+  const token = new URLSearchParams(location.search).get('token');
+  const contentEl = document.getElementById('content');
+  if(!token){ contentEl.innerHTML = '<p class="empty-state">Lien invalide : aucun token fourni.</p>'; return; }
+  const { data, error } = await sb.rpc('get_accountant_data', { p_token: token });
+  if(error || !data){ contentEl.innerHTML = '<p class="empty-state">Ce lien est invalide ou a été révoqué. Demandez un nouveau lien.</p>'; return; }
+  articles = data.articles || [];
+  expenses = data.expenses || [];
+
+  contentEl.innerHTML = `
+    <div class="info-banner">🧮 Vue en lecture seule, générée par VintControl. Ces chiffres sont indicatifs et ne remplacent pas votre propre analyse.</div>
+    <div class="settings-card" style="margin:16px 0;">
+      <div class="accountant-controls">
+        <select id="period" class="stock-sort-select" onchange="render()">
+          <option value="month">Ce mois</option>
+          <option value="lastmonth">Mois dernier</option>
+          <option value="year">Cette année</option>
+          <option value="all" selected>Depuis le début</option>
+        </select>
+        <select id="regime" class="stock-sort-select" onchange="render()">
+          <option value="micro_vente" selected>Micro-entrepreneur — vente de marchandises (URSSAF 12,3%)</option>
+          <option value="micro_service">Micro-entrepreneur — prestations de services (URSSAF 21,2%)</option>
+          <option value="tva_marge">Société — TVA sur la marge (20%)</option>
+          <option value="custom">Taux personnalisé</option>
+        </select>
+        <label class="field-label" id="customRateWrap" style="display:none;align-items:center;gap:8px;white-space:nowrap;">
+          Taux (%)
+          <input type="number" id="customRate" value="12.3" step="0.1" style="width:80px;" oninput="render()" />
+        </label>
+      </div>
+    </div>
+    <div class="kpi-grid" id="kpis"></div>
+    <div class="section-header" style="margin-top:24px;"><h2>Détail des ventes</h2></div>
+    <div id="list"></div>
+  `;
+  render();
+})();
+</script>
+</body>
+</html>
