@@ -45,7 +45,7 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 // (personnalisables) : pas encore vendu, donc pas de date de vente.
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', historique:'Historique', settings:'Paramètres', boost:'Boost' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', comptabilite:'Comptabilité', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', historique:'Historique', settings:'Paramètres', boost:'Boost' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -223,6 +223,7 @@ window.goPage = (id, btn) => {
   if(id==='republier') renderRepublier();
   if(id==='messages') renderMessages();
   if(id==='depenses') renderDepenses();
+  if(id==='comptabilite') renderComptabilite();
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
 
@@ -895,6 +896,84 @@ window.exportAnnualRecapCSV = () => {
   downloadCSV(toCSV(rows, headers), `vinted-manager-recap-fiscal-${today()}.csv`);
 };
 
+// ── COMPTABILITÉ ── (marge réelle après charges, indicatif — pas un substitut à un comptable)
+function comptaPeriodRange(period){
+  const now=new Date();
+  if(period==='month') return {start:new Date(now.getFullYear(),now.getMonth(),1), end:new Date(now.getFullYear(),now.getMonth()+1,1)};
+  if(period==='lastmonth') return {start:new Date(now.getFullYear(),now.getMonth()-1,1), end:new Date(now.getFullYear(),now.getMonth(),1)};
+  if(period==='year') return {start:new Date(now.getFullYear(),0,1), end:new Date(now.getFullYear()+1,0,1)};
+  return {start:null, end:null};
+}
+function comptaVentesInPeriod(){
+  const period=document.getElementById('comptaPeriod')?.value||'all';
+  const {start,end}=comptaPeriodRange(period);
+  return allArticles.filter(a=>{
+    if(a.status!=='vendu') return false;
+    if(!start) return true;
+    const d=new Date(a.sell_date||a.created_at);
+    return d>=start && d<end;
+  });
+}
+function comptaDepensesInPeriod(){
+  const period=document.getElementById('comptaPeriod')?.value||'all';
+  const {start,end}=comptaPeriodRange(period);
+  return allExpenses.filter(e=>{
+    if(!start) return true;
+    const d=new Date(e.expense_date);
+    return d>=start && d<end;
+  });
+}
+window.renderComptabilite = () => {
+  const el=document.getElementById('comptaKpi');
+  if(!el) return;
+  const rate=parseFloat(document.getElementById('comptaChargeRate')?.value)/100||0;
+  const vendus=comptaVentesInPeriod();
+  const depenses=comptaDepensesInPeriod();
+  const ca=vendus.reduce((s,a)=>s+calcCA(a),0);
+  const margeBrute=vendus.reduce((s,a)=>s+calcProfit(a),0);
+  const charges=ca*rate;
+  const totalDepenses=depenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const margeReelle=margeBrute-charges-totalDepenses;
+
+  el.innerHTML=`
+    <div class="kpi-card"><div class="kpi-label">Chiffre d'affaires</div><div class="kpi-val">${fmtPrice(ca)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Marge brute</div><div class="kpi-val">${fmtPrice(margeBrute)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Charges (${(rate*100).toFixed(1)}%)</div><div class="kpi-val">${fmtPrice(charges)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Dépenses générales</div><div class="kpi-val">${fmtPrice(totalDepenses)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Marge réelle</div><div class="kpi-val ${margeReelle>=0?'green':'red'}">${fmtPrice(margeReelle)}</div></div>
+  `;
+
+  const listEl=document.getElementById('comptaList');
+  if(listEl){
+    const sorted=[...vendus].sort((a,b)=>new Date(b.sell_date||b.created_at)-new Date(a.sell_date||a.created_at));
+    listEl.innerHTML = sorted.length ? sorted.map(a=>{
+      const caA=calcCA(a), chargeA=caA*rate, margeA=calcProfit(a)-chargeA;
+      return `<div class="article-card" onclick="showDetail('${a.id}')">
+        ${photoEl(a)}
+        <div class="article-info">
+          <div class="article-name">${a.name||'Sans nom'}</div>
+          <div class="article-sub">${fmtDate(a.sell_date||a.created_at)} · CA ${fmtPrice(caA)} · Charges ${fmtPrice(chargeA)}</div>
+        </div>
+        <div class="article-profit ${margeA>=0?'profit-pos':'profit-neg'}">${margeA>=0?'+':''}${fmtPrice(margeA)}</div>
+      </div>`;
+    }).join('') : '<p class="empty-state">Aucune vente sur cette période.</p>';
+  }
+};
+window.exportComptabiliteCSV = () => {
+  const rate=parseFloat(document.getElementById('comptaChargeRate')?.value)/100||0;
+  const vendus=comptaVentesInPeriod();
+  if(!vendus.length){ alert('Aucune vente sur cette période.'); return; }
+  const headers=[
+    {label:'Nom', get:a=>a.name||''},
+    {label:'Date vente', get:a=>a.sell_date||a.created_at||''},
+    {label:'CA', get:a=>calcCA(a).toFixed(2)},
+    {label:'Marge brute', get:a=>calcProfit(a).toFixed(2)},
+    {label:`Charges (${(rate*100).toFixed(1)}%)`, get:a=>(calcCA(a)*rate).toFixed(2)},
+    {label:'Marge réelle', get:a=>(calcProfit(a)-calcCA(a)*rate).toFixed(2)},
+  ];
+  downloadCSV(toCSV(vendus, headers), `vinted-manager-comptabilite-${today()}.csv`);
+};
+
 // ── RECHERCHE GLOBALE ──
 function statusLabel(s){
   const step=getAllSteps().find(p=>p.key===s);
@@ -1383,11 +1462,18 @@ function renderAnalytics(){
   const bestMonth=Math.max(0,...months.map(m=>m.profit));
   const now=new Date();
   const profitMois=months.find(m=>m.month===now.getMonth()&&m.year===now.getFullYear())?.profit||0;
-  const avecDates=vendus.filter(a=>a.buy_date&&a.sell_date);
+  // Une vente avant l'achat est une erreur de données (dates mal synchronisées côté
+  // Vinted), pas un vrai délai — on l'exclut plutôt que de fausser la moyenne.
+  const avecDates=vendus.filter(a=>a.buy_date&&a.sell_date&&daysBetween(a.buy_date,a.sell_date)>=0);
   const avgDays=avecDates.length?Math.round(avecDates.reduce((s,a)=>s+daysBetween(a.buy_date,a.sell_date),0)/avecDates.length):null;
   const avgScore=vendus.length?Math.round(vendus.reduce((s,a)=>s+calcScore(a),0)/vendus.length):null;
+  const caTotal=vendus.reduce((s,a)=>s+calcCA(a),0);
+  const panierMoyen=vendus.length?caTotal/vendus.length:0;
 
   document.getElementById('analyticsKpi').innerHTML=`
+    <div class="kpi-card"><div class="kpi-label">Chiffre d'affaires</div><div class="kpi-val">${fmtPrice(caTotal)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Articles vendus</div><div class="kpi-val">${vendus.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Panier moyen</div><div class="kpi-val">${fmtPrice(panierMoyen)}</div></div>
     <div class="kpi-card"><div class="kpi-label">Ce mois</div><div class="kpi-val green">${fmtPrice(profitMois)}</div></div>
     <div class="kpi-card"><div class="kpi-label">Meilleur mois</div><div class="kpi-val green">${fmtPrice(bestMonth)}</div></div>
     <div class="kpi-card"><div class="kpi-label">Profit moyen par vente</div><div class="kpi-val">${fmtPrice(avgP)}</div></div>

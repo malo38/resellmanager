@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=19" />
+  <link rel="stylesheet" href="css/style.css?v=20" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -271,6 +271,7 @@
       <button class="nav-group-header" onclick="toggleNavGroup(this)">FINANCE &amp; ANALYSE <i class="ti ti-chevron-down nav-group-caret"></i></button>
       <div class="nav-group-body" id="navGroup-finance">
         <button class="nav-btn" draggable="true" data-page="analytics" onclick="goPage('analytics',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-chart-bar"></i></span> Statistiques</button>
+        <button class="nav-btn" draggable="true" data-page="comptabilite" onclick="goPage('comptabilite',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-calculator"></i></span> Comptabilité</button>
         <button class="nav-btn" draggable="true" data-page="objectif" onclick="goPage('objectif',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-target"></i></span> Objectifs</button>
         <button class="nav-btn" draggable="true" data-page="depenses" onclick="goPage('depenses',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-receipt"></i></span> Dépenses</button>
       </div>
@@ -546,6 +547,29 @@
         </div>
         <div class="section-header" style="margin-top:24px;"><h2>🏆 Hall of Fame — meilleures ventes</h2></div>
         <div id="hallOfFameList"></div>
+      </section>
+
+      <!-- COMPTABILITÉ -->
+      <section class="page" id="page-comptabilite">
+        <div class="info-banner">🧮 Estimez votre marge réelle après charges, pour préparer vos déclarations. Ces chiffres sont indicatifs et ne remplacent pas l'avis d'un comptable.</div>
+        <div class="settings-card" style="margin-bottom:16px;">
+          <div class="expense-form-row">
+            <select id="comptaPeriod" class="stock-sort-select" onchange="renderComptabilite()">
+              <option value="month">Ce mois</option>
+              <option value="lastmonth">Mois dernier</option>
+              <option value="year">Cette année</option>
+              <option value="all" selected>Depuis le début</option>
+            </select>
+            <label class="field-label" style="display:flex;align-items:center;gap:8px;white-space:nowrap;">
+              Taux de charges (%)
+              <input type="number" id="comptaChargeRate" value="12.3" step="0.1" style="width:80px;" oninput="renderComptabilite()" />
+            </label>
+            <button class="btn-confirm" onclick="exportComptabiliteCSV()">⬇ Exporter (CSV)</button>
+          </div>
+        </div>
+        <div class="kpi-grid" id="comptaKpi"></div>
+        <div class="section-header" style="margin-top:24px;"><h2>Détail des ventes</h2></div>
+        <div id="comptaList"></div>
       </section>
 
       <!-- DÉPENSES -->
@@ -918,7 +942,7 @@
   </div>
 </div>
 
-<script src="js/calc.js?v=13"></script>
-<script src="js/app.js?v=33"></script>
+<script src="js/calc.js?v=14"></script>
+<script src="js/app.js?v=35"></script>
 </body>
 </html>

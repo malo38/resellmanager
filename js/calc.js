@@ -40,7 +40,7 @@ function calcScore(a) {
   if(profit>50) score+=20; else if(profit>20) score+=10; else if(profit<0) score-=20;
   const roi=a.buy_price>0?(profit/a.buy_price*100):0;
   if(roi>100) score+=20; else if(roi>50) score+=10; else if(roi<0) score-=10;
-  if(days!==null){if(days<=7) score+=10; else if(days<=30) score+=5; else if(days>90) score-=10;}
+  if(days!==null && days>=0){if(days<=7) score+=10; else if(days<=30) score+=5; else if(days>90) score-=10;}
   return Math.min(100,Math.max(0,score));
 }
 
