@@ -45,7 +45,7 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 // (personnalisables) : pas encore vendu, donc pas de date de vente.
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', comptabilite:'Comptabilité', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', historique:'Historique', settings:'Paramètres', boost:'Boost', calendrier:'Calendrier', favoris:'Messages favoris', republier:'Republication' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', comptabilite:'Comptabilité', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', settings:'Paramètres', boost:'Boost', calendrier:'Calendrier', favoris:'Messages favoris', republier:'Republication' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -215,7 +215,6 @@ window.goPage = (id, btn) => {
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
   if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); renderAccountantLink(); renderSellerProfile(); }
   if(id==='ventes') renderReplay();
-  if(id==='historique') renderHistorique();
   if(id==='achats') renderAchats();
   if(id==='boost') renderBoost();
   if(id==='calendrier') renderCalendar();
@@ -2049,49 +2048,6 @@ window.deleteExpense = async (id) => {
   renderDashboard();
 };
 
-// ── HISTORIQUE (journal des mouvements d'argent) ──
-// Chaque article compte pour une sortie d'argent à l'achat (buy_date) et,
-// s'il est vendu (et non remboursé), une entrée d'argent à la vente
-// (sell_date) — reflète le vrai flux de trésorerie, contrairement au profit
-// qui compense les deux sur une seule ligne.
-function getLedgerEntries(){
-  const entries=[];
-  allArticles.forEach(a=>{
-    if(a.buy_price&&a.buy_date) entries.push({date:a.buy_date, label:a.name, icon:'🛒', amount:-(parseFloat(a.buy_price)||0)});
-    if(a.status==='vendu'&&a.sell_date&&a.vinted_transaction_status!=='failed') entries.push({date:a.sell_date, label:a.name, icon:'💰', amount:parseFloat(a.sell_price)||0});
-  });
-  allExpenses.forEach(e=>{
-    if(e.expense_date) entries.push({date:e.expense_date, label:e.label, icon:'🧾', amount:-(parseFloat(e.amount)||0)});
-  });
-  return entries.filter(e=>e.date).sort((a,b)=>new Date(b.date)-new Date(a.date));
-}
-
-function renderHistorique(){
-  const el=document.getElementById('historiqueList');
-  if(!el) return;
-  const entries=getLedgerEntries();
-  if(!entries.length){ el.innerHTML=emptyState('Aucun mouvement pour le moment.'); return; }
-  const groups={};
-  entries.forEach(e=>{
-    const d=new Date(e.date);
-    const gKey=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    if(!groups[gKey]) groups[gKey]={label:d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}), items:[], total:0};
-    groups[gKey].items.push(e);
-    groups[gKey].total+=e.amount;
-  });
-  el.innerHTML=Object.keys(groups).sort().reverse().map(k=>{
-    const g=groups[k];
-    return `<div class="ledger-month">
-      <div class="ledger-month-header"><span>${g.label}</span><span class="${g.total>=0?'profit-pos':'profit-neg'}">${g.total>=0?'+':''}${fmtPrice(g.total)}</span></div>
-      ${g.items.map(e=>`<div class="ledger-row">
-        <div class="ledger-date">${fmtDate(e.date)}</div>
-        <div class="ledger-label">${e.icon} ${e.label}</div>
-        <div class="ledger-amount ${e.amount>=0?'profit-pos':'profit-neg'}">${e.amount>=0?'+':''}${fmtPrice(e.amount)}</div>
-      </div>`).join('')}
-    </div>`;
-  }).join('');
-}
-
 // ── ACHATS (page dédiée, séparée du Stock — comme "Achats" chez Vinteer) ──
 let achatsSearchTerm='';
 window.onAchatsSearch=(value)=>{ achatsSearchTerm=value.trim().toLowerCase(); renderAchats(); };
@@ -2598,7 +2554,7 @@ window.resyncAllFromVinted = async (btn) => {
   setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 4000);
 };
 
-// ── CARTE DE VENTE PARTAGEABLE (Ventes & Historique) ──
+// ── CARTE DE VENTE PARTAGEABLE (Ventes) ──
 window.openSaleCard = (id) => {
   const a=allArticles.find(x=>x.id===id);
   if(!a) return;

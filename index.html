@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=22" />
+  <link rel="stylesheet" href="css/style.css?v=23" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -264,7 +264,6 @@
         <button class="nav-btn" draggable="true" data-page="boost" onclick="goPage('boost',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-rocket"></i></span> Boost</button>
         <button class="nav-btn" draggable="true" data-page="stock" onclick="goPage('stock',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
         <button class="nav-btn" draggable="true" data-page="ventes" onclick="goPage('ventes',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-player-play"></i></span> Ventes</button>
-        <button class="nav-btn" draggable="true" data-page="historique" onclick="goPage('historique',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-history"></i></span> Historique</button>
         <button class="nav-btn" draggable="true" data-page="messages" onclick="goPage('messages',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
         <button class="nav-btn" draggable="true" data-page="favoris" onclick="goPage('favoris',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
         <button class="nav-btn" draggable="true" data-page="republier" onclick="goPage('republier',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
@@ -478,11 +477,6 @@
       </div>
 
       <!-- HISTORIQUE (tous les mouvements d'argent : achats, ventes, dépenses) -->
-      <section class="page" id="page-historique">
-        <div class="info-banner">📜 Chaque mouvement d'argent : achats, ventes et dépenses, classés par mois.</div>
-        <div id="historiqueList"></div>
-      </section>
-
       <!-- MESSAGES FAVORIS -->
       <section class="page" id="page-favoris">
         <div class="info-banner" id="favorisAccountWarning" style="display:none;background:var(--warning-dim);color:var(--warning);">⚠️ Plusieurs comptes Vinted connectés — sélectionnez-en un précis (en haut de la sidebar) pour configurer son automatisation, "Tous les comptes" n'affiche que celle du compte le plus récemment synchronisé.</div>
@@ -976,6 +970,6 @@
 </div>
 
 <script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=40"></script>
+<script src="js/app.js?v=41"></script>
 </body>
 </html>
