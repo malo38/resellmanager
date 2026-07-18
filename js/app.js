@@ -183,14 +183,27 @@ function renderAccountSwitcher(){
     vintedAccounts.map(a=>`<button type="button" onclick="onAccountSwitch('${a.id}');this.closest('.actions-menu').classList.remove('open')">${dot(a.connected)}@${a.vinted_login||'compte'}</button>`).join('');
 }
 
-window.onAccountSwitch = (id) => {
+window.onAccountSwitch = async (id) => {
   selectedVintedAccountId = id || null;
   localStorage.setItem('selectedVintedAccountId_'+currentUser.id, selectedVintedAccountId || '');
   renderAccountSwitcher();
-  loadArticles();
+  // loadArticles() doit être terminé avant de redessiner quoi que ce soit :
+  // sans l'attendre, les pages ci-dessous se redessinaient avec les données
+  // encore en mémoire de l'ancien compte (la requête n'avait pas fini).
+  await loadArticles();
+  // loadArticles() ne redessine déjà que Dashboard/Stock/Statistiques/Objectifs
+  // (via renderAll) — sans ça, les autres pages gardaient l'affichage de
+  // l'ancien compte tant qu'on ne changeait pas de page ou ne rechargeait pas.
   if(document.getElementById('page-settings')?.classList.contains('active')) renderVintedConnectionStatus();
   if(document.getElementById('page-favoris')?.classList.contains('active')) renderFavoris();
   if(document.getElementById('page-republier')?.classList.contains('active')) renderRepublier();
+  if(document.getElementById('page-comptabilite')?.classList.contains('active')) renderComptabilite();
+  if(document.getElementById('page-achats')?.classList.contains('active')) renderAchats();
+  if(document.getElementById('page-boost')?.classList.contains('active')) renderBoost();
+  if(document.getElementById('page-messages')?.classList.contains('active')) renderMessages();
+  if(document.getElementById('page-calendrier')?.classList.contains('active')) renderCalendar();
+  if(document.getElementById('page-depenses')?.classList.contains('active')) renderDepenses();
+  if(document.getElementById('page-ventes')?.classList.contains('active')) renderReplay();
 };
 
 // Ajoute le filtre par compte à une requête Supabase déjà construite, si un
@@ -1276,7 +1289,10 @@ function articleTileHTML(a, opts={}){
   const margin=(parseFloat(a.sell_price)||0)-(parseFloat(a.buy_price)||0)-(parseFloat(a.extra_costs)||0);
   const statLabel=a.status==='vendu'?'Profit':'Marge potentielle';
   const statVal=a.status==='vendu'?profit:margin;
+  const tileStatsBadge=a.vinted_item_id&&a.status==='stock'
+    ?`<span class="tile-stats-badge">👁️ ${a.vinted_vues||0} · ❤️ ${a.vinted_favoris||0}</span>`:'';
   return `<div class="article-tile" onclick="showDetail('${a.id}')">
+    ${tileStatsBadge}
     <div class="tile-big-top">
       <div class="tile-photo">
         ${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}">`:'📦'}
