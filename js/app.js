@@ -213,7 +213,7 @@ window.goPage = (id, btn) => {
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
-  if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); renderAccountantLink(); }
+  if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); renderAccountantLink(); renderSellerProfile(); }
   if(id==='ventes') renderReplay();
   if(id==='historique') renderHistorique();
   if(id==='achats') renderAchats();
@@ -921,6 +921,99 @@ window.copyAccountantLink = (url) => {
   if(msg){ msg.textContent='Lien copié !'; setTimeout(()=>msg.textContent='',2000); }
 };
 
+// ── PROFIL VENDEUR & FACTURES PDF ── (mentions indicatives, à vérifier avec un comptable)
+async function renderSellerProfile(){
+  const nameEl=document.getElementById('sellerBusinessName');
+  if(!nameEl) return;
+  const {data}=await sb.from('seller_profile').select('*').eq('user_id',currentUser.id).maybeSingle();
+  nameEl.value=data?.business_name||'';
+  document.getElementById('sellerSiret').value=data?.siret||'';
+  document.getElementById('sellerAddress').value=data?.address||'';
+  document.getElementById('sellerRegime').value=data?.regime||'micro_vente';
+}
+window.saveSellerProfile = async () => {
+  const payload={
+    user_id: currentUser.id,
+    business_name: document.getElementById('sellerBusinessName').value.trim(),
+    siret: document.getElementById('sellerSiret').value.trim(),
+    address: document.getElementById('sellerAddress').value.trim(),
+    regime: document.getElementById('sellerRegime').value,
+    updated_at: new Date().toISOString(),
+  };
+  const {error}=await sb.from('seller_profile').upsert(payload);
+  const msg=document.getElementById('sellerProfileMsg');
+  msg.textContent = error ? 'Erreur : '+error.message : 'Enregistré !';
+  if(!error) setTimeout(()=>{ if(msg.textContent==='Enregistré !') msg.textContent=''; },2500);
+};
+
+const REGIME_TVA_MENTIONS = {
+  micro_vente: "TVA non applicable, art. 293 B du CGI",
+  micro_service: "TVA non applicable, art. 293 B du CGI",
+  tva_marge: "TVA sur la marge — régime particulier des biens d'occasion, article 297 A du CGI",
+};
+
+window.generateInvoicePDF = async (articleId) => {
+  const article=allArticles.find(a=>a.id===articleId);
+  if(!article){ alert('Article introuvable.'); return; }
+  const {data:profile}=await sb.from('seller_profile').select('*').eq('user_id',currentUser.id).maybeSingle();
+  if(!profile?.business_name){
+    alert("Complétez d'abord votre profil vendeur dans Paramètres (nom, SIRET, adresse) avant de générer une facture.");
+    return;
+  }
+  // Réutilise le numéro déjà attribué si la facture existe déjà pour cet
+  // article, pour ne pas régénérer un nouveau numéro à chaque clic.
+  const {data:existing}=await sb.from('invoices').select('invoice_number').eq('article_id',articleId).eq('invoice_type','facture').maybeSingle();
+  let invoiceNumber=existing?.invoice_number;
+  if(!invoiceNumber){
+    const {data:num, error:numErr}=await sb.rpc('next_invoice_number');
+    if(numErr){ alert('Erreur : '+numErr.message); return; }
+    invoiceNumber=num;
+    const {error:insErr}=await sb.from('invoices').insert({user_id:currentUser.id, article_id:articleId, invoice_number:invoiceNumber, invoice_type:'facture'});
+    if(insErr){ alert('Erreur : '+insErr.message); return; }
+  }
+  buildInvoicePdf(article, profile, invoiceNumber);
+};
+
+function buildInvoicePdf(article, profile, invoiceNumber){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const price = calcCA(article);
+  const numStr = String(invoiceNumber).padStart(4,'0');
+
+  doc.setFontSize(18); doc.text('FACTURE', 14, 20);
+  doc.setFontSize(10);
+  doc.text(`N° ${numStr}`, 14, 28);
+  doc.text(`Date : ${fmtDate(article.sell_date||article.created_at)}`, 14, 34);
+
+  doc.setFontSize(11); doc.text('Vendeur', 14, 48);
+  doc.setFontSize(10);
+  doc.text(profile.business_name||'', 14, 54);
+  if(profile.siret) doc.text(`SIRET : ${profile.siret}`, 14, 60);
+  if(profile.address) doc.text(profile.address, 14, 66);
+
+  doc.setFontSize(11); doc.text('Acheteur', 120, 48);
+  doc.setFontSize(10);
+  doc.text('Client Vinted', 120, 54);
+
+  doc.setLineWidth(0.2); doc.line(14, 78, 196, 78);
+  doc.setFontSize(10);
+  doc.text('Désignation', 14, 86);
+  doc.text('Prix', 170, 86);
+  doc.line(14, 90, 196, 90);
+  doc.text(article.name||'Article', 14, 98);
+  doc.text(fmtPrice(price), 170, 98);
+  doc.line(14, 106, 196, 106);
+
+  doc.setFontSize(11); doc.text(`Total : ${fmtPrice(price)}`, 140, 116);
+
+  doc.setFontSize(9);
+  doc.text(REGIME_TVA_MENTIONS[profile.regime]||'', 14, 130);
+  doc.setFontSize(8); doc.setTextColor(140);
+  doc.text('Facture générée automatiquement par VintControl — à vérifier avec votre comptable.', 14, 285);
+
+  doc.save(`facture-${numStr}.pdf`);
+}
+
 window.exportArticlesCSV = (section) => {
   const arts = section==='stock' ? allArticles.filter(a=>a.status==='stock') : allArticles.filter(a=>a.status==='vendu');
   const headers=[
@@ -1047,6 +1140,7 @@ window.renderComptabilite = () => {
           <div class="article-name">${a.name||'Sans nom'}</div>
           <div class="article-sub">${fmtDate(a.sell_date||a.created_at)} · CA ${fmtPrice(caA)} · Charges ${fmtPrice(chargeA)}</div>
         </div>
+        <button class="btn-edit" onclick="event.stopPropagation();generateInvoicePDF('${a.id}')" title="Générer la facture PDF">🧾 Facture</button>
         <div class="article-profit ${margeA>=0?'profit-pos':'profit-neg'}">${margeA>=0?'+':''}${fmtPrice(margeA)}</div>
       </div>`;
     }).join('') : '<p class="empty-state">Aucune vente sur cette période.</p>';

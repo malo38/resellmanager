@@ -16,6 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
@@ -689,6 +690,22 @@
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
+          <h2 class="settings-title">🧾 Profil vendeur (pour les factures)</h2>
+          <p class="setting-sub" style="margin-bottom:12px;">Ces informations apparaissent sur les factures générées pour vos ventes. Indicatif — vérifiez la conformité avec votre comptable.</p>
+          <div class="field"><label>Nom / Raison sociale</label><input type="text" id="sellerBusinessName" placeholder="ex: Jean Dupont, ou Ma Boutique SARL" /></div>
+          <div class="field"><label>SIRET</label><input type="text" id="sellerSiret" placeholder="ex: 123 456 789 00012" /></div>
+          <div class="field"><label>Adresse</label><input type="text" id="sellerAddress" placeholder="ex: 12 rue de la Paix, 75002 Paris" /></div>
+          <div class="field"><label>Régime fiscal</label>
+            <select id="sellerRegime">
+              <option value="micro_vente">Micro-entrepreneur — vente de marchandises</option>
+              <option value="micro_service">Micro-entrepreneur — prestations de services</option>
+              <option value="tva_marge">Société — TVA sur la marge</option>
+            </select>
+          </div>
+          <button class="btn-confirm" onclick="saveSellerProfile()">Enregistrer</button>
+          <p id="sellerProfileMsg" class="success-msg"></p>
+        </div>
+        <div class="settings-card" style="margin-top:16px;">
           <h2 class="settings-title">🧮 Accès comptable</h2>
           <p class="setting-sub" style="margin-bottom:12px;">Générez un lien à envoyer à votre comptable : il verra vos ventes et dépenses en lecture seule, sans avoir besoin d'un compte VintControl. Révocable à tout moment.</p>
           <div id="accountantLinkBox"></div>
@@ -959,6 +976,6 @@
 </div>
 
 <script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=39"></script>
+<script src="js/app.js?v=40"></script>
 </body>
 </html>
