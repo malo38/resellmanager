@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/style.css?v=21" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
@@ -561,11 +562,20 @@
               <option value="year">Cette année</option>
               <option value="all" selected>Depuis le début</option>
             </select>
-            <label class="field-label" style="display:flex;align-items:center;gap:8px;white-space:nowrap;">
-              Taux de charges (%)
+            <select id="comptaRegime" class="stock-sort-select" onchange="renderComptabilite()">
+              <option value="micro_vente" selected>Micro-entrepreneur — vente de marchandises (URSSAF 12,3%)</option>
+              <option value="micro_service">Micro-entrepreneur — prestations de services (URSSAF 21,2%)</option>
+              <option value="tva_marge">Société — TVA sur la marge (20%)</option>
+              <option value="custom">Taux personnalisé</option>
+            </select>
+            <label class="field-label" id="comptaCustomRateWrap" style="display:none;align-items:center;gap:8px;white-space:nowrap;">
+              Taux (%)
               <input type="number" id="comptaChargeRate" value="12.3" step="0.1" style="width:80px;" oninput="renderComptabilite()" />
             </label>
+          </div>
+          <div class="expense-form-row" style="margin-top:10px;">
             <button class="btn-confirm" onclick="exportComptabiliteCSV()">⬇ Exporter (CSV)</button>
+            <button class="btn-confirm" onclick="exportComptabiliteExcel()">⬇ Exporter (Excel)</button>
           </div>
         </div>
         <div class="kpi-grid" id="comptaKpi"></div>
@@ -944,6 +954,6 @@
 </div>
 
 <script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=37"></script>
+<script src="js/app.js?v=38"></script>
 </body>
 </html>

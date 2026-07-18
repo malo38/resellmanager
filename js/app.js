@@ -957,22 +957,45 @@ function comptaDepensesInPeriod(){
     return d>=start && d<end;
   });
 }
+// Régimes fiscaux les plus courants chez les revendeurs Vinted — indicatif,
+// ne remplace pas l'avis d'un comptable. URSSAF calculé sur le CA (régime
+// micro-entrepreneur), TVA sur marge calculée sur la marge brute (le prix de
+// vente inclut déjà la TVA, d'où la division par 1,2 pour l'extraire).
+const COMPTA_REGIMES = {
+  micro_vente:   { label:'URSSAF', rate:0.123, base:'ca' },
+  micro_service: { label:'URSSAF', rate:0.212, base:'ca' },
+  tva_marge:     { label:'TVA sur marge', rate:0.2/1.2, base:'marge' },
+};
+function comptaChargeInfo(){
+  const regime=document.getElementById('comptaRegime')?.value||'micro_vente';
+  if(regime==='custom'){
+    const rate=(parseFloat(document.getElementById('comptaChargeRate')?.value)||0)/100;
+    return {label:'Charges', rate, base:'ca'};
+  }
+  return COMPTA_REGIMES[regime]||COMPTA_REGIMES.micro_vente;
+}
+function comptaCharge(ca, margeBrute, info){
+  const base = info.base==='marge' ? margeBrute : ca;
+  return Math.max(0, base) * info.rate;
+}
 window.renderComptabilite = () => {
   const el=document.getElementById('comptaKpi');
   if(!el) return;
-  const rate=parseFloat(document.getElementById('comptaChargeRate')?.value)/100||0;
+  const customWrap=document.getElementById('comptaCustomRateWrap');
+  if(customWrap) customWrap.style.display = document.getElementById('comptaRegime')?.value==='custom' ? 'flex' : 'none';
+  const info=comptaChargeInfo();
   const vendus=comptaVentesInPeriod();
   const depenses=comptaDepensesInPeriod();
   const ca=vendus.reduce((s,a)=>s+calcCA(a),0);
   const margeBrute=vendus.reduce((s,a)=>s+calcProfit(a),0);
-  const charges=ca*rate;
+  const charges=comptaCharge(ca, margeBrute, info);
   const totalDepenses=depenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
   const margeReelle=margeBrute-charges-totalDepenses;
 
   el.innerHTML=`
     <div class="kpi-card"><div class="kpi-label">Chiffre d'affaires</div><div class="kpi-val">${fmtPrice(ca)}</div></div>
     <div class="kpi-card"><div class="kpi-label">Marge brute</div><div class="kpi-val">${fmtPrice(margeBrute)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Charges (${(rate*100).toFixed(1)}%)</div><div class="kpi-val">${fmtPrice(charges)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">${info.label} (${(info.rate*100).toFixed(1)}%)</div><div class="kpi-val">${fmtPrice(charges)}</div></div>
     <div class="kpi-card"><div class="kpi-label">Dépenses générales</div><div class="kpi-val">${fmtPrice(totalDepenses)}</div></div>
     <div class="kpi-card"><div class="kpi-label">Marge réelle</div><div class="kpi-val ${margeReelle>=0?'green':'red'}">${fmtPrice(margeReelle)}</div></div>
   `;
@@ -981,7 +1004,7 @@ window.renderComptabilite = () => {
   if(listEl){
     const sorted=[...vendus].sort((a,b)=>new Date(b.sell_date||b.created_at)-new Date(a.sell_date||a.created_at));
     listEl.innerHTML = sorted.length ? sorted.map(a=>{
-      const caA=calcCA(a), chargeA=caA*rate, margeA=calcProfit(a)-chargeA;
+      const caA=calcCA(a), margeA_brute=calcProfit(a), chargeA=comptaCharge(caA, margeA_brute, info), margeA=margeA_brute-chargeA;
       return `<div class="article-card" onclick="showDetail('${a.id}')">
         ${photoEl(a)}
         <div class="article-info">
@@ -993,19 +1016,34 @@ window.renderComptabilite = () => {
     }).join('') : '<p class="empty-state">Aucune vente sur cette période.</p>';
   }
 };
-window.exportComptabiliteCSV = () => {
-  const rate=parseFloat(document.getElementById('comptaChargeRate')?.value)/100||0;
+function comptaExportRows(){
+  const info=comptaChargeInfo();
   const vendus=comptaVentesInPeriod();
-  if(!vendus.length){ alert('Aucune vente sur cette période.'); return; }
-  const headers=[
-    {label:'Nom', get:a=>a.name||''},
-    {label:'Date vente', get:a=>a.sell_date||a.created_at||''},
-    {label:'CA', get:a=>calcCA(a).toFixed(2)},
-    {label:'Marge brute', get:a=>calcProfit(a).toFixed(2)},
-    {label:`Charges (${(rate*100).toFixed(1)}%)`, get:a=>(calcCA(a)*rate).toFixed(2)},
-    {label:'Marge réelle', get:a=>(calcProfit(a)-calcCA(a)*rate).toFixed(2)},
-  ];
-  downloadCSV(toCSV(vendus, headers), `vinted-manager-comptabilite-${today()}.csv`);
+  return vendus.map(a=>{
+    const caA=calcCA(a), margeA_brute=calcProfit(a), chargeA=comptaCharge(caA, margeA_brute, info);
+    return {
+      Nom: a.name||'',
+      'Date vente': a.sell_date||a.created_at||'',
+      CA: parseFloat(caA.toFixed(2)),
+      'Marge brute': parseFloat(margeA_brute.toFixed(2)),
+      [`${info.label} (${(info.rate*100).toFixed(1)}%)`]: parseFloat(chargeA.toFixed(2)),
+      'Marge réelle': parseFloat((margeA_brute-chargeA).toFixed(2)),
+    };
+  });
+}
+window.exportComptabiliteCSV = () => {
+  const rows=comptaExportRows();
+  if(!rows.length){ alert('Aucune vente sur cette période.'); return; }
+  const headers=Object.keys(rows[0]).map(k=>({label:k, get:r=>r[k]}));
+  downloadCSV(toCSV(rows, headers), `vinted-manager-comptabilite-${today()}.csv`);
+};
+window.exportComptabiliteExcel = () => {
+  const rows=comptaExportRows();
+  if(!rows.length){ alert('Aucune vente sur cette période.'); return; }
+  const sheet=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet, 'Comptabilité');
+  XLSX.writeFile(wb, `vinted-manager-comptabilite-${today()}.xlsx`);
 };
 
 // ── RECHERCHE GLOBALE ──
