@@ -539,7 +539,39 @@ body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 1
 .btn-inline { width: auto; }
 .btn-lg { padding: 13px 24px; font-size: 14px; }
 
-.landing-hero { max-width: 780px; margin: 0 auto; text-align: center; padding: 60px 0 70px; }
+/* ── HERO SOMBRE (façon Vinteer) — bande d'intro dédiée au-dessus du reste
+   de la landing (claire) ── */
+.hero-dark {
+  position: relative; background: #0a0a0a;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 42px 42px;
+  padding: 56px 24px 64px; text-align: center; overflow: hidden;
+}
+.hero-corner { position: absolute; width: 22px; height: 22px; border: 2px solid rgba(0,229,160,0.35); opacity: 0.8; }
+.hero-corner-tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+.hero-corner-tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+.hero-corner-bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+.hero-corner-br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+.hero-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 0.02em; margin-bottom: 20px; }
+.hero-badge-logo { height: 16px; width: auto; }
+.hero-title { font-size: 44px; font-weight: 800; line-height: 1.15; color: #fff; margin: 0 auto 16px; max-width: 620px; letter-spacing: -0.01em; }
+.hero-title-accent { color: var(--accent); }
+.hero-sub { font-size: 15px; color: #9a9a9a; line-height: 1.6; max-width: 520px; margin: 0 auto 36px; }
+.hero-highlights { max-width: 720px; margin: 0 auto 36px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; text-align: left; }
+.hero-highlight-card { background: #131313; border: 1px solid #232323; border-radius: var(--radius-lg); padding: 16px; }
+.hero-highlight-icon { width: 34px; height: 34px; background: var(--accent-dim); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 10px; }
+.hero-highlight-title { font-size: 13.5px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.hero-highlight-desc { font-size: 12px; color: #8a8a8a; line-height: 1.5; }
+.hero-btn-ghost { border-color: #333; color: #fff; }
+.hero-btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 600px) {
+  .hero-title { font-size: 32px; }
+  .hero-highlights { grid-template-columns: 1fr; }
+}
+
+.landing-hero { max-width: 780px; margin: 0 auto; text-align: center; padding: 40px 0 70px; }
 .landing-hero h1 { font-size: 40px; font-weight: 700; line-height: 1.2; color: var(--l-text); margin-bottom: 18px; }
 .landing-sub { font-size: 16px; color: var(--l-muted); line-height: 1.6; max-width: 600px; margin: 0 auto 32px; }
 

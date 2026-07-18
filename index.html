@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=16" />
+  <link rel="stylesheet" href="css/style.css?v=17" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -29,9 +29,43 @@
     </div>
   </header>
 
+  <section class="hero-dark">
+    <span class="hero-corner hero-corner-tl"></span>
+    <span class="hero-corner hero-corner-tr"></span>
+    <span class="hero-corner hero-corner-bl"></span>
+    <span class="hero-corner hero-corner-br"></span>
+    <div class="hero-badge"><img src="" class="hero-badge-logo" id="heroBadgeLogo" alt="" /> VintControl</div>
+    <h1 class="hero-title">Ton business<br /><span class="hero-title-accent">automatisé.</span></h1>
+    <p class="hero-sub">Ventes, stock, messages : tout se synchronise automatiquement.<br />Concentre-toi sur tes ventes, VintControl s'occupe du reste.</p>
+    <div class="hero-highlights">
+      <div class="hero-highlight-card">
+        <div class="hero-highlight-icon">🔄</div>
+        <div class="hero-highlight-title">Synchronisation auto</div>
+        <div class="hero-highlight-desc">Ventes, stock et messages à jour tout seuls.</div>
+      </div>
+      <div class="hero-highlight-card">
+        <div class="hero-highlight-icon">📦</div>
+        <div class="hero-highlight-title">Stock &amp; préparation</div>
+        <div class="hero-highlight-desc">De l'achat à l'expédition, sans rien oublier.</div>
+      </div>
+      <div class="hero-highlight-card">
+        <div class="hero-highlight-icon">📊</div>
+        <div class="hero-highlight-title">Statistiques réelles</div>
+        <div class="hero-highlight-desc">Profit, ROI, capital immobilisé — en un coup d'œil.</div>
+      </div>
+      <div class="hero-highlight-card">
+        <div class="hero-highlight-icon">💬</div>
+        <div class="hero-highlight-title">Messagerie centralisée</div>
+        <div class="hero-highlight-desc">Toute ta messagerie Vinted, dans un seul endroit.</div>
+      </div>
+    </div>
+    <div class="landing-cta-row">
+      <button class="btn-primary btn-inline btn-lg" onclick="showAuth('register')">Commencer gratuitement</button>
+      <button class="btn-ghost btn-lg hero-btn-ghost" onclick="showAuth('login')">J'ai déjà un compte</button>
+    </div>
+  </section>
+
   <section class="landing-hero">
-    <h1>Fini les tableurs et les ressaisies.</h1>
-    <p class="landing-sub">VintControl synchronise automatiquement votre stock, vos ventes et votre messagerie depuis Vinted, grâce à notre extension Chrome.</p>
     <div class="compare-row">
       <div class="compare-card compare-before">
         <div class="compare-label">Avant</div>
@@ -49,10 +83,6 @@
           <li>Rappels automatiques pour republier, laver, expédier</li>
         </ul>
       </div>
-    </div>
-    <div class="landing-cta-row">
-      <button class="btn-primary btn-inline btn-lg" onclick="showAuth('register')">Commencer gratuitement</button>
-      <button class="btn-ghost btn-lg" onclick="showAuth('login')">J'ai déjà un compte</button>
     </div>
   </section>
 
@@ -830,6 +860,6 @@
 </div>
 
 <script src="js/calc.js?v=13"></script>
-<script src="js/app.js?v=30"></script>
+<script src="js/app.js?v=31"></script>
 </body>
 </html>

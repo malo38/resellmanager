@@ -2422,4 +2422,5 @@ window.sendFeedback = async () => {
 // ── INIT ──
 initTheme();
 document.getElementById('landingLogo').src = LOGO_LIGHT;
+document.getElementById('heroBadgeLogo').src = LOGO_DARK;
 sb.auth.onAuthStateChange((event,session)=>{if(session?.user)loginAs(session.user);});
