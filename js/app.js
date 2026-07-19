@@ -118,6 +118,32 @@ window.sendResetEmail = async () => {
   document.getElementById('settingsMsg').textContent = error ? 'Erreur : '+error.message : '✓ Email de réinitialisation envoyé !';
 };
 
+// Un clic sur le lien de réinitialisation connecte l'utilisateur (via le
+// token de récupération) SANS jamais lui demander de choisir un nouveau mot
+// de passe — sans ce garde-fou, loginAs() se déclenche directement et
+// l'utilisateur se retrouve connecté sur le site mais toujours sans savoir
+// quel mot de passe utiliser pour se connecter dans l'extension Chrome.
+window.saveNewPassword = async () => {
+  const p1=document.getElementById('newPassword1').value, p2=document.getElementById('newPassword2').value;
+  const msg=document.getElementById('resetPasswordMsg');
+  if(!p1||p1.length<6){ msg.textContent='Mot de passe trop court (6 car. min).'; return; }
+  if(p1!==p2){ msg.textContent='Les deux mots de passe ne correspondent pas.'; return; }
+  const btn=document.getElementById('btnResetPasswordSave');
+  btn.disabled=true; btn.textContent='Enregistrement...';
+  const {data,error}=await sb.auth.updateUser({password:p1});
+  btn.disabled=false; btn.textContent='Enregistrer';
+  if(error){ msg.textContent='Erreur : '+error.message; return; }
+  document.getElementById('resetPasswordBg').classList.remove('open');
+  loginAs(data.user);
+};
+window.cancelPasswordReset = async () => {
+  document.getElementById('resetPasswordBg').classList.remove('open');
+  await sb.auth.signOut();
+  currentUser=null;
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('landingScreen').style.display='block';
+};
+
 window.doLogout = async () => {
   await sb.auth.signOut();
   currentUser=null; allArticles=[];
@@ -2887,4 +2913,12 @@ window.sendFeedback = async () => {
 initTheme();
 document.getElementById('landingLogo').src = LOGO_LIGHT;
 document.getElementById('heroBadgeLogo').src = LOGO_DARK;
-sb.auth.onAuthStateChange((event,session)=>{if(session?.user)loginAs(session.user);});
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    document.getElementById('landingScreen').style.display='none';
+    document.getElementById('authScreen').style.display='none';
+    document.getElementById('resetPasswordBg').classList.add('open');
+    return;
+  }
+  if(session?.user) loginAs(session.user);
+});

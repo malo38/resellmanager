@@ -990,6 +990,25 @@
   </div>
 </div>
 
+<!-- NOUVEAU MOT DE PASSE (lien de réinitialisation) -->
+<div class="modal-bg" id="resetPasswordBg">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3>Choisissez un nouveau mot de passe</h3>
+    </div>
+    <div class="modal-body">
+      <p class="setting-sub" style="margin-bottom:14px;">Ce mot de passe est celui à utiliser aussi bien sur le site que dans l'extension Chrome.</p>
+      <div class="field"><label>Nouveau mot de passe</label><input type="password" id="newPassword1" placeholder="••••••••" /></div>
+      <div class="field"><label>Confirmez</label><input type="password" id="newPassword2" placeholder="••••••••" /></div>
+      <p id="resetPasswordMsg" class="success-msg"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cancelPasswordReset()">Annuler</button>
+      <button class="btn-confirm" id="btnResetPasswordSave" onclick="saveNewPassword()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- FEEDBACK -->
 <div class="modal-bg" id="feedbackBg">
   <div class="modal" style="max-width:420px;">
@@ -1023,6 +1042,6 @@
 </div>
 
 <script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=44"></script>
+<script src="js/app.js?v=45"></script>
 </body>
 </html>
