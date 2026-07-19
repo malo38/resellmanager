@@ -45,7 +45,7 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 // (personnalisables) : pas encore vendu, donc pas de date de vente.
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', comptabilite:'Comptabilité', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', settings:'Paramètres', boost:'Boost', calendrier:'Calendrier', favoris:'Messages favoris', republier:'Republication' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', comptabilite:'Comptabilité', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', settings:'Paramètres', boost:'Boost', calendrier:'Calendrier', favoris:'Messages favoris', republier:'Republication', delegation:'Délégation' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -236,6 +236,7 @@ window.goPage = (id, btn) => {
   if(id==='messages') renderMessages();
   if(id==='depenses') renderDepenses();
   if(id==='comptabilite') renderComptabilite();
+  if(id==='delegation') renderDelegationPage();
   if(document.querySelector('.sidebar').classList.contains('open')) toggleSidebar();
 };
 
@@ -1186,6 +1187,173 @@ window.exportComptabiliteExcel = () => {
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, sheet, 'Comptabilité');
   XLSX.writeFile(wb, `vinted-manager-comptabilite-${today()}.xlsx`);
+};
+
+// ── DÉLÉGATION ── (payer quelqu'un pour préparer physiquement les articles —
+// photo par défaut — sans lui donner accès aux prix/finances)
+async function renderDelegationPage(){
+  if(!document.getElementById('delegateStepKey')) return;
+  populateDelegateStepSelect();
+  if(document.getElementById('delegateRateLines').children.length===0) addDelegateRateLine();
+  await renderDelegateTasksSection();
+  await renderDelegatesList();
+}
+function populateDelegateStepSelect(){
+  const sel=document.getElementById('delegateStepKey');
+  sel.innerHTML=getPrepSteps().map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+}
+window.toggleDelegateCompFields = () => {
+  const isHourly=document.getElementById('delegateCompType').value==='hourly';
+  document.getElementById('delegatePerItemFields').style.display=isHourly?'none':'block';
+  document.getElementById('delegateHourlyFields').style.display=isHourly?'flex':'none';
+};
+window.addDelegateRateLine = (label='', amount='') => {
+  const wrap=document.getElementById('delegateRateLines');
+  const row=document.createElement('div');
+  row.className='expense-form-row';
+  row.style.marginBottom='6px';
+  row.innerHTML=`
+    <input type="text" placeholder="ex: Photo" value="${label}" class="delegate-rate-label" oninput="updateDelegateRateTotal()" />
+    <input type="number" placeholder="0,00" step="0.01" value="${amount}" class="delegate-rate-amount" style="max-width:100px;" oninput="updateDelegateRateTotal()" />
+    <button class="btn-danger" style="flex:0;padding:9px 12px;" onclick="this.closest('.expense-form-row').remove();updateDelegateRateTotal()">✕</button>
+  `;
+  wrap.appendChild(row);
+  updateDelegateRateTotal();
+};
+window.updateDelegateRateTotal = () => {
+  const total=[...document.querySelectorAll('.delegate-rate-amount')].reduce((s,el)=>s+(parseFloat(el.value)||0),0);
+  document.getElementById('delegateRateTotal').textContent=fmtPrice(total);
+};
+window.addDelegate = async () => {
+  const msg=document.getElementById('delegateAddMsg');
+  const email=document.getElementById('delegateEmail').value.trim();
+  if(!email){ msg.textContent='Entrez un email.'; return; }
+  const stepKey=document.getElementById('delegateStepKey').value;
+  const allSteps=getAllSteps();
+  const idx=allSteps.findIndex(s=>s.key===stepKey);
+  const nextStepKey=allSteps[idx+1]?.key||'stock';
+  const compType=document.getElementById('delegateCompType').value;
+
+  const {data:delegateId, error:lookupErr}=await sb.rpc('find_user_id_by_email',{p_email:email});
+  if(lookupErr){ msg.textContent='Erreur : '+lookupErr.message; return; }
+  if(!delegateId){ msg.textContent="Aucun compte VintControl trouvé avec cet email. Le délégué doit d'abord créer un compte."; return; }
+  if(delegateId===currentUser.id){ msg.textContent='Vous ne pouvez pas vous déléguer à vous-même.'; return; }
+
+  const payload={
+    owner_id: currentUser.id,
+    delegate_id: delegateId,
+    delegate_email: email,
+    compensation_type: compType,
+    hourly_rate: compType==='hourly'?(parseFloat(document.getElementById('delegateHourlyRate').value)||0):0,
+    task_status_key: stepKey,
+    next_status_key: nextStepKey,
+  };
+  const {data:delegation, error:insErr}=await sb.from('delegations').insert(payload).select().single();
+  if(insErr){ msg.textContent='Erreur : '+insErr.message; return; }
+
+  if(compType==='per_item'){
+    const lines=[...document.querySelectorAll('#delegateRateLines .expense-form-row')].map((row,i)=>({
+      delegation_id: delegation.id,
+      label: row.querySelector('.delegate-rate-label').value.trim()||'Ligne',
+      amount: parseFloat(row.querySelector('.delegate-rate-amount').value)||0,
+      sort_order: i,
+    })).filter(l=>l.amount>0);
+    if(lines.length) await sb.from('delegation_rate_lines').insert(lines);
+  }
+
+  msg.textContent='Délégué(e) ajouté(e) !';
+  document.getElementById('delegateEmail').value='';
+  setTimeout(()=>{ if(msg.textContent==='Délégué(e) ajouté(e) !') msg.textContent=''; },2500);
+  renderDelegatesList();
+};
+window.deleteDelegation = async (id) => {
+  if(!confirm('Retirer ce délégué ?')) return;
+  await sb.from('delegations').delete().eq('id',id).eq('owner_id',currentUser.id);
+  renderDelegatesList();
+};
+async function renderDelegatesList(){
+  const el=document.getElementById('delegatesList');
+  if(!el) return;
+  const {data:delegations}=await sb.from('delegations').select('*, delegation_rate_lines(*)').eq('owner_id',currentUser.id);
+  if(!delegations?.length){ el.innerHTML=emptyState('Aucun délégué pour le moment.'); return; }
+  const rows=await Promise.all(delegations.map(async d=>{
+    let owed=0;
+    if(d.compensation_type==='per_item'){
+      const {data:tasks}=await sb.from('delegation_tasks').select('amount').eq('delegation_id',d.id);
+      owed=(tasks||[]).reduce((s,t)=>s+(parseFloat(t.amount)||0),0);
+    } else {
+      const {data:logs}=await sb.from('delegation_time_logs').select('hours').eq('delegation_id',d.id);
+      const hours=(logs||[]).reduce((s,l)=>s+(parseFloat(l.hours)||0),0);
+      owed=hours*(parseFloat(d.hourly_rate)||0);
+    }
+    const compLabel=d.compensation_type==='per_item'
+      ?`À l'article — ${fmtPrice((d.delegation_rate_lines||[]).reduce((s,l)=>s+(parseFloat(l.amount)||0),0))}/article`
+      :`À l'heure — ${fmtPrice(d.hourly_rate)}/h`;
+    return `<div class="settings-card" style="margin-bottom:12px;">
+      <div class="setting-row" style="border-bottom:none;padding-bottom:0;">
+        <div>
+          <div class="setting-label">${d.delegate_email}</div>
+          <div class="setting-sub">${compLabel} · étape déléguée : ${statusLabel(d.task_status_key)}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="kpi-val" style="font-size:18px;">${fmtPrice(owed)}</div>
+          <button class="btn-danger" style="margin-top:6px;padding:5px 10px;font-size:11px;" onclick="deleteDelegation('${d.id}')">Retirer</button>
+        </div>
+      </div>
+    </div>`;
+  }));
+  el.innerHTML=rows.join('');
+}
+async function renderDelegateTasksSection(){
+  const el=document.getElementById('delegateTasksSection');
+  if(!el) return;
+  const {data:incoming}=await sb.from('delegations').select('*').eq('delegate_id',currentUser.id).eq('active',true);
+  if(!incoming?.length){ el.innerHTML=''; return; }
+  const blocks=await Promise.all(incoming.map(async d=>{
+    if(d.compensation_type==='hourly'){
+      const {data:logs}=await sb.from('delegation_time_logs').select('hours').eq('delegation_id',d.id);
+      const hours=(logs||[]).reduce((s,l)=>s+(parseFloat(l.hours)||0),0);
+      const earned=hours*(parseFloat(d.hourly_rate)||0);
+      return `<div class="settings-card" style="margin-bottom:12px;">
+        <h2 class="settings-title">👤 Délégation reçue — ${fmtPrice(d.hourly_rate)}/h</h2>
+        <p class="setting-sub" style="margin-bottom:10px;">${hours}h enregistrées · ${fmtPrice(earned)} gagnés</p>
+        <div class="expense-form-row">
+          <input type="number" id="delegateHoursInput-${d.id}" placeholder="Heures (ex: 1.5)" step="0.25" />
+          <input type="text" id="delegateHoursNote-${d.id}" placeholder="Note (optionnel)" />
+          <button class="btn-confirm" onclick="logDelegateHours('${d.id}')">Enregistrer</button>
+        </div>
+      </div>`;
+    }
+    const {data:tasks}=await sb.rpc('get_delegate_tasks',{p_delegation_id:d.id});
+    const rateTotal=await sb.from('delegation_tasks').select('amount').eq('delegation_id',d.id);
+    const earned=(rateTotal.data||[]).reduce((s,t)=>s+(parseFloat(t.amount)||0),0);
+    return `<div class="settings-card" style="margin-bottom:12px;">
+      <h2 class="settings-title">👤 Délégation reçue — ${statusLabel(d.task_status_key)}</h2>
+      <p class="setting-sub" style="margin-bottom:10px;">${(tasks||[]).length} article(s) à traiter · ${fmtPrice(earned)} gagnés au total</p>
+      ${(tasks||[]).length ? (tasks||[]).map(a=>`
+        <div class="article-card">
+          ${photoEl(a)}
+          <div class="article-info"><div class="article-name">${a.name||'Sans nom'}</div>${a.location?`<div class="article-sub">📍 ${a.location}</div>`:''}</div>
+          <button class="btn-confirm" onclick="completeDelegateTask('${d.id}','${a.id}')">✓ Fait</button>
+        </div>
+      `).join('') : '<p class="empty-state">Rien à faire pour le moment.</p>'}
+    </div>`;
+  }));
+  el.innerHTML=blocks.join('');
+}
+window.completeDelegateTask = async (delegationId, articleId) => {
+  const {data:ok, error}=await sb.rpc('complete_delegate_task',{p_delegation_id:delegationId, p_article_id:articleId});
+  if(error){ alert('Erreur : '+error.message); return; }
+  if(!ok){ alert("Cette tâche n'est plus disponible (déjà traitée ?)."); }
+  renderDelegateTasksSection();
+};
+window.logDelegateHours = async (delegationId) => {
+  const hours=parseFloat(document.getElementById(`delegateHoursInput-${delegationId}`).value);
+  if(!hours||hours<=0){ alert('Entrez un nombre d\'heures valide.'); return; }
+  const note=document.getElementById(`delegateHoursNote-${delegationId}`).value.trim();
+  const {error}=await sb.from('delegation_time_logs').insert({delegation_id:delegationId, hours, note});
+  if(error){ alert('Erreur : '+error.message); return; }
+  renderDelegateTasksSection();
 };
 
 // ── RECHERCHE GLOBALE ──
