@@ -473,6 +473,9 @@ select option { background: var(--surface2); color: var(--text); }
 .theme-toggle { display: flex; gap: 6px; }
 .theme-btn { padding: 7px 14px; border: 1px solid var(--border2); border-radius: var(--radius); background: transparent; font-size: 13px; cursor: pointer; color: var(--muted); font-family: inherit; transition: all 0.15s; white-space: nowrap; }
 .theme-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.lang-toggle { display: flex; gap: 4px; margin-right: 4px; }
+.lang-btn { padding: 6px 10px; border: 1px solid var(--l-border, var(--border2)); border-radius: var(--radius); background: transparent; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--l-muted, var(--muted)); font-family: inherit; transition: all 0.15s; }
+.lang-btn.active { background: var(--l-accent, var(--accent)); color: #fff; border-color: var(--l-accent, var(--accent)); }
 
 /* ── CALCULATEUR RAPIDE ── */
 #quickCalcCard { margin-bottom: 20px; }

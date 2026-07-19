@@ -251,7 +251,10 @@ window.goPage = (id, btn) => {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
-  document.getElementById('topbarTitle').textContent=PAGE_TITLES[id]||'';
+  // Seul le Tableau de bord est traduit pour l'instant (phase 1 de l'anglais,
+  // voir js/i18n.js) — les autres titres de page restent en français tant
+  // que ces pages n'ont pas encore leurs propres clés de traduction.
+  document.getElementById('topbarTitle').textContent=id==='dashboard'?t('nav.dashboard'):(PAGE_TITLES[id]||'');
   if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); renderAccountantLink(); renderSellerProfile(); }
   if(id==='ventes') renderReplay();
   if(id==='achats') renderAchats();
@@ -720,19 +723,19 @@ function renderDashboard(){
   const profitNet=totalProfit-totalDepenses;
 
   const kpis=[
-    {key:'kpi_profit_total', html:`<div class="kpi-card"><div class="kpi-label">Profit total</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>`},
-    {key:'kpi_profit_mois', html:`<div class="kpi-card"><div class="kpi-label">Profit ce mois</div><div class="kpi-val ${profitMois>=0?'green':'red'}">${fmtPrice(profitMois)}</div><div class="kpi-sub">Automatique</div></div>`},
-    {key:'kpi_profit_net', html:`<div class="kpi-card"><div class="kpi-label">Profit net (après dépenses)</div><div class="kpi-val ${profitNet>=0?'green':'red'}">${fmtPrice(profitNet)}</div><div class="kpi-sub">-${fmtPrice(totalDepenses)} de dépenses</div></div>`},
-    {key:'kpi_stock', html:`<div class="kpi-card"><div class="kpi-label">En stock</div><div class="kpi-val">${stock.length}</div><div class="kpi-sub">${fmtPrice(investi)} investis</div></div>`},
-    {key:'kpi_expedition', html:`<div class="kpi-card"><div class="kpi-label">À expédier</div><div class="kpi-val" style="color:var(--warning)">${expedition.length}</div></div>`},
-    {key:'kpi_vendus', html:`<div class="kpi-card"><div class="kpi-label">Vendus</div><div class="kpi-val">${vendus.length}</div></div>`},
-    {key:'kpi_capital', html:`<div class="kpi-card"><div class="kpi-label">Capital bloqué +30j</div><div class="kpi-val red">${fmtPrice(capitalBloque)}</div></div>`},
-    {key:'kpi_achats', html:`<div class="kpi-card"><div class="kpi-label">🛍️ Achats Vinted ce mois</div><div class="kpi-val red">-${fmtPrice(achatsMois)}</div><div class="kpi-sub">Automatique</div></div>`},
-    {key:'kpi_ca', html:`<div class="kpi-card"><div class="kpi-label">Chiffre d'affaires</div><div class="kpi-val">${fmtPrice(ca)}</div></div>`},
-    {key:'kpi_roi', html:`<div class="kpi-card kpi-clickable" onclick="showRoiInfo(${roiGlobal})"><div class="kpi-label">ROI global ⓘ</div><div class="kpi-val ${roiGlobal>=0?'green':'red'}">${roiGlobal.toFixed(0)}%</div></div>`},
+    {key:'kpi_profit_total', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.profitTotal')}</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>`},
+    {key:'kpi_profit_mois', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.profitMois')}</div><div class="kpi-val ${profitMois>=0?'green':'red'}">${fmtPrice(profitMois)}</div><div class="kpi-sub">${t('dashboard.automatic')}</div></div>`},
+    {key:'kpi_profit_net', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.profitNet')}</div><div class="kpi-val ${profitNet>=0?'green':'red'}">${fmtPrice(profitNet)}</div><div class="kpi-sub">-${fmtPrice(totalDepenses)} de dépenses</div></div>`},
+    {key:'kpi_stock', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.stock')}</div><div class="kpi-val">${stock.length}</div><div class="kpi-sub">${fmtPrice(investi)} investis</div></div>`},
+    {key:'kpi_expedition', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.expedition')}</div><div class="kpi-val" style="color:var(--warning)">${expedition.length}</div></div>`},
+    {key:'kpi_vendus', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.vendus')}</div><div class="kpi-val">${vendus.length}</div></div>`},
+    {key:'kpi_capital', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.capital')}</div><div class="kpi-val red">${fmtPrice(capitalBloque)}</div></div>`},
+    {key:'kpi_achats', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.achats')}</div><div class="kpi-val red">-${fmtPrice(achatsMois)}</div><div class="kpi-sub">${t('dashboard.automatic')}</div></div>`},
+    {key:'kpi_ca', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.ca')}</div><div class="kpi-val">${fmtPrice(ca)}</div></div>`},
+    {key:'kpi_roi', html:`<div class="kpi-card kpi-clickable" onclick="showRoiInfo(${roiGlobal})"><div class="kpi-label">${t('dashboard.kpi.roi')} ⓘ</div><div class="kpi-val ${roiGlobal>=0?'green':'red'}">${roiGlobal.toFixed(0)}%</div></div>`},
   ];
   if(vintedWallet){
-    kpis.push({key:'kpi_wallet', html:`<div class="kpi-card"><div class="kpi-label">💰 Solde Vinted</div><div class="kpi-val green">${fmtPrice(vintedWallet.wallet_balance)}</div>${vintedWallet.wallet_pending_balance>0?`<div class="kpi-sub">+${fmtPrice(vintedWallet.wallet_pending_balance)} en attente</div>`:''}</div>`});
+    kpis.push({key:'kpi_wallet', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.wallet')}</div><div class="kpi-val green">${fmtPrice(vintedWallet.wallet_balance)}</div>${vintedWallet.wallet_pending_balance>0?`<div class="kpi-sub">+${fmtPrice(vintedWallet.wallet_pending_balance)} en attente</div>`:''}</div>`});
   }
   const kpiPrefs=getDashboardWidgetPrefs();
   document.getElementById('kpiGrid').innerHTML=kpis.filter(k=>kpiPrefs[k.key]).map(k=>k.html).join('');
@@ -779,7 +782,7 @@ function renderAccountsBreakdown(){
       </div>`;
   }).join('');
   el.innerHTML=`
-    <div class="section-header" style="margin-top:4px;"><h2>Vos comptes</h2></div>
+    <div class="section-header" style="margin-top:4px;"><h2>${t('dashboard.accountsTitle')}</h2></div>
     <div class="accounts-breakdown">${cards}</div>
   `;
 }

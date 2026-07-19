@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=24" />
+  <link rel="stylesheet" href="css/style.css?v=25" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -26,8 +26,12 @@
   <header class="landing-header">
     <img src="" alt="VintControl" class="landing-logo" id="landingLogo" />
     <div class="landing-header-actions">
-      <button class="btn-ghost" onclick="showAuth('login')">Se connecter</button>
-      <button class="btn-primary btn-inline" onclick="showAuth('register')">Commencer gratuitement</button>
+      <div class="lang-toggle">
+        <button class="lang-btn" data-lang="fr" onclick="setLang('fr')">FR</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      </div>
+      <button class="btn-ghost" data-i18n="landing.login" onclick="showAuth('login')">Se connecter</button>
+      <button class="btn-primary btn-inline" data-i18n="landing.signup" onclick="showAuth('register')">Commencer gratuitement</button>
     </div>
   </header>
 
@@ -37,52 +41,52 @@
     <span class="hero-corner hero-corner-bl"></span>
     <span class="hero-corner hero-corner-br"></span>
     <div class="hero-badge"><img src="" class="hero-badge-logo" id="heroBadgeLogo" alt="" /> VintControl</div>
-    <h1 class="hero-title">Ton business<br /><span class="hero-title-accent">automatisé.</span></h1>
-    <p class="hero-sub">Ventes, stock, messages : tout se synchronise automatiquement.<br />Concentre-toi sur tes ventes, VintControl s'occupe du reste.</p>
+    <h1 class="hero-title"><span data-i18n="landing.hero.title1">Ton business</span><br /><span class="hero-title-accent" data-i18n="landing.hero.titleAccent">automatisé.</span></h1>
+    <p class="hero-sub" data-i18n="landing.hero.sub">Ventes, stock, messages : tout se synchronise automatiquement.<br />Concentre-toi sur tes ventes, VintControl s'occupe du reste.</p>
     <div class="hero-highlights">
       <div class="hero-highlight-card">
         <div class="hero-highlight-icon">💬</div>
-        <div class="hero-highlight-title">Messages à vos favoris</div>
-        <div class="hero-highlight-desc">Relance automatique des personnes qui ont mis vos articles en favoris.</div>
+        <div class="hero-highlight-title" data-i18n="landing.hero.card1.title">Messages à vos favoris</div>
+        <div class="hero-highlight-desc" data-i18n="landing.hero.card1.desc">Relance automatique des personnes qui ont mis vos articles en favoris.</div>
       </div>
       <div class="hero-highlight-card">
         <div class="hero-highlight-icon">🔁</div>
-        <div class="hero-highlight-title">Republication automatique</div>
-        <div class="hero-highlight-desc">Vos annonces remontent toutes seules, sans y penser.</div>
+        <div class="hero-highlight-title" data-i18n="landing.hero.card2.title">Republication automatique</div>
+        <div class="hero-highlight-desc" data-i18n="landing.hero.card2.desc">Vos annonces remontent toutes seules, sans y penser.</div>
       </div>
       <div class="hero-highlight-card">
         <div class="hero-highlight-icon">📦</div>
-        <div class="hero-highlight-title">Gestion de stock</div>
-        <div class="hero-highlight-desc">Achat, préparation, expédition — chaque article suivi de bout en bout.</div>
+        <div class="hero-highlight-title" data-i18n="landing.hero.card3.title">Gestion de stock</div>
+        <div class="hero-highlight-desc" data-i18n="landing.hero.card3.desc">Achat, préparation, expédition — chaque article suivi de bout en bout.</div>
       </div>
       <div class="hero-highlight-card">
         <div class="hero-highlight-icon">🔄</div>
-        <div class="hero-highlight-title">Synchronisation auto</div>
-        <div class="hero-highlight-desc">Ventes, stock et messages à jour tout seuls.</div>
+        <div class="hero-highlight-title" data-i18n="landing.hero.card4.title">Synchronisation auto</div>
+        <div class="hero-highlight-desc" data-i18n="landing.hero.card4.desc">Ventes, stock et messages à jour tout seuls.</div>
       </div>
     </div>
     <div class="landing-cta-row">
-      <button class="btn-primary btn-inline btn-lg" onclick="showAuth('register')">Commencer gratuitement</button>
-      <button class="btn-ghost btn-lg hero-btn-ghost" onclick="showAuth('login')">J'ai déjà un compte</button>
+      <button class="btn-primary btn-inline btn-lg" data-i18n="landing.hero.cta" onclick="showAuth('register')">Commencer gratuitement</button>
+      <button class="btn-ghost btn-lg hero-btn-ghost" data-i18n="landing.hero.ctaGhost" onclick="showAuth('login')">J'ai déjà un compte</button>
     </div>
   </section>
 
   <section class="landing-hero">
     <div class="compare-row">
       <div class="compare-card compare-before">
-        <div class="compare-label">Avant</div>
+        <div class="compare-label" data-i18n="landing.compare.before">Avant</div>
         <ul>
-          <li>Ressaisir chaque vente à la main</li>
-          <li>Chercher où est rangé un article</li>
-          <li>Oublier de republier ses annonces</li>
+          <li data-i18n="landing.compare.beforeItem1">Ressaisir chaque vente à la main</li>
+          <li data-i18n="landing.compare.beforeItem2">Chercher où est rangé un article</li>
+          <li data-i18n="landing.compare.beforeItem3">Oublier de republier ses annonces</li>
         </ul>
       </div>
       <div class="compare-card compare-after">
-        <div class="compare-label">Avec VintControl</div>
+        <div class="compare-label" data-i18n="landing.compare.after">Avec VintControl</div>
         <ul>
-          <li>Ventes, stock et messages synchronisés tout seuls</li>
-          <li>Chaque article retrouvé en un clic</li>
-          <li>Rappels automatiques pour republier, laver, expédier</li>
+          <li data-i18n="landing.compare.afterItem1">Ventes, stock et messages synchronisés tout seuls</li>
+          <li data-i18n="landing.compare.afterItem2">Chaque article retrouvé en un clic</li>
+          <li data-i18n="landing.compare.afterItem3">Rappels automatiques pour republier, laver, expédier</li>
         </ul>
       </div>
     </div>
@@ -91,47 +95,47 @@
   <section class="landing-features">
     <div class="feature-card">
       <div class="feature-icon">🔄</div>
-      <div class="feature-title">Synchronisation automatique</div>
-      <div class="feature-desc">Vos ventes, annonces, photos, vues et favoris se mettent à jour tout seuls grâce à l'extension Chrome — plus de ressaisie manuelle.</div>
+      <div class="feature-title" data-i18n="landing.features.f1.title">Synchronisation automatique</div>
+      <div class="feature-desc" data-i18n="landing.features.f1.desc">Vos ventes, annonces, photos, vues et favoris se mettent à jour tout seuls grâce à l'extension Chrome — plus de ressaisie manuelle.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📦</div>
-      <div class="feature-title">Stock &amp; préparation</div>
-      <div class="feature-desc">Suivez chaque article de l'achat à l'expédition, avec des relances automatiques pour laver, photographier, publier.</div>
+      <div class="feature-title" data-i18n="landing.features.f2.title">Stock &amp; préparation</div>
+      <div class="feature-desc" data-i18n="landing.features.f2.desc">Suivez chaque article de l'achat à l'expédition, avec des relances automatiques pour laver, photographier, publier.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">💬</div>
-      <div class="feature-title">Messages à vos favoris</div>
-      <div class="feature-desc">VintControl relance automatiquement les personnes qui ont mis vos articles en favoris, pour déclencher plus de ventes sans y penser.</div>
+      <div class="feature-title" data-i18n="landing.features.f3.title">Messages à vos favoris</div>
+      <div class="feature-desc" data-i18n="landing.features.f3.desc">VintControl relance automatiquement les personnes qui ont mis vos articles en favoris, pour déclencher plus de ventes sans y penser.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔁</div>
-      <div class="feature-title">Republication automatique</div>
-      <div class="feature-desc">Vos annonces remontent régulièrement en tête des résultats Vinted, sans que vous ayez à y penser.</div>
+      <div class="feature-title" data-i18n="landing.features.f4.title">Republication automatique</div>
+      <div class="feature-desc" data-i18n="landing.features.f4.desc">Vos annonces remontent régulièrement en tête des résultats Vinted, sans que vous ayez à y penser.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📊</div>
-      <div class="feature-title">Statistiques &amp; objectifs</div>
-      <div class="feature-desc">Profit réel, ROI, temps de vente moyen, capital immobilisé — pilotez votre activité comme un vrai business.</div>
+      <div class="feature-title" data-i18n="landing.features.f5.title">Statistiques &amp; objectifs</div>
+      <div class="feature-desc" data-i18n="landing.features.f5.desc">Profit réel, ROI, temps de vente moyen, capital immobilisé — pilotez votre activité comme un vrai business.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">▶</div>
-      <div class="feature-title">Resell Replay</div>
-      <div class="feature-desc">Revivez le parcours complet de chaque article vendu, de l'achat jusqu'au profit final.</div>
+      <div class="feature-title" data-i18n="landing.features.f6.title">Resell Replay</div>
+      <div class="feature-desc" data-i18n="landing.features.f6.desc">Revivez le parcours complet de chaque article vendu, de l'achat jusqu'au profit final.</div>
     </div>
   </section>
 
   <section class="landing-calc">
-    <h2>Testez tout de suite, sans compte</h2>
-    <p class="landing-sub" style="margin-bottom:28px;">Calculez la marge et le ROI d'un article avant même de vous inscrire.</p>
+    <h2 data-i18n="landing.calc.title">Testez tout de suite, sans compte</h2>
+    <p class="landing-sub" style="margin-bottom:28px;" data-i18n="landing.calc.sub">Calculez la marge et le ROI d'un article avant même de vous inscrire.</p>
     <div class="calc-card">
       <div class="quick-calc-row">
         <div class="quick-calc-field">
-          <label>Prix d'achat</label>
+          <label data-i18n="landing.calc.buy">Prix d'achat</label>
           <input type="number" id="publicCalcBuy" placeholder="0" step="0.01" oninput="renderPublicCalc()">
         </div>
         <div class="quick-calc-field">
-          <label>Prix de vente</label>
+          <label data-i18n="landing.calc.sell">Prix de vente</label>
           <input type="number" id="publicCalcSell" placeholder="0" step="0.01" oninput="renderPublicCalc()">
         </div>
       </div>
@@ -140,55 +144,55 @@
   </section>
 
   <section class="landing-faq">
-    <h2>Questions fréquentes</h2>
+    <h2 data-i18n="landing.faq.title">Questions fréquentes</h2>
     <div class="faq-list">
       <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">C'est gratuit ?<span class="faq-caret">+</span></button>
-        <div class="faq-answer">Oui, la création de compte et la synchronisation de base sont gratuites. Vous pouvez commencer à utiliser VintControl sans rien payer.</div>
+        <button class="faq-question" onclick="toggleFaq(this)"><span data-i18n="landing.faq.q1">C'est gratuit ?</span><span class="faq-caret">+</span></button>
+        <div class="faq-answer" data-i18n="landing.faq.a1">Oui, la création de compte et la synchronisation de base sont gratuites. Vous pouvez commencer à utiliser VintControl sans rien payer.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">Est-ce que c'est autorisé par Vinted ?<span class="faq-caret">+</span></button>
-        <div class="faq-answer">L'extension utilise votre propre session Vinted, exactement comme si vous naviguiez normalement sur le site — elle ne fait rien que vous ne pourriez faire vous-même. Les automatisations (messages, republication) respectent un rythme volontairement lent pour rester discrètes.</div>
+        <button class="faq-question" onclick="toggleFaq(this)"><span data-i18n="landing.faq.q2">Est-ce que c'est autorisé par Vinted ?</span><span class="faq-caret">+</span></button>
+        <div class="faq-answer" data-i18n="landing.faq.a2">L'extension utilise votre propre session Vinted, exactement comme si vous naviguiez normalement sur le site — elle ne fait rien que vous ne pourriez faire vous-même. Les automatisations (messages, republication) respectent un rythme volontairement lent pour rester discrètes.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">Mes données sont-elles en sécurité ?<span class="faq-caret">+</span></button>
-        <div class="faq-answer">Vos données sont stockées de façon sécurisée et ne sont jamais partagées. VintControl ne demande jamais votre mot de passe Vinted — la connexion se fait via votre navigateur, comme d'habitude.</div>
+        <button class="faq-question" onclick="toggleFaq(this)"><span data-i18n="landing.faq.q3">Mes données sont-elles en sécurité ?</span><span class="faq-caret">+</span></button>
+        <div class="faq-answer" data-i18n="landing.faq.a3">Vos données sont stockées de façon sécurisée et ne sont jamais partagées. VintControl ne demande jamais votre mot de passe Vinted — la connexion se fait via votre navigateur, comme d'habitude.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">Il faut installer quoi exactement ?<span class="faq-caret">+</span></button>
-        <div class="faq-answer">Juste une extension Chrome gratuite. Une fois installée et connectée à votre compte Vinted, elle synchronise vos données automatiquement toutes les 5 minutes, tant qu'un onglet vinted.fr est ouvert.</div>
+        <button class="faq-question" onclick="toggleFaq(this)"><span data-i18n="landing.faq.q4">Il faut installer quoi exactement ?</span><span class="faq-caret">+</span></button>
+        <div class="faq-answer" data-i18n="landing.faq.a4">Juste une extension Chrome gratuite. Une fois installée et connectée à votre compte Vinted, elle synchronise vos données automatiquement toutes les 5 minutes, tant qu'un onglet vinted.fr est ouvert.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">Ça marche avec plusieurs comptes Vinted ?<span class="faq-caret">+</span></button>
-        <div class="faq-answer">Oui, vous pouvez connecter plusieurs comptes Vinted à un seul compte VintControl et basculer entre eux depuis la barre latérale.</div>
+        <button class="faq-question" onclick="toggleFaq(this)"><span data-i18n="landing.faq.q5">Ça marche avec plusieurs comptes Vinted ?</span><span class="faq-caret">+</span></button>
+        <div class="faq-answer" data-i18n="landing.faq.a5">Oui, vous pouvez connecter plusieurs comptes Vinted à un seul compte VintControl et basculer entre eux depuis la barre latérale.</div>
       </div>
     </div>
   </section>
 
   <section class="landing-steps">
-    <h2>Comment ça marche</h2>
+    <h2 data-i18n="landing.steps.title">Comment ça marche</h2>
     <div class="steps-row">
       <div class="step-card">
         <div class="step-num">1</div>
-        <div class="step-title">Créez votre compte</div>
-        <div class="step-desc">Gratuit, en moins d'une minute.</div>
+        <div class="step-title" data-i18n="landing.steps.s1.title">Créez votre compte</div>
+        <div class="step-desc" data-i18n="landing.steps.s1.desc">Gratuit, en moins d'une minute.</div>
       </div>
       <div class="step-card">
         <div class="step-num">2</div>
-        <div class="step-title">Installez l'extension Chrome</div>
-        <div class="step-desc">Connectez votre compte Vinted en un clic.</div>
+        <div class="step-title" data-i18n="landing.steps.s2.title">Installez l'extension Chrome</div>
+        <div class="step-desc" data-i18n="landing.steps.s2.desc">Connectez votre compte Vinted en un clic.</div>
       </div>
       <div class="step-card">
         <div class="step-num">3</div>
-        <div class="step-title">Laissez faire</div>
-        <div class="step-desc">Tout se synchronise automatiquement, en continu.</div>
+        <div class="step-title" data-i18n="landing.steps.s3.title">Laissez faire</div>
+        <div class="step-desc" data-i18n="landing.steps.s3.desc">Tout se synchronise automatiquement, en continu.</div>
       </div>
     </div>
   </section>
 
   <footer class="landing-footer">
     <span>© VintControl</span>
-    <a href="privacy.html">Politique de confidentialité</a>
+    <a href="privacy.html" data-i18n="landing.footer.privacy">Politique de confidentialité</a>
   </footer>
 </div>
 
@@ -198,44 +202,44 @@
     <div class="auth-side">
       <div class="auth-side-inner">
         <div class="hero-badge"><img src="" alt="" class="auth-side-logo app-logo" /> VintControl</div>
-        <h2 class="auth-side-title">Tout votre business Vinted, au même endroit.</h2>
-        <p class="auth-side-sub">Ventes, stock, messages et statistiques synchronisés automatiquement — vous n'avez plus qu'à vendre.</p>
+        <h2 class="auth-side-title" data-i18n="auth.side.title">Tout votre business Vinted, au même endroit.</h2>
+        <p class="auth-side-sub" data-i18n="auth.side.sub">Ventes, stock, messages et statistiques synchronisés automatiquement — vous n'avez plus qu'à vendre.</p>
         <ul class="auth-side-list">
-          <li><span class="auth-side-icon">🔄</span> Synchro automatique toutes les 5 minutes</li>
-          <li><span class="auth-side-icon">📦</span> Stock et préparation sans oubli</li>
-          <li><span class="auth-side-icon">📊</span> Profit, ROI et capital immobilisé en direct</li>
-          <li><span class="auth-side-icon">💬</span> Messagerie centralisée, réponses automatiques</li>
+          <li><span class="auth-side-icon">🔄</span> <span data-i18n="auth.side.item1">Synchro automatique toutes les 5 minutes</span></li>
+          <li><span class="auth-side-icon">📦</span> <span data-i18n="auth.side.item2">Stock et préparation sans oubli</span></li>
+          <li><span class="auth-side-icon">📊</span> <span data-i18n="auth.side.item3">Profit, ROI et capital immobilisé en direct</span></li>
+          <li><span class="auth-side-icon">💬</span> <span data-i18n="auth.side.item4">Messagerie centralisée, réponses automatiques</span></li>
         </ul>
       </div>
     </div>
     <div class="auth-wrap">
-      <button class="btn-back-landing" onclick="showLanding()">← Retour à l'accueil</button>
+      <button class="btn-back-landing" data-i18n="auth.back" onclick="showLanding()">← Retour à l'accueil</button>
       <div class="auth-brand">
         <img src="" alt="VintControl" class="auth-logo app-logo" />
-        <p class="brand-sub">Gérez votre business de resell</p>
+        <p class="brand-sub" data-i18n="auth.brandSub">Gérez votre business de resell</p>
       </div>
       <div class="auth-card">
         <div class="tab-row">
-          <button class="tab active" onclick="switchTab('login')">Connexion</button>
-          <button class="tab" onclick="switchTab('register')">Créer un compte</button>
+          <button class="tab active" data-i18n="auth.tabLogin" onclick="switchTab('login')">Connexion</button>
+          <button class="tab" data-i18n="auth.tabRegister" onclick="switchTab('register')">Créer un compte</button>
         </div>
         <div id="loginForm">
-          <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="vous@exemple.com" /></div>
-          <div class="field"><label>Mot de passe</label><input type="password" id="loginPwd" placeholder="••••••••" /></div>
-          <button class="btn-primary" onclick="doLogin()">Se connecter</button>
-          <button class="btn-forgot" onclick="switchTab('forgot')">Mot de passe oublié ?</button>
+          <div class="field"><label data-i18n="auth.email">Email</label><input type="email" id="loginEmail" placeholder="vous@exemple.com" /></div>
+          <div class="field"><label data-i18n="auth.password">Mot de passe</label><input type="password" id="loginPwd" placeholder="••••••••" /></div>
+          <button class="btn-primary" data-i18n="auth.loginBtn" onclick="doLogin()">Se connecter</button>
+          <button class="btn-forgot" data-i18n="auth.forgot" onclick="switchTab('forgot')">Mot de passe oublié ?</button>
         </div>
         <div id="registerForm" style="display:none">
-          <div class="field"><label>Prénom</label><input type="text" id="regName" placeholder="Alex" /></div>
-          <div class="field"><label>Email</label><input type="email" id="regEmail" placeholder="vous@exemple.com" /></div>
-          <div class="field"><label>Mot de passe</label><input type="password" id="regPwd" placeholder="••••••••" /></div>
-          <button class="btn-primary" onclick="doRegister()">Créer mon compte</button>
+          <div class="field"><label data-i18n="auth.firstName">Prénom</label><input type="text" id="regName" placeholder="Alex" /></div>
+          <div class="field"><label data-i18n="auth.email">Email</label><input type="email" id="regEmail" placeholder="vous@exemple.com" /></div>
+          <div class="field"><label data-i18n="auth.password">Mot de passe</label><input type="password" id="regPwd" placeholder="••••••••" /></div>
+          <button class="btn-primary" data-i18n="auth.registerBtn" onclick="doRegister()">Créer mon compte</button>
         </div>
         <div id="forgotForm" style="display:none">
-          <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Entrez votre email pour recevoir un lien de réinitialisation.</p>
-          <div class="field"><label>Email</label><input type="email" id="forgotEmail" placeholder="vous@exemple.com" /></div>
-          <button class="btn-primary" onclick="doForgot()">Envoyer le lien</button>
-          <button class="btn-forgot" onclick="switchTab('login')">← Retour</button>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:14px;" data-i18n="auth.forgotIntro">Entrez votre email pour recevoir un lien de réinitialisation.</p>
+          <div class="field"><label data-i18n="auth.email">Email</label><input type="email" id="forgotEmail" placeholder="vous@exemple.com" /></div>
+          <button class="btn-primary" data-i18n="auth.sendLink" onclick="doForgot()">Envoyer le lien</button>
+          <button class="btn-forgot" data-i18n="auth.back2" onclick="switchTab('login')">← Retour</button>
         </div>
         <p id="authError" class="error-msg"></p>
         <p id="authSuccess" class="success-msg"></p>
@@ -255,33 +259,33 @@
       <div class="actions-menu-body account-switcher-body" id="accountSwitcherBody"></div>
     </div>
     <nav class="sidebar-nav">
-      <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span> Tableau de bord</button>
+      <button class="nav-btn active" onclick="goPage('dashboard',this)"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span> <span data-i18n="nav.dashboard">Tableau de bord</span></button>
 
-      <button class="nav-group-header" onclick="toggleNavGroup(this)">ACTIVITÉ <i class="ti ti-chevron-down nav-group-caret"></i></button>
+      <button class="nav-group-header" onclick="toggleNavGroup(this)"><span data-i18n="nav.groupActivite">ACTIVITÉ</span> <i class="ti ti-chevron-down nav-group-caret"></i></button>
       <div class="nav-group-body" id="navGroup-activite">
-        <button class="nav-btn" draggable="true" data-page="calendrier" onclick="goPage('calendrier',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-calendar"></i></span> Calendrier</button>
-        <button class="nav-btn" draggable="true" data-page="achats" onclick="goPage('achats',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-shopping-cart"></i></span> Achats</button>
-        <button class="nav-btn" draggable="true" data-page="boost" onclick="goPage('boost',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-rocket"></i></span> Boost</button>
-        <button class="nav-btn" draggable="true" data-page="stock" onclick="goPage('stock',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-columns"></i></span> Stock</button>
-        <button class="nav-btn" draggable="true" data-page="ventes" onclick="goPage('ventes',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-player-play"></i></span> Ventes</button>
-        <button class="nav-btn" draggable="true" data-page="messages" onclick="goPage('messages',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
-        <button class="nav-btn" draggable="true" data-page="favoris" onclick="goPage('favoris',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
-        <button class="nav-btn" draggable="true" data-page="republier" onclick="goPage('republier',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
+        <button class="nav-btn" draggable="true" data-page="calendrier" onclick="goPage('calendrier',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-calendar"></i></span> <span data-i18n="nav.calendrier">Calendrier</span></button>
+        <button class="nav-btn" draggable="true" data-page="achats" onclick="goPage('achats',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-shopping-cart"></i></span> <span data-i18n="nav.achats">Achats</span></button>
+        <button class="nav-btn" draggable="true" data-page="boost" onclick="goPage('boost',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-rocket"></i></span> <span data-i18n="nav.boost">Boost</span></button>
+        <button class="nav-btn" draggable="true" data-page="stock" onclick="goPage('stock',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-columns"></i></span> <span data-i18n="nav.stock">Stock</span></button>
+        <button class="nav-btn" draggable="true" data-page="ventes" onclick="goPage('ventes',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-player-play"></i></span> <span data-i18n="nav.ventes">Ventes</span></button>
+        <button class="nav-btn" draggable="true" data-page="messages" onclick="goPage('messages',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-message-circle"></i></span> <span data-i18n="nav.messages">Messages Vinted</span><span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
+        <button class="nav-btn" draggable="true" data-page="favoris" onclick="goPage('favoris',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-heart"></i></span> <span data-i18n="nav.favoris">Messages favoris</span></button>
+        <button class="nav-btn" draggable="true" data-page="republier" onclick="goPage('republier',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-refresh"></i></span> <span data-i18n="nav.republier">Republication</span><span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
       </div>
 
-      <button class="nav-group-header" onclick="toggleNavGroup(this)">FINANCE &amp; ANALYSE <i class="ti ti-chevron-down nav-group-caret"></i></button>
+      <button class="nav-group-header" onclick="toggleNavGroup(this)"><span data-i18n="nav.groupFinance">FINANCE &amp; ANALYSE</span> <i class="ti ti-chevron-down nav-group-caret"></i></button>
       <div class="nav-group-body" id="navGroup-finance">
-        <button class="nav-btn" draggable="true" data-page="analytics" onclick="goPage('analytics',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-chart-bar"></i></span> Statistiques</button>
-        <button class="nav-btn" draggable="true" data-page="comptabilite" onclick="goPage('comptabilite',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-calculator"></i></span> Comptabilité</button>
-        <button class="nav-btn" draggable="true" data-page="objectif" onclick="goPage('objectif',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-target"></i></span> Objectifs</button>
-        <button class="nav-btn" draggable="true" data-page="depenses" onclick="goPage('depenses',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-receipt"></i></span> Dépenses</button>
+        <button class="nav-btn" draggable="true" data-page="analytics" onclick="goPage('analytics',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-chart-bar"></i></span> <span data-i18n="nav.analytics">Statistiques</span></button>
+        <button class="nav-btn" draggable="true" data-page="comptabilite" onclick="goPage('comptabilite',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-calculator"></i></span> <span data-i18n="nav.comptabilite">Comptabilité</span></button>
+        <button class="nav-btn" draggable="true" data-page="objectif" onclick="goPage('objectif',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-target"></i></span> <span data-i18n="nav.objectif">Objectifs</span></button>
+        <button class="nav-btn" draggable="true" data-page="depenses" onclick="goPage('depenses',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-receipt"></i></span> <span data-i18n="nav.depenses">Dépenses</span></button>
       </div>
 
-      <button class="nav-group-header" onclick="toggleNavGroup(this)">OUTILS &amp; SUPPORT <i class="ti ti-chevron-down nav-group-caret"></i></button>
+      <button class="nav-group-header" onclick="toggleNavGroup(this)"><span data-i18n="nav.groupOutils">OUTILS &amp; SUPPORT</span> <i class="ti ti-chevron-down nav-group-caret"></i></button>
       <div class="nav-group-body" id="navGroup-outils">
-        <button class="nav-btn" draggable="true" data-page="delegation" onclick="goPage('delegation',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-users"></i></span> Délégation</button>
-        <button class="nav-btn" draggable="true" data-page="settings" onclick="goPage('settings',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-settings"></i></span> Paramètres</button>
-        <button class="nav-btn" draggable="true" data-page="aide" onclick="goPage('aide',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-lifebuoy"></i></span> Aide &amp; Support</button>
+        <button class="nav-btn" draggable="true" data-page="delegation" onclick="goPage('delegation',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-users"></i></span> <span data-i18n="nav.delegation">Délégation</span></button>
+        <button class="nav-btn" draggable="true" data-page="settings" onclick="goPage('settings',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-settings"></i></span> <span data-i18n="nav.settings">Paramètres</span></button>
+        <button class="nav-btn" draggable="true" data-page="aide" onclick="goPage('aide',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-lifebuoy"></i></span> <span data-i18n="nav.aide">Aide &amp; Support</span></button>
         <a class="nav-btn" style="text-decoration:none;" href="https://discord.gg/vXsrsVaVd" target="_blank" rel="noopener"><span class="nav-drag-handle"></span><span class="nav-icon"><i class="ti ti-brand-discord"></i></span> Discord</a>
       </div>
     </nav>
@@ -310,7 +314,7 @@
       <section class="page active" id="page-dashboard">
         <div class="dash-topbar">
           <span></span>
-          <button class="btn-edit" onclick="showDashboardSettings()">✎ Modifier le tableau de bord</button>
+          <button class="btn-edit" data-i18n="dashboard.editBtn" onclick="showDashboardSettings()">✎ Modifier le tableau de bord</button>
         </div>
         <div class="sync-banner" id="dashSyncBanner" style="display:none"></div>
         <div class="kpi-grid" id="kpiGrid"></div>
@@ -658,6 +662,16 @@
             <div class="theme-toggle">
               <button class="theme-btn" id="btnDark" onclick="setTheme('dark')">🌙 Sombre</button>
               <button class="theme-btn" id="btnLight" onclick="setTheme('light')">☀️ Clair</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Langue</div>
+              <div class="setting-sub">Choisissez la langue de l'interface</div>
+            </div>
+            <div class="lang-toggle">
+              <button class="lang-btn" data-lang="fr" onclick="setLang('fr')">FR</button>
+              <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
             </div>
           </div>
         </div>
@@ -1042,7 +1056,8 @@
   </div>
 </div>
 
+<script src="js/i18n.js?v=1"></script>
 <script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=45"></script>
+<script src="js/app.js?v=46"></script>
 </body>
 </html>
