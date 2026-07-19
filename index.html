@@ -267,7 +267,6 @@
         <button class="nav-btn" draggable="true" data-page="messages" onclick="goPage('messages',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-message-circle"></i></span> Messages Vinted<span class="nav-badge" id="navMsgBadge" style="display:none"></span></button>
         <button class="nav-btn" draggable="true" data-page="favoris" onclick="goPage('favoris',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-heart"></i></span> Messages favoris</button>
         <button class="nav-btn" draggable="true" data-page="republier" onclick="goPage('republier',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-refresh"></i></span> Republication<span class="nav-badge" id="navRepublishBadge" style="display:none"></span></button>
-        <button class="nav-btn" draggable="true" data-page="delegation" onclick="goPage('delegation',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-users"></i></span> Délégation</button>
       </div>
 
       <button class="nav-group-header" onclick="toggleNavGroup(this)">FINANCE &amp; ANALYSE <i class="ti ti-chevron-down nav-group-caret"></i></button>
@@ -278,7 +277,12 @@
         <button class="nav-btn" draggable="true" data-page="depenses" onclick="goPage('depenses',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-receipt"></i></span> Dépenses</button>
       </div>
 
-      <button class="nav-btn" onclick="goPage('settings',this)"><span class="nav-icon"><i class="ti ti-settings"></i></span> Paramètres</button>
+      <button class="nav-group-header" onclick="toggleNavGroup(this)">OUTILS &amp; SUPPORT <i class="ti ti-chevron-down nav-group-caret"></i></button>
+      <div class="nav-group-body" id="navGroup-outils">
+        <button class="nav-btn" draggable="true" data-page="delegation" onclick="goPage('delegation',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-users"></i></span> Délégation</button>
+        <button class="nav-btn" draggable="true" data-page="settings" onclick="goPage('settings',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-settings"></i></span> Paramètres</button>
+        <button class="nav-btn" draggable="true" data-page="aide" onclick="goPage('aide',this)"><span class="nav-drag-handle">⠿</span><span class="nav-icon"><i class="ti ti-lifebuoy"></i></span> Aide &amp; Support</button>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <div class="user-pill">
@@ -752,6 +756,20 @@
         <p id="settingsMsg" class="success-msg" style="margin-top:12px;"></p>
       </section>
 
+      <!-- AIDE & SUPPORT -->
+      <section class="page" id="page-aide">
+        <div class="info-banner">🛟 Une question, un bug, une idée ? Écrivez-moi directement, je réponds perso.</div>
+        <div class="settings-card">
+          <h2 class="settings-title">Nous contacter</h2>
+          <div class="field full">
+            <label>Votre message</label>
+            <textarea id="aideMessage" rows="5" placeholder="Un bug ? Une idée d'amélioration ? Une question sur une fonctionnalité ? Dites-nous tout."></textarea>
+          </div>
+          <button class="btn-confirm" id="btnAideSend" onclick="sendAideMessage()">Envoyer</button>
+          <p id="aideMsg" class="success-msg"></p>
+        </div>
+      </section>
+
     </main>
   </div>
 </div>
@@ -1005,6 +1023,6 @@
 </div>
 
 <script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=43"></script>
+<script src="js/app.js?v=44"></script>
 </body>
 </html>

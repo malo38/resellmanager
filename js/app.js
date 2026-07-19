@@ -45,7 +45,7 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 // (personnalisables) : pas encore vendu, donc pas de date de vente.
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
-const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', comptabilite:'Comptabilité', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', settings:'Paramètres', boost:'Boost', calendrier:'Calendrier', favoris:'Messages favoris', republier:'Republication', delegation:'Délégation' };
+const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', comptabilite:'Comptabilité', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', settings:'Paramètres', boost:'Boost', calendrier:'Calendrier', favoris:'Messages favoris', republier:'Republication', delegation:'Délégation', aide:'Aide & Support' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -2858,6 +2858,18 @@ window.openFeedback = () => {
   document.getElementById('feedbackBg').classList.add('open');
 };
 window.closeFeedback = () => document.getElementById('feedbackBg').classList.remove('open');
+window.sendAideMessage = async () => {
+  const msg = document.getElementById('aideMessage').value.trim();
+  const msgEl = document.getElementById('aideMsg');
+  if(!msg){ msgEl.textContent = "Écrivez un message avant d'envoyer."; return; }
+  const btn = document.getElementById('btnAideSend');
+  btn.disabled = true; btn.textContent = 'Envoi...';
+  const {error} = await sb.from('feedback').insert([{user_id:currentUser.id, message:msg}]);
+  btn.disabled = false; btn.textContent = 'Envoyer';
+  if(error){ msgEl.textContent = 'Erreur, réessayez.'; return; }
+  msgEl.textContent = '✓ Merci, votre message a été envoyé !';
+  document.getElementById('aideMessage').value = '';
+};
 window.sendFeedback = async () => {
   const msg = document.getElementById('feedbackMessage').value.trim();
   const msgEl = document.getElementById('feedbackMsg');
