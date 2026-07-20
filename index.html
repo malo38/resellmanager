@@ -791,7 +791,7 @@
 
 <!-- MODAL -->
 <div class="modal-bg" id="modalBg" onclick="handleModalBgClick(event)">
-  <div class="modal">
+  <div class="modal" style="max-width:560px;">
     <div class="modal-header">
       <h3 id="modalTitle">Ajouter un article</h3>
       <button class="modal-close" onclick="closeModal()">✕</button>
@@ -800,10 +800,7 @@
       <input type="hidden" id="mId" />
       <div class="form-grid">
         <div class="field full"><label>Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" /></div>
-        <div class="field" id="mQuantityField"><label>Quantité <span style="color:var(--muted);font-weight:400;">(articles identiques, ex: revente en gros)</span></label><input type="number" id="mQuantity" min="1" value="1" /></div>
         <div class="field"><label>Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" /></div>
-        <div class="field"><label>Prix de vente visé (€) <span style="color:var(--muted);font-weight:400;">optionnel</span></label><input type="number" id="mSell" placeholder="ex: prix affiché sur l'annonce" step="0.01" /></div>
-        <div class="field"><label>Frais annexes (€)</label><input type="number" id="mExtraCosts" placeholder="0,00" step="0.01" /></div>
         <div class="field"><label>Plateforme</label>
           <select id="mPlatform"><option>Vinted</option><option>eBay</option><option>Leboncoin</option><option>Autre</option></select>
         </div>
@@ -811,19 +808,32 @@
           <select id="mStatus" onchange="toggleDates()"></select>
         </div>
         <div class="field"><label>Date d'achat</label><input type="date" id="mBuyDate" /></div>
-        <div class="field" id="sellDateField" style="display:none"><label>Date de vente</label><input type="date" id="mSellDate" /></div>
-        <div class="field full"><label>📍 Emplacement</label><input type="text" id="mLocation" placeholder="ex: Bac 3 · Étagère 2 · Sac bleu" /></div>
-        <div class="field full"><label>🛍️ Source d'achat</label>
-          <select id="mSource">
-            <option value="Vinted">Vinted</option>
-            <option value="Bot">Bot</option>
-            <option value="Brocante">Brocante</option>
-            <option value="Grossiste">Grossiste</option>
-            <option value="Autre">Autre</option>
-          </select>
+      </div>
+
+      <button type="button" class="form-advanced-toggle" id="advancedToggleBtn" onclick="toggleAdvancedFields()">
+        <span>Plus d'options <span style="color:var(--muted);font-weight:400;">(quantité, prix visé, emplacement...)</span></span>
+        <span class="form-advanced-caret" id="advancedCaret">▾</span>
+      </button>
+      <div class="form-advanced-body" id="advancedFields">
+        <div class="form-grid">
+          <div class="field" id="mQuantityField"><label>Quantité <span style="color:var(--muted);font-weight:400;">(articles identiques, ex: revente en gros)</span></label><input type="number" id="mQuantity" min="1" value="1" /></div>
+          <div class="field"><label>Prix de vente visé (€) <span style="color:var(--muted);font-weight:400;">optionnel</span></label><input type="number" id="mSell" placeholder="ex: prix affiché sur l'annonce" step="0.01" /></div>
+          <div class="field"><label>Frais annexes (€)</label><input type="number" id="mExtraCosts" placeholder="0,00" step="0.01" /></div>
+          <div class="field" id="sellDateField" style="display:none"><label>Date de vente</label><input type="date" id="mSellDate" /></div>
+          <div class="field full"><label>📍 Emplacement</label><input type="text" id="mLocation" placeholder="ex: Bac 3 · Étagère 2 · Sac bleu" /></div>
+          <div class="field full"><label>🛍️ Source d'achat</label>
+            <select id="mSource">
+              <option value="Vinted">Vinted</option>
+              <option value="Bot">Bot</option>
+              <option value="Brocante">Brocante</option>
+              <option value="Grossiste">Grossiste</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
         </div>
       </div>
-      <div class="field full" style="margin-top:8px;">
+
+      <div class="field full" style="margin-top:12px;">
         <label>Photos <span style="color:var(--muted);font-weight:400;">(la première est la principale — cliquez une vignette pour la mettre en avant)</span></label>
         <div class="photo-gallery" id="photoGallery"></div>
         <input type="file" id="mPhoto" accept="image/*" multiple style="display:none" onchange="addPhotos(event)" />

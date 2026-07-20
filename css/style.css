@@ -346,6 +346,12 @@ select option { background: var(--surface2); color: var(--text); }
 .form-grid .field.full { grid-column: 1 / -1; }
 .modal-actions { display: flex; gap: 10px; padding: 16px 20px; border-top: 1px solid var(--border); }
 
+.form-advanced-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: none; border: none; border-top: 1px solid var(--border); margin-top: 12px; padding: 12px 2px 0; font-size: 13px; font-weight: 600; color: var(--text); text-align: left; cursor: pointer; font-family: inherit; }
+.form-advanced-caret { color: var(--accent); transition: transform 0.15s; flex-shrink: 0; }
+.form-advanced-toggle.open .form-advanced-caret { transform: rotate(180deg); }
+.form-advanced-body { max-height: 0; overflow: hidden; transition: max-height 0.2s ease; }
+.form-advanced-body.open { max-height: 400px; margin-top: 12px; }
+
 /* ── FICHE ARTICLE AGRANDIE ── */
 .modal-detail-large { max-width: 720px; }
 .detail-layout { display: flex; gap: 20px; }

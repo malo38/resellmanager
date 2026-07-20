@@ -486,7 +486,18 @@ window.openModal=(article=null)=>{
   document.getElementById('mQuantityField').style.display=article?'none':'block';
   document.getElementById('mQuantity').value='1';
   toggleDates();
+  // Repliée par défaut pour un ajout rapide (moins de champs à l'écran) ;
+  // dépliée d'office en modification, où des champs avancés (emplacement,
+  // source...) ont déjà pu être renseignés et méritent d'être visibles.
+  toggleAdvancedFields(!!article);
   document.getElementById('modalBg').classList.add('open');
+};
+window.toggleAdvancedFields=(forceOpen)=>{
+  const body=document.getElementById('advancedFields');
+  const btn=document.getElementById('advancedToggleBtn');
+  const open=forceOpen!==undefined?forceOpen:!body.classList.contains('open');
+  body.classList.toggle('open',open);
+  btn.classList.toggle('open',open);
 };
 window.closeModal=()=>document.getElementById('modalBg').classList.remove('open');
 window.handleModalBgClick=(e)=>{if(e.target===document.getElementById('modalBg'))closeModal();};
