@@ -2167,6 +2167,11 @@ async function renderFavoris() {
 
   const el = document.getElementById('favorisAccountWarning');
   if(el) el.style.display = (!selectedVintedAccountId && vintedAccounts.length > 1) ? 'block' : 'none';
+  const noExtEl = document.getElementById('favorisNoExtensionWarning');
+  if(noExtEl){
+    noExtEl.style.display = vintedAccounts.length ? 'none' : 'block';
+    document.getElementById('favorisInstallLink').href = EXTENSION_STORE_URL;
+  }
 
   const config = await backendFetch('/api/extension/automessage-config'+accountQueryParam());
   if(config){
@@ -2510,6 +2515,11 @@ window.republishNow = async (vintedItemId, btn) => {
 async function renderRepublier() {
   const warnEl = document.getElementById('republierAccountWarning');
   if(warnEl) warnEl.style.display = (!selectedVintedAccountId && vintedAccounts.length > 1) ? 'block' : 'none';
+  const noExtEl = document.getElementById('republierNoExtensionWarning');
+  if(noExtEl){
+    noExtEl.style.display = vintedAccounts.length ? 'none' : 'block';
+    document.getElementById('republierInstallLink').href = EXTENSION_STORE_URL;
+  }
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   document.getElementById('republishDays').value = days;
   const toRepublish = getArticlesToRepublish();
@@ -2858,7 +2868,7 @@ function getOnboardingSteps(){
     { title: 'Bienvenue sur VintControl 👋', body: 'Ce petit guide vous montre les bases en quelques étapes rapides.' },
     { title: '📦 Ajoutez vos articles', body: 'Utilisez le bouton "+ Ajouter" en haut à droite pour suivre chaque article, de l\'achat à la vente.' },
     EXTENSION_PUBLISHED
-      ? { title: '🔗 Connectez l\'extension Chrome', body: 'Dans Paramètres, installez l\'extension pour synchroniser automatiquement vos ventes, votre stock et votre messagerie Vinted.' }
+      ? { title: '🔗 Connectez l\'extension Chrome', body: 'Indispensable : sans elle, rien ne se synchronise automatiquement (ventes, stock, messagerie). Installez-la maintenant, ça prend 30 secondes.', cta: `<a href="${EXTENSION_STORE_URL}" target="_blank" style="display:block;margin-top:14px;padding:10px;background:var(--accent);color:#000;border-radius:var(--radius);text-align:center;font-weight:700;text-decoration:none;font-size:13px;">⚡ Installer l'extension Chrome</a>` }
       : { title: '🔗 Extension Chrome bientôt disponible', body: 'Une extension pour synchroniser automatiquement vos ventes, votre stock et votre messagerie est en cours de validation par Google. En attendant, ajoutez vos articles manuellement.' },
     { title: '📅 Consultez le Calendrier', body: 'Chaque jour, retrouvez ce qu\'il reste à faire : laver, photographier, publier, expédier.' },
     { title: '❤️ Messages favoris', body: 'Préparez un message type, puis copiez-le personnalisé pour chaque article afin de relancer les personnes qui l\'ont mis en favori.' },
@@ -2877,6 +2887,7 @@ function renderOnboardingStep(){
   document.getElementById('onboardingBody').innerHTML = `
     <h3 style="margin-bottom:10px;">${s.title}</h3>
     <p style="color:var(--muted);font-size:14px;line-height:1.6;">${s.body}</p>
+    ${s.cta || ''}
     <div style="margin-top:14px;font-size:12px;color:var(--muted);">Étape ${onboardingStep+1}/${steps.length}</div>
   `;
   document.getElementById('onboardingNext').textContent = onboardingStep===steps.length-1 ? 'Terminer' : 'Suivant';
