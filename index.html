@@ -513,6 +513,30 @@
           <p id="favMsgSaved" class="success-msg"></p>
           <p class="setting-sub" id="autoMsgStatus" style="margin-top:8px;"></p>
         </div>
+
+        <div class="settings-card" id="serverAutomationCard" style="display:none;border:1px solid var(--warning);">
+          <h2 class="settings-title">⚠️ Automatisation côté serveur (bêta)</h2>
+          <p class="setting-sub">
+            Par défaut, les messages automatiques ne partent que lorsque votre extension Chrome
+            tourne (ordinateur allumé, Chrome ouvert). En activant cette option, VintControl
+            enverra les messages depuis son propre serveur, même ordinateur éteint — en utilisant
+            votre session Vinted capturée par l'extension.
+          </p>
+          <p class="setting-sub" style="color:var(--warning);font-weight:600;">
+            Risque : les requêtes partiront de l'adresse IP du serveur VintControl (pas la
+            vôtre), ce qui peut augmenter le risque de détection et de restriction/bannissement
+            de votre compte Vinted par leur système anti-fraude. Fonctionnalité expérimentale,
+            à activer en connaissance de cause.
+          </p>
+          <div class="checklist-item" style="margin-top:12px;">
+            <input type="checkbox" id="serverAutomationEnabled" onchange="onServerAutomationToggle()" />
+            <label for="serverAutomationEnabled">
+              J'ai compris le risque et j'active l'envoi automatique depuis le serveur VintControl
+            </label>
+          </div>
+          <p class="setting-sub" id="serverAutomationStatus" style="margin-top:8px;"></p>
+        </div>
+
         <div class="section-header" style="margin-top:20px;"><h2>Historique des messages auto-envoyés</h2></div>
         <div id="autoMsgHistory"></div>
       </section>

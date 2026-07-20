@@ -2182,9 +2182,50 @@ async function renderFavoris() {
     document.getElementById('autoMsgDelayMax').value = config.delay_max_sec;
     document.getElementById('autoMsgBatchSize').value = config.batch_size || 1;
     toggleBatchWarning('autoMsgBatchSize','autoMsgBatchWarning');
+    document.getElementById('serverAutomationEnabled').checked = !!config.server_automation_enabled;
   }
   renderAutoMsgStatus();
+
+  // L'automatisation serveur est un réglage par compte Vinted précis — pas de
+  // sens en vue agrégée ("Tous les comptes"), même logique que
+  // favorisAccountWarning ci-dessus.
+  const serverCardEl = document.getElementById('serverAutomationCard');
+  if(serverCardEl) serverCardEl.style.display = (selectedVintedAccountId || vintedAccounts.length === 1) ? 'block' : 'none';
 }
+
+// Texte affiché à l'utilisateur ET envoyé au backend comme snapshot de
+// consentement (traçabilité) — une seule source de vérité pour éviter tout
+// écart entre ce qui est affiché et ce qui est enregistré comme accepté.
+const SERVER_AUTOMATION_CONSENT_TEXT = "J'active l'automatisation serveur pour les messages aux favoris. Je comprends que les requêtes partiront de l'adresse IP du serveur VintControl (pas la mienne), ce qui peut augmenter le risque de détection et de restriction/bannissement de mon compte Vinted par leur système anti-fraude. Je choisis d'activer cette fonctionnalité expérimentale en connaissance de cause.";
+
+window.onServerAutomationToggle = async () => {
+  const checkbox = document.getElementById('serverAutomationEnabled');
+  const statusEl = document.getElementById('serverAutomationStatus');
+  const checked = checkbox.checked;
+
+  if (!selectedVintedAccountId && vintedAccounts.length > 1) {
+    checkbox.checked = false;
+    statusEl.textContent = '✕ Sélectionnez un compte Vinted précis (en haut de la sidebar) pour activer cette option.';
+    return;
+  }
+
+  if (checked && !confirm(SERVER_AUTOMATION_CONSENT_TEXT + "\n\nConfirmez-vous l'activation ?")) {
+    checkbox.checked = false;
+    return;
+  }
+
+  const res = await backendFetch('/api/settings/server-automation-optin', {
+    method: 'POST',
+    body: JSON.stringify({
+      enabled: checked,
+      vinted_account_id: selectedVintedAccountId || '',
+      consent_text: SERVER_AUTOMATION_CONSENT_TEXT,
+    }),
+  });
+  statusEl.textContent = res
+    ? (checked ? '✓ Automatisation serveur activée.' : 'Automatisation serveur désactivée.')
+    : '✕ Erreur, réessayez.';
+};
 
 // ── MESSAGES VINTED (synchronisés par l'extension) ──
 function timeAgo(iso){
