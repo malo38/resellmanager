@@ -1458,8 +1458,16 @@ function generateCoach(){
 
 // ── STOCK UNIFIÉ (laver/photo/publier/stock/expédition/vendus en une page) ──
 // Label + couleur du statut d'un article, pour le badge coloré des cartes
-// (réutilise les mêmes couleurs que stepBadge()/getAllSteps()).
-function statusMeta(status){
+// (réutilise les mêmes couleurs que stepBadge()/getAllSteps()). Accepte soit
+// l'article complet (pour affiner "À expédier" en "En cours d'acheminement"
+// une fois le colis remis au transporteur, cf. vinted_shipping_status —
+// signalé le 2026-07-21), soit juste la clé de statut pour compatibilité.
+function statusMeta(articleOrStatus){
+  const isArticle=articleOrStatus&&typeof articleOrStatus==='object';
+  const status=isArticle?articleOrStatus.status:articleOrStatus;
+  if(status==='expedition'&&isArticle&&/exp[ée]di[ée]|acheminement/i.test(articleOrStatus.vinted_shipping_status||'')){
+    return {label:'📮 En cours d\'acheminement', color:'#38bdf8'};
+  }
   return getAllSteps().find(p=>p.key===status) || {label:status, color:'#888'};
 }
 
@@ -1478,7 +1486,7 @@ function articleTileHTML(a, opts={}){
   if(a.status==='vendu'){ priceLabel=(profit>=0?'+':'')+fmtPrice(profit); priceClass=profit>=0?'profit-pos':'profit-neg'; }
   else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
   else { priceLabel='-'+fmtPrice(a.buy_price); priceClass='profit-neg'; }
-  const status=statusMeta(a.status);
+  const status=statusMeta(a);
   // Un seul indicateur de statut par carte au lieu de deux (badge coloré sur
   // la photo + bouton coloré sous le prix, jugé too much le 2026-07-15) : un
   // simple point coloré discret sur la photo indique l'étape actuelle, et le
@@ -1549,7 +1557,7 @@ function articleListRowHTML(a){
   if(a.status==='vendu'){ priceLabel=(profit>=0?'+':'')+fmtPrice(profit); priceClass=profit>=0?'profit-pos':'profit-neg'; }
   else if(['stock','expedition'].includes(a.status)) priceLabel=fmtPrice(a.sell_price);
   else { priceLabel='-'+fmtPrice(a.buy_price); priceClass='profit-neg'; }
-  const status=statusMeta(a.status);
+  const status=statusMeta(a);
   const days=a.status!=='vendu'?daysInStock(a):null;
   const ageLabel=(days!==null)?`<span class="tile-list-age${days>=30?' tile-age-warn':''}">${days}j</span>`:'';
   return `<div class="tile-list-row" onclick="showDetail('${a.id}')">
@@ -1783,7 +1791,7 @@ window.openDuplicates=()=>{
     <div class="checklist-card" style="margin-bottom:10px;">
       <div class="checklist-title">${g[0].name}</div>
       ${g.map(a=>{
-        const status=statusMeta(a.status);
+        const status=statusMeta(a);
         return `<div class="checklist-item" style="justify-content:space-between;">
           <span>${a.photo_url?`<img src="${a.photo_url}" style="width:24px;height:24px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:6px;">`:''}<span class="tile-status-pill" style="position:static;display:inline-block;background:${status.color};margin-right:6px;">${status.label}</span>${fmtPrice(a.status==='vendu'?a.sell_price:(a.buy_price||a.sell_price))} — ${fmtDate(a.created_at)}</span>
           <button class="pf-btn" onclick="confirmDelete('${a.id}');setTimeout(openDuplicates,300)">🗑 Supprimer</button>
@@ -1988,7 +1996,7 @@ function renderReplay(){
     const profit=calcProfit(a);
     const isExpedition=a.status==='expedition';
     const statusBadge=isExpedition
-      ?`<span class="tile-list-status" style="background:#fb923c;">🚚 À expédier</span>`
+      ?`<span class="tile-list-status" style="background:${statusMeta(a).color};">${statusMeta(a).label}</span>`
       :`<span class="tile-list-status" style="background:#60a5fa;">${fmtDate(a.sell_date)}</span>`;
     return `<div class="tile-list-row" onclick="openReplayDetail('${a.id}')">
       <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
