@@ -1921,9 +1921,11 @@ function renderHallOfFame(){
 let ventesSearchTerm='';
 window.onVentesSearch=(value)=>{ ventesSearchTerm=value.trim().toLowerCase(); renderReplay(); };
 
-// Checklist "À expédier" : déplacée de la page Stock vers Ventes (2026-07-21)
-// — ce sont des articles déjà vendus, en attente d'envoi, donc plus proches
-// d'une vente en cours que de stock non-vendu.
+// Cartes "À expédier" (avec photo, comme le reste des articles) : déplacées
+// de la page Stock vers Ventes (2026-07-21) — ce sont des articles déjà
+// vendus, en attente d'envoi, donc plus proches d'une vente en cours que de
+// stock non-vendu. Remplace l'ancienne checklist texte (jugée trop pauvre
+// visuellement, sans photo) par de vraies tuiles articleTileHTML.
 function renderVentesExpedition(){
   const wrap=document.getElementById('ventesExpeditionWrap');
   if(!wrap) return;
@@ -1933,16 +1935,9 @@ function renderVentesExpedition(){
   const avgDelay=withDelay.length
     ?Math.round(withDelay.reduce((s,a)=>s+(daysBetween(a.sell_date,today())||0),0)/withDelay.length)
     :null;
-  const storedChk=JSON.parse(localStorage.getItem('checklist_'+currentUser.id)||'{}');
   wrap.innerHTML=`
-    <div class="checklist-card">
-      <div class="checklist-title">🚚 À expédier (${expArts.length})${avgDelay===null?'':` — délai d'envoi moyen : ${avgDelay}j`}</div>
-      ${expArts.map(a=>`
-        <div class="checklist-item">
-          <input type="checkbox" id="chk_${a.id}" ${storedChk[a.id]?'checked':''} onchange="toggleCheck('${a.id}',this)" />
-          <label for="chk_${a.id}" class="${storedChk[a.id]?'done':''}">${a.name}${a.location?' — 📍 '+a.location:''} — ${a.platform}</label>
-        </div>`).join('')}
-    </div>`;
+    <div class="section-header"><h2>🚚 À expédier (${expArts.length})${avgDelay===null?'':` — délai d'envoi moyen : ${avgDelay}j`}</h2></div>
+    <div class="article-grid">${expArts.map(a=>articleTileHTML(a,{showMove:true})).join('')}</div>`;
 }
 
 function renderReplay(){
