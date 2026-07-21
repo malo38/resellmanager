@@ -1485,9 +1485,14 @@ function articleTileHTML(a, opts={}){
   // texte sous le prix sert à la fois d'étiquette et d'action (cliquer pour
   // passer à l'étape suivante) — plus léger visuellement.
   const statusDot=`<span class="tile-status-dot" style="background:${status.color}" title="${status.label}"></span>`;
+  // Bouton "étape suivante" : icône seule dans une pastille ronde plutôt
+  // qu'un lien texte "En stock → À expédier" (jugé peu visible le
+  // 2026-07-21) — l'emoji de l'étape suivante suffit, le titre/aria-label
+  // portent le texte complet pour l'accessibilité et le survol.
+  const nextStepIcon=nextStep?.label.split(' ')[0]||'';
   const actionBtn=opts.showMove&&nextStep
-    ?`<button class="tile-action-link" style="color:${nextStep.color};" title="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">${status.label} → ${nextStep.label}</button>`
-    :`<span class="tile-action-link" style="color:${status.color};">${status.label}</span>`;
+    ?`<button class="tile-action-btn" style="background:${nextStep.color};" title="Passer à : ${nextStep.label}" aria-label="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">${nextStepIcon}</button>`
+    :'';
   const days=a.status!=='vendu'?daysInStock(a):null;
   const ageBadge=(days!==null)?`<span class="tile-age${days>=30?' tile-age-warn':''}" title="En stock depuis ${days} jour${days>1?'s':''}">${days}j</span>`:'';
 
@@ -1522,7 +1527,10 @@ function articleTileHTML(a, opts={}){
       <div class="tile-big-stat"><span class="tile-big-stat-label">Prix de vente</span><span class="tile-big-stat-val">${fmtPrice(a.sell_price)}</span></div>
       <div class="tile-big-stat"><span class="tile-big-stat-label">${statLabel}</span><span class="tile-big-stat-val ${statVal>=0?'profit-pos':'profit-neg'}">${statVal>=0?'+':''}${fmtPrice(statVal)}</span></div>
     </div>
-    ${actionBtn}
+    <div class="tile-bottom-row">
+      <span class="tile-status-label" style="color:${status.color};">${status.label}</span>
+      ${actionBtn}
+    </div>
   </div>`;
 }
 
