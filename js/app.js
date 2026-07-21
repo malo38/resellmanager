@@ -2189,8 +2189,14 @@ async function renderFavoris() {
   // L'automatisation serveur est un réglage par compte Vinted précis — pas de
   // sens en vue agrégée ("Tous les comptes"), même logique que
   // favorisAccountWarning ci-dessus.
+  // Masquée en attendant une vraie solution : testée le 2026-07-21, bloquée
+  // par la protection anti-bot de Vinted dès la première requête (redirection
+  // systématique vers /session-refresh, même avec un cookie fraîchement
+  // capturé) — le code backend/DB reste en place pour reprendre plus tard,
+  // mais l'option ne doit pas être proposée tant que ce n'est pas résolu.
+  const SERVER_AUTOMATION_LIVE = false;
   const serverCardEl = document.getElementById('serverAutomationCard');
-  if(serverCardEl) serverCardEl.style.display = (selectedVintedAccountId || vintedAccounts.length === 1) ? 'block' : 'none';
+  if(serverCardEl) serverCardEl.style.display = (SERVER_AUTOMATION_LIVE && (selectedVintedAccountId || vintedAccounts.length === 1)) ? 'block' : 'none';
 }
 
 // Texte affiché à l'utilisateur ET envoyé au backend comme snapshot de
