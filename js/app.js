@@ -298,7 +298,7 @@ function restoreNavGroupsState(){
   document.querySelectorAll('.nav-group-header').forEach(header=>{
     if(closed.includes(header.textContent.trim())){
       header.classList.add('collapsed');
-      header.nextElementSibling.classList.add('collapsed');
+      header.nextElementSibling?.classList.add('collapsed');
     }
   });
 }
