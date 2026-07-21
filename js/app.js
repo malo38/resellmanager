@@ -1678,18 +1678,14 @@ function renderStockAll(){
   const platformFilter=currentFilter.stockall;
   const byPlatform=arts=>platformFilter==='Tous'?arts:arts.filter(a=>a.platform===platformFilter);
   const prepSteps=getPrepSteps();
-  const categories=[...prepSteps, {key:'stock',label:'📦 En stock'}, {key:'expedition',label:'🚚 À expédier'}];
+  // "À expédier" a déménagé sur la page Ventes (ce sont des articles déjà
+  // vendus, en attente d'envoi — pas du vrai stock non-vendu), voir
+  // renderReplay(). N'apparaît plus ici ni dans les chips ni dans "Articles".
+  const categories=[...prepSteps, {key:'stock',label:'📦 En stock'}];
 
-  const activeArts=byPlatform(allArticles.filter(a=>isPreSaleStatus(a.status)||a.status==='expedition'));
-  const vendus=byPlatform(allArticles.filter(a=>a.status==='vendu'));
+  const activeArts=byPlatform(allArticles.filter(a=>isPreSaleStatus(a.status)));
+  const vendus=byPlatform(allArticles.filter(a=>a.status==='vendu'||a.status==='expedition'));
   const ca=vendus.reduce((s,a)=>s+calcCA(a),0);
-  // Délai moyen d'expédition : depuis combien de temps, en moyenne, les
-  // articles "à expédier" actuels attendent d'être envoyés (basé sur
-  // sell_date) — signale un retard d'envoi qui traîne, pas juste un total.
-  const expWaiting=byPlatform(allArticles.filter(a=>a.status==='expedition'&&a.sell_date));
-  const avgDelay=expWaiting.length
-    ?Math.round(expWaiting.reduce((s,a)=>s+(daysBetween(a.sell_date,today())||0),0)/expWaiting.length)
-    :null;
   // Taux de rotation : part du stock (actif + déjà vendu) qui a effectivement
   // été vendue — indique si le stock "tourne" ou s'accumule sans se vendre.
   const rotationBase=activeArts.length+vendus.length;
@@ -1698,7 +1694,6 @@ function renderStockAll(){
     <div class="ministat"><div class="ministat-label">Articles</div><div class="ministat-val">${activeArts.length}</div></div>
     <div class="ministat"><div class="ministat-label">Vendus</div><div class="ministat-val">${vendus.length}</div></div>
     <div class="ministat"><div class="ministat-label">CA</div><div class="ministat-val">${fmtPrice(ca)}</div></div>
-    <div class="ministat"><div class="ministat-label">Délai d'envoi moyen</div><div class="ministat-val">${avgDelay===null?'—':avgDelay+'j'}</div></div>
     <div class="ministat"><div class="ministat-label">Taux de rotation</div><div class="ministat-val">${rotationRate===null?'—':rotationRate+'%'}</div></div>
   `;
 
@@ -1748,19 +1743,6 @@ function renderStockAll(){
         ?shown.map(a=>articleListRowHTML(a)).join('')
         :shown.map(a=>articleTileHTML(a,{showMove:true,selectSection:'stockall'})).join(''))
     :`<p class="stockall-empty">Aucun article.</p>`;
-
-  // Checklist expédition : visible seulement quand ce filtre est actif.
-  const expArts=byPlatform(allArticles.filter(a=>a.status==='expedition'));
-  const storedChk=JSON.parse(localStorage.getItem('checklist_'+currentUser.id)||'{}');
-  document.getElementById('checklistWrap').innerHTML=(stockCategoryFilter==='expedition'&&expArts.length)?`
-    <div class="checklist-card">
-      <div class="checklist-title">✅ Checklist d'expédition</div>
-      ${expArts.map(a=>`
-        <div class="checklist-item">
-          <input type="checkbox" id="chk_${a.id}" ${storedChk[a.id]?'checked':''} onchange="toggleCheck('${a.id}',this)" />
-          <label for="chk_${a.id}" class="${storedChk[a.id]?'done':''}">${a.name}${a.location?' — 📍 '+a.location:''} — ${a.platform}</label>
-        </div>`).join('')}
-    </div>`:'';
 }
 
 // ── DÉTECTEUR DE DOUBLONS ──
@@ -1939,7 +1921,32 @@ function renderHallOfFame(){
 let ventesSearchTerm='';
 window.onVentesSearch=(value)=>{ ventesSearchTerm=value.trim().toLowerCase(); renderReplay(); };
 
+// Checklist "À expédier" : déplacée de la page Stock vers Ventes (2026-07-21)
+// — ce sont des articles déjà vendus, en attente d'envoi, donc plus proches
+// d'une vente en cours que de stock non-vendu.
+function renderVentesExpedition(){
+  const wrap=document.getElementById('ventesExpeditionWrap');
+  if(!wrap) return;
+  const expArts=allArticles.filter(a=>a.status==='expedition');
+  if(!expArts.length){ wrap.innerHTML=''; return; }
+  const withDelay=expArts.filter(a=>a.sell_date);
+  const avgDelay=withDelay.length
+    ?Math.round(withDelay.reduce((s,a)=>s+(daysBetween(a.sell_date,today())||0),0)/withDelay.length)
+    :null;
+  const storedChk=JSON.parse(localStorage.getItem('checklist_'+currentUser.id)||'{}');
+  wrap.innerHTML=`
+    <div class="checklist-card">
+      <div class="checklist-title">🚚 À expédier (${expArts.length})${avgDelay===null?'':` — délai d'envoi moyen : ${avgDelay}j`}</div>
+      ${expArts.map(a=>`
+        <div class="checklist-item">
+          <input type="checkbox" id="chk_${a.id}" ${storedChk[a.id]?'checked':''} onchange="toggleCheck('${a.id}',this)" />
+          <label for="chk_${a.id}" class="${storedChk[a.id]?'done':''}">${a.name}${a.location?' — 📍 '+a.location:''} — ${a.platform}</label>
+        </div>`).join('')}
+    </div>`;
+}
+
 function renderReplay(){
+  renderVentesExpedition();
   let arts=allArticles.filter(a=>a.status==='vendu');
   if(currentFilter.replay!=='Tous') arts=arts.filter(a=>a.platform===currentFilter.replay);
   if(ventesSearchTerm) arts=arts.filter(a=>a.name.toLowerCase().includes(ventesSearchTerm));
