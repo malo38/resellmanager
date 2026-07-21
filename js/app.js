@@ -1921,28 +1921,12 @@ function renderHallOfFame(){
 let ventesSearchTerm='';
 window.onVentesSearch=(value)=>{ ventesSearchTerm=value.trim().toLowerCase(); renderReplay(); };
 
-// Cartes "À expédier" (avec photo, comme le reste des articles) : déplacées
-// de la page Stock vers Ventes (2026-07-21) — ce sont des articles déjà
-// vendus, en attente d'envoi, donc plus proches d'une vente en cours que de
-// stock non-vendu. Remplace l'ancienne checklist texte (jugée trop pauvre
-// visuellement, sans photo) par de vraies tuiles articleTileHTML.
-function renderVentesExpedition(){
-  const wrap=document.getElementById('ventesExpeditionWrap');
-  if(!wrap) return;
-  const expArts=allArticles.filter(a=>a.status==='expedition');
-  if(!expArts.length){ wrap.innerHTML=''; return; }
-  const withDelay=expArts.filter(a=>a.sell_date);
-  const avgDelay=withDelay.length
-    ?Math.round(withDelay.reduce((s,a)=>s+(daysBetween(a.sell_date,today())||0),0)/withDelay.length)
-    :null;
-  wrap.innerHTML=`
-    <div class="section-header"><h2>🚚 À expédier (${expArts.length})${avgDelay===null?'':` — délai d'envoi moyen : ${avgDelay}j`}</h2></div>
-    <div class="article-grid">${expArts.map(a=>articleTileHTML(a,{showMove:true})).join('')}</div>`;
-}
-
 function renderReplay(){
-  renderVentesExpedition();
-  let arts=allArticles.filter(a=>a.status==='vendu');
+  // "À expédier" (2026-07-21) : fusionné dans la même liste que les ventes
+  // finalisées plutôt qu'affiché à part — ce sont déjà des ventes, juste pas
+  // encore expédiées, donc un simple badge de couleur différente suffit à
+  // les distinguer (voir tile-list-status ci-dessous) sans dédoubler la vue.
+  let arts=allArticles.filter(a=>a.status==='vendu'||a.status==='expedition');
   if(currentFilter.replay!=='Tous') arts=arts.filter(a=>a.platform===currentFilter.replay);
   if(ventesSearchTerm) arts=arts.filter(a=>a.name.toLowerCase().includes(ventesSearchTerm));
   const sortMode=document.getElementById('vendusSort')?.value||'recent';
@@ -1983,13 +1967,18 @@ function renderReplay(){
   if(!arts.length){container.innerHTML=emptyState('Aucun article vendu encore.');return;}
   // Liste compacte (comme la page Achats) : le détail du parcours achat →
   // vente s'ouvre au clic dans une fenêtre dédiée, plutôt que d'être étalé
-  // en permanence sur chaque ligne.
+  // en permanence sur chaque ligne. Badge orange "À expédier" pour les
+  // ventes pas encore envoyées, badge bleu avec la date pour les finalisées.
   container.innerHTML=arts.map(a=>{
     const profit=calcProfit(a);
+    const isExpedition=a.status==='expedition';
+    const statusBadge=isExpedition
+      ?`<span class="tile-list-status" style="background:#fb923c;">🚚 À expédier</span>`
+      :`<span class="tile-list-status" style="background:#60a5fa;">${fmtDate(a.sell_date)}</span>`;
     return `<div class="tile-list-row" onclick="openReplayDetail('${a.id}')">
       <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
       <div class="tile-list-name">${a.name}</div>
-      <span class="tile-list-status" style="background:#60a5fa;">${fmtDate(a.sell_date)}</span>
+      ${statusBadge}
       <div class="tile-list-price ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div>
     </div>`;
   }).join('');
