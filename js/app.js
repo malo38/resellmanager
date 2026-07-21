@@ -2573,6 +2573,10 @@ window.quickRepublish = async (vintedItemId, btn) => {
     alert('Sélectionnez un compte Vinted précis (en haut de la sidebar) avant de republier.');
     return;
   }
+  // Confirmation avant de lancer, vu que ça supprime puis recrée l'annonce
+  // sur Vinted (perd vues/favoris accumulés) — pas anodin pour un clic
+  // aussi accessible que ce petit bouton (signalé le 2026-07-21).
+  if (!confirm("Republier cet article maintenant ? L'annonce actuelle sera supprimée puis recréée à l'identique sur Vinted (vues et favoris repartent à zéro).")) return;
   const original = btn.innerHTML;
   const originalTitle = btn.title;
   btn.innerHTML = '…'; btn.disabled = true;
