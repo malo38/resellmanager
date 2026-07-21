@@ -279,8 +279,11 @@ select option { background: var(--surface2); color: var(--text); }
 .tile-status-dot { position: absolute; bottom: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.4); }
 .tile-bottom-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
 .tile-status-label { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-bottom-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .tile-action-btn { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: none; font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.9; transition: opacity 0.15s, transform 0.15s; }
 .tile-action-btn:hover { opacity: 1; transform: scale(1.08); }
+.tile-action-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+.tile-republish-btn { background: var(--surface2); border: 1px solid var(--border2); }
 .tile-age { position: absolute; top: 5px; left: 5px; padding: 2px 5px; border-radius: 8px; font-size: 9.5px; font-weight: 700; color: #fff; background: rgba(0,0,0,0.55); }
 .tile-age-warn { background: var(--warning); color: #000; }
 .tile-list-age { flex-shrink: 0; font-size: 11px; color: var(--muted); min-width: 26px; text-align: right; }

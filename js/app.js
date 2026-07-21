@@ -1493,6 +1493,13 @@ function articleTileHTML(a, opts={}){
   const actionBtn=opts.showMove&&nextStep
     ?`<button class="tile-action-btn" style="background:${nextStep.color};" title="Passer à : ${nextStep.label}" aria-label="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">${nextStepIcon}</button>`
     :'';
+  // Republication en un clic depuis la carte Stock (2026-07-21) : seulement
+  // pour un article réellement en ligne sur Vinted ("stock", avec un vrai
+  // vinted_item_id) — republier une fiche pas encore publiée ou déjà vendue
+  // n'a pas de sens.
+  const republishBtn=opts.showMove&&a.vinted_item_id&&a.status==='stock'
+    ?`<button class="tile-action-btn tile-republish-btn" title="Republier maintenant" aria-label="Republier maintenant" onclick="event.stopPropagation();quickRepublish('${a.vinted_item_id}',this)">🔄</button>`
+    :'';
   const days=a.status!=='vendu'?daysInStock(a):null;
   const ageBadge=(days!==null)?`<span class="tile-age${days>=30?' tile-age-warn':''}" title="En stock depuis ${days} jour${days>1?'s':''}">${days}j</span>`:'';
 
@@ -1529,7 +1536,7 @@ function articleTileHTML(a, opts={}){
     </div>
     <div class="tile-bottom-row">
       <span class="tile-status-label" style="color:${status.color};">${status.label}</span>
-      ${actionBtn}
+      <div class="tile-bottom-actions">${republishBtn}${actionBtn}</div>
     </div>
   </div>`;
 }
@@ -2556,6 +2563,27 @@ window.republishNow = async (vintedItemId, btn) => {
   }); }catch(e){ res=null; }
   btn.textContent = res ? '✓ Programmé (≤5 min)' : '✕ Erreur, réessayez';
   setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 3000);
+};
+
+// Même endpoint que republishNow() ci-dessus, mais pour le petit bouton rond
+// des cartes Stock (2026-07-21) — feedback en icône seule (✓/✕) plutôt qu'en
+// texte, pour rester dans la taille compacte de la pastille.
+window.quickRepublish = async (vintedItemId, btn) => {
+  if (!selectedVintedAccountId && vintedAccounts.length > 1) {
+    alert('Sélectionnez un compte Vinted précis (en haut de la sidebar) avant de republier.');
+    return;
+  }
+  const original = btn.innerHTML;
+  const originalTitle = btn.title;
+  btn.innerHTML = '…'; btn.disabled = true;
+  let res=null;
+  try{ res = await backendFetch('/api/settings/republish-now', {
+    method: 'POST',
+    body: JSON.stringify({ vinted_item_id: vintedItemId, vinted_account_id: selectedVintedAccountId || '' }),
+  }); }catch(e){ res=null; }
+  btn.innerHTML = res ? '✓' : '✕';
+  btn.title = res ? 'Programmé (≤5 min)' : 'Erreur, réessayez';
+  setTimeout(() => { btn.innerHTML = original; btn.title = originalTitle; btn.disabled = false; }, 2500);
 };
 
 async function renderRepublier() {
