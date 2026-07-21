@@ -207,6 +207,8 @@ select option { background: var(--surface2); color: var(--text); }
 
 /* ── STOCK UNIFIÉ (grille de tuiles) ── */
 .stockall-empty { font-size: 12px; color: var(--muted); }
+.csv-preview-list { font-size: 13px; margin-top: 8px; padding-left: 18px; max-height: 220px; overflow-y: auto; }
+.csv-preview-list li { padding: 2px 0; }
 .stock-ministats { display: flex; gap: 12px; margin-bottom: 16px; }
 .ministat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 18px; flex: 1; }
 .ministat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
@@ -507,10 +509,15 @@ select option { background: var(--surface2); color: var(--text); }
 /* ── SIDEBAR BRAND LIGHT ── */
 .sidebar-brand { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
 
-/* ── COACH ── */
-.coach-card { background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 20px; }
-.coach-msg { font-size: 13px; color: var(--text); padding: 6px 0; border-bottom: 1px solid var(--border); }
-.coach-msg:last-child { border-bottom: none; }
+/* ── COMPLÉTUDE DES FICHES ── */
+.completeness-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 20px; }
+.completeness-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.completeness-score { font-size: 20px; font-weight: 700; }
+.completeness-bar { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; margin-bottom: 10px; }
+.completeness-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
+.completeness-details { display: flex; gap: 16px; flex-wrap: wrap; }
+.completeness-detail { font-size: 13px; color: var(--muted); cursor: pointer; }
+.completeness-detail:hover { text-decoration: underline; }
 
 /* ── REPLAY ── */
 .replay-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.15s; }

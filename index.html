@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=25" />
+  <link rel="stylesheet" href="css/style.css?v=26" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -320,7 +320,7 @@
         <div class="kpi-grid" id="kpiGrid"></div>
         <div id="accountsBreakdown"></div>
         <div class="weekly-card" id="weeklySummary" data-widget="weekly"></div>
-        <div class="coach-card" id="coachBox" data-widget="coach"></div>
+        <div class="completeness-card" id="completenessBox" data-widget="completeness"></div>
         <div class="settings-card" id="quickCalcCard" data-widget="calc">
           <h2 class="settings-title">🧮 Calculateur de marge rapide</h2>
           <p class="setting-sub" style="margin-bottom:12px;">Testez un prix avant d'acheter un article.</p>
@@ -422,6 +422,7 @@
             <div class="actions-menu-body">
               <button onclick="toggleSelectMode('stockall');closeActionsMenu()">☑ Sélection multiple</button>
               <button onclick="exportArticlesCSV('stock');closeActionsMenu()">⬇ Export CSV</button>
+              <button onclick="openCsvImport();closeActionsMenu()" title="Créer plusieurs articles d'un coup depuis un fichier CSV">⬆ Import CSV</button>
               <button id="duplicatesBtn" onclick="openDuplicates();closeActionsMenu()" title="Repère les articles qui semblent être en double (même nom)">🧬 Doublons</button>
               <button id="resyncAllBtn" onclick="resyncAllFromVinted(this);closeActionsMenu()" title="Force tous vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min)">🔄 Tout réinitialiser depuis Vinted</button>
             </div>
@@ -701,6 +702,16 @@
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
+          <h2 class="settings-title">🔔 Notifications</h2>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Nouvelle vente / nouveau favori</div>
+              <div class="setting-sub" id="pushStatusSub">Recevez une notification (même sur téléphone, si vous ajoutez VintControl à l'écran d'accueil) dès qu'une vente ou un favori est détecté. Nécessite que votre ordinateur soit allumé avec l'extension active au moment de la détection.</div>
+            </div>
+            <button class="btn-confirm" id="pushToggleBtn" onclick="togglePushNotifications()">Activer</button>
+          </div>
+        </div>
+        <div class="settings-card" style="margin-top:16px;">
           <h2 class="settings-title">🧺 Étapes de préparation</h2>
           <p class="setting-sub" style="margin-bottom:12px;">Personnalisez les étapes avant la mise en stock (à laver, à plier...) selon vos habitudes. "En stock", "À expédier" et "Vendus" restent fixes.</p>
           <div id="prepStepsList"></div>
@@ -927,6 +938,26 @@
 </div>
 
 <!-- DOUBLONS -->
+<!-- IMPORT CSV EN MASSE -->
+<div class="modal-bg" id="csvImportBg">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3>⬆ Import CSV en masse</h3>
+      <button class="modal-close" onclick="closeCsvImport()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="setting-sub">Créez plusieurs fiches d'un coup depuis un fichier CSV (colonnes attendues : Nom, Prix achat, Plateforme, Date achat, Emplacement, Source — seule "Nom" est obligatoire).</p>
+      <p class="setting-sub"><a href="#" onclick="downloadCsvTemplate();return false;">📄 Télécharger un modèle</a></p>
+      <input type="file" id="csvImportFile" accept=".csv" onchange="handleCsvFile(this)" />
+      <div id="csvImportPreview" style="margin-top:12px;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeCsvImport()">Annuler</button>
+      <button class="btn-confirm" id="csvImportBtn" disabled onclick="confirmCsvImport()">Importer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="duplicatesBg">
   <div class="modal" style="max-width:520px;">
     <div class="modal-header">
@@ -934,6 +965,11 @@
       <button class="modal-close" onclick="closeDuplicates()">✕</button>
     </div>
     <div class="modal-body" id="duplicatesBody"></div>
+    <div class="modal-body" style="border-top:1px solid var(--border);padding-top:14px;">
+      <p class="setting-sub">La détection ci-dessus compare les noms. Vous pouvez aussi comparer les photos (plus lent, plus fiable pour repérer un article listé deux fois sous des noms différents) :</p>
+      <button class="pf-btn" id="photoDupBtn" onclick="checkPhotoDuplicates()">🔍 Vérifier aussi par photo</button>
+      <div id="duplicatesPhotoBody" style="margin-top:10px;"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeDuplicates()">Fermer</button>
     </div>
@@ -1014,7 +1050,7 @@
       <div class="checklist-item"><input type="checkbox" id="widget_kpi_wallet" checked><label for="widget_kpi_wallet">💰 Solde Vinted</label></div>
       <p style="font-size:13px;color:var(--muted);margin:14px 0 8px;">Sections</p>
       <div class="checklist-item"><input type="checkbox" id="widget_weekly" checked><label for="widget_weekly">📅 Résumé hebdomadaire</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_coach" checked><label for="widget_coach">🤖 Coach IA</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_completeness" checked><label for="widget_completeness">📋 Complétude des fiches</label></div>
       <div class="checklist-item"><input type="checkbox" id="widget_calc" checked><label for="widget_calc">🧮 Calculateur de marge rapide</label></div>
       <div class="checklist-item"><input type="checkbox" id="widget_recent" checked><label for="widget_recent">📦 Derniers articles</label></div>
       <div class="checklist-item"><input type="checkbox" id="widget_chart" checked><label for="widget_chart">📊 Profit mensuel (graphique)</label></div>
@@ -1093,6 +1129,6 @@
 
 <script src="js/i18n.js?v=1"></script>
 <script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=46"></script>
+<script src="js/app.js?v=47"></script>
 </body>
 </html>

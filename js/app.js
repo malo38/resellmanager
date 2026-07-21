@@ -255,7 +255,7 @@ window.goPage = (id, btn) => {
   // voir js/i18n.js) — les autres titres de page restent en français tant
   // que ces pages n'ont pas encore leurs propres clés de traduction.
   document.getElementById('topbarTitle').textContent=id==='dashboard'?t('nav.dashboard'):(PAGE_TITLES[id]||'');
-  if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); renderAccountantLink(); renderSellerProfile(); }
+  if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); renderAccountantLink(); renderSellerProfile(); renderPushStatus(); }
   if(id==='ventes') renderReplay();
   if(id==='achats') renderAchats();
   if(id==='boost') renderBoost();
@@ -751,19 +751,53 @@ function renderDashboard(){
   const kpiPrefs=getDashboardWidgetPrefs();
   document.getElementById('kpiGrid').innerHTML=kpis.filter(k=>kpiPrefs[k.key]).map(k=>k.html).join('');
 
-  // IA Coach
-  const coach=generateCoach();
-  document.getElementById('coachBox').innerHTML=coach;
-
   document.getElementById('recentList').innerHTML=allArticles.slice(0,4).length
     ?`<div class="article-list">${allArticles.slice(0,4).map(a=>articleHTML(a)).join('')}</div>`
     :emptyState('Aucun article encore.');
   renderMiniChart('dashChartBars','dashChartLabels');
+  renderCompletenessScore();
   renderWeeklySummary();
   renderQuickCalc();
   renderAccountsBreakdown();
   applyDashboardWidgets();
 }
+
+// ── SCORE DE COMPLÉTUDE DES FICHES ── (agrège les mêmes chips que la page
+// Stock — "sans photo"/"sans prix d'achat" — en un pourcentage visible sur
+// le dashboard, plutôt que de laisser l'utilisateur les découvrir en creusant
+// dans Stock).
+function computeCompletenessScore(){
+  const stock=allArticles.filter(a=>isPreSaleStatus(a.status));
+  if(stock.length===0) return null;
+  const noPhoto=stock.filter(a=>!a.photo_url).length;
+  const noBuyPrice=stock.filter(a=>!a.buy_price).length;
+  const score=Math.round((1-(noPhoto+noBuyPrice)/(stock.length*2))*100);
+  return {score, total:stock.length, noPhoto, noBuyPrice};
+}
+function renderCompletenessScore(){
+  const el=document.getElementById('completenessBox');
+  if(!el) return;
+  const data=computeCompletenessScore();
+  if(!data){ el.innerHTML=''; return; }
+  const color=data.score>=80?'var(--accent)':data.score>=50?'var(--warning)':'var(--danger)';
+  const details=[];
+  if(data.noPhoto>0) details.push(`<span class="completeness-detail" onclick="goToStockQuality('no_photo')">🖼️ ${data.noPhoto} sans photo</span>`);
+  if(data.noBuyPrice>0) details.push(`<span class="completeness-detail" onclick="goToStockQuality('no_buy_price')">💸 ${data.noBuyPrice} sans prix d'achat</span>`);
+  if(details.length===0) details.push(`<span class="completeness-detail">✅ Toutes vos fiches en stock sont complètes</span>`);
+  el.innerHTML=`
+    <div class="completeness-head">
+      <span>📋 Complétude des fiches (${data.total} en stock)</span>
+      <span class="completeness-score" style="color:${color}">${data.score}%</span>
+    </div>
+    <div class="completeness-bar"><div class="completeness-fill" style="width:${data.score}%;background:${color}"></div></div>
+    <div class="completeness-details">${details.join('')}</div>
+  `;
+}
+window.goToStockQuality=(quality)=>{
+  goPage('stock', document.querySelector('.nav-btn[data-page="stock"]'));
+  stockQualityFilter=quality;
+  renderStockAll();
+};
 
 // ── VUE CONSOLIDÉE MULTI-COMPTES ── (visible seulement en mode "Tous les
 // comptes" avec 2+ comptes connectés — allArticles contient alors déjà les
@@ -799,7 +833,7 @@ function renderAccountsBreakdown(){
 }
 
 // ── PERSONNALISATION DU TABLEAU DE BORD ──
-const DASH_WIDGETS=['kpi_profit_total','kpi_profit_mois','kpi_profit_net','kpi_stock','kpi_expedition','kpi_vendus','kpi_capital','kpi_achats','kpi_ca','kpi_roi','kpi_wallet','weekly','coach','calc','recent','chart'];
+const DASH_WIDGETS=['kpi_profit_total','kpi_profit_mois','kpi_profit_net','kpi_stock','kpi_expedition','kpi_vendus','kpi_capital','kpi_achats','kpi_ca','kpi_roi','kpi_wallet','weekly','completeness','calc','recent','chart'];
 function getDashboardWidgetPrefs(){
   const stored=JSON.parse(localStorage.getItem('dashWidgets_'+currentUser.id)||'{}');
   const prefs={};
@@ -1066,6 +1100,98 @@ function buildInvoicePdf(article, profile, invoiceNumber){
 
   doc.save(`facture-${numStr}.pdf`);
 }
+
+// ── IMPORT CSV EN MASSE ── (parseur maison plutôt qu'une lib externe : format
+// simple, délimiteur ';' + guillemets, symétrique à toCSV()/exportArticlesCSV).
+function parseCSV(text){
+  text=text.replace(/^﻿/,'');
+  const rows=[];
+  let row=[], field='', inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQuotes){
+      if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else inQuotes=false; }
+      else field+=c;
+    } else if(c==='"'){ inQuotes=true; }
+    else if(c===';'){ row.push(field); field=''; }
+    else if(c==='\n'||c==='\r'){
+      if(c==='\r'&&text[i+1]==='\n') i++;
+      row.push(field); field='';
+      if(row.some(v=>v.trim()!=='')) rows.push(row);
+      row=[];
+    } else field+=c;
+  }
+  if(field!==''||row.length){ row.push(field); if(row.some(v=>v.trim()!=='')) rows.push(row); }
+  return rows;
+}
+let csvImportRows=[];
+window.downloadCsvTemplate=()=>{
+  downloadCSV('Nom;Prix achat;Plateforme;Date achat;Emplacement;Source\n"T-shirt Nike noir M";8;"Vinted";'+today()+';"Étagère A";"Vide-grenier"','modele-import-articles.csv');
+};
+window.handleCsvFile=(input)=>{
+  const file=input.files[0];
+  const preview=document.getElementById('csvImportPreview');
+  const btn=document.getElementById('csvImportBtn');
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    csvImportRows=[];
+    btn.disabled=true;
+    const rows=parseCSV(reader.result);
+    if(rows.length<2){ preview.innerHTML='<p class="stockall-empty">Fichier vide ou format invalide.</p>'; return; }
+    const norm=s=>(s||'').trim().toLowerCase().replace(/[^a-z]/g,'');
+    const header=rows[0].map(norm);
+    const findCol=names=>header.findIndex(h=>names.includes(h));
+    const idx={
+      name: findCol(['nom','name']),
+      buy_price: findCol(['prixachat','buyprice','prix']),
+      platform: findCol(['plateforme','platform']),
+      buy_date: findCol(['dateachat','buydate','date']),
+      location: findCol(['emplacement','location']),
+      source: findCol(['source']),
+    };
+    if(idx.name<0){ preview.innerHTML='<p class="stockall-empty">Colonne "Nom" introuvable. Utilisez le modèle fourni.</p>'; return; }
+    csvImportRows=rows.slice(1).map(r=>({
+      name:(r[idx.name]||'').trim(),
+      buy_price: idx.buy_price>=0?(parseFloat((r[idx.buy_price]||'').replace(',','.'))||0):0,
+      platform: (idx.platform>=0&&r[idx.platform]?.trim())||'Vinted',
+      buy_date: (idx.buy_date>=0&&r[idx.buy_date]?.trim())||today(),
+      location: (idx.location>=0?r[idx.location]:'')||'',
+      source: (idx.source>=0&&r[idx.source]?.trim())||'Manuel',
+    })).filter(r=>r.name);
+    preview.innerHTML=csvImportRows.length
+      ?`<p>${csvImportRows.length} article(s) détecté(s) :</p><ul class="csv-preview-list">${csvImportRows.slice(0,8).map(r=>`<li>${r.name} — ${fmtPrice(r.buy_price)}</li>`).join('')}${csvImportRows.length>8?`<li>… et ${csvImportRows.length-8} de plus</li>`:''}</ul>`
+      :'<p class="stockall-empty">Aucune ligne valide trouvée.</p>';
+    btn.disabled=csvImportRows.length===0;
+  };
+  reader.readAsText(file,'utf-8');
+};
+window.openCsvImport=()=>{
+  csvImportRows=[];
+  document.getElementById('csvImportFile').value='';
+  document.getElementById('csvImportPreview').innerHTML='';
+  document.getElementById('csvImportBtn').disabled=true;
+  document.getElementById('csvImportBg').classList.add('open');
+};
+window.closeCsvImport=()=>document.getElementById('csvImportBg').classList.remove('open');
+window.confirmCsvImport=async()=>{
+  if(!csvImportRows.length) return;
+  const btn=document.getElementById('csvImportBtn');
+  btn.textContent='Import en cours...'; btn.disabled=true;
+  const defaultStatus=getPrepSteps()[0]?.key||'stock';
+  const rows=csvImportRows.map(r=>({
+    id:crypto.randomUUID(), user_id:currentUser.id, sku:crypto.randomUUID().replace(/-/g,'').slice(0,8),
+    name:r.name, buy_price:r.buy_price, sell_price:0, extra_costs:0, platform:r.platform,
+    status:defaultStatus, buy_date:r.buy_date, sell_date:null, photo_url:null, photo_urls:[],
+    location:r.location, source:r.source, published_at:defaultStatus==='stock'?today():null,
+  }));
+  const {data,error}=await sb.from('articles').insert(rows).select();
+  btn.textContent='Importer'; btn.disabled=false;
+  if(error){ alert('Erreur import : '+error.message); return; }
+  allArticles.unshift(...data);
+  closeCsvImport();
+  renderAll();
+};
 
 window.exportArticlesCSV = (section) => {
   const arts = section==='stock' ? allArticles.filter(a=>a.status==='stock') : allArticles.filter(a=>a.status==='vendu');
@@ -1419,43 +1545,6 @@ document.addEventListener('click', (e) => {
   if(wrap && results && !wrap.contains(e.target)) results.style.display='none';
 });
 
-function generateCoach(){
-  if(allArticles.length===0) return `<div class="coach-msg">👋 Bienvenue ! Ajoutez votre premier article pour commencer.</div>`;
-  const msgs=[];
-  const expedition=allArticles.filter(a=>a.status==='expedition');
-  if(expedition.length>0) msgs.push(`📦 Vous avez <strong>${expedition.length} colis</strong> à envoyer aujourd'hui.`);
-  const prepStepsForCoach=getPrepSteps();
-  const lastPrepStep=prepStepsForCoach[prepStepsForCoach.length-1];
-  const apublier=lastPrepStep?allArticles.filter(a=>a.status===lastPrepStep.key):[];
-  if(apublier.length>0) msgs.push(`✍️ <strong>${apublier.length} articles</strong> sont prêts à être publiés sur Vinted.`);
-  const anciens=allArticles.filter(a=>{
-    if(!isPreSaleStatus(a.status))return false;
-    const d=daysBetween(a.buy_date||a.created_at?.split('T')[0],today());
-    return d!==null&&d>60;
-  });
-  if(anciens.length>0) msgs.push(`🔴 <strong>${anciens.length} articles</strong> sont en stock depuis plus de 60 jours. Pensez à baisser les prix.`);
-  const sansVues=allArticles.filter(a=>{
-    if(a.status!=='stock'||!a.vinted_item_id)return false;
-    const d=daysBetween(a.synced_at&&a.buy_date||a.buy_date||a.created_at?.split('T')[0],today());
-    return (a.vinted_vues||0)===0&&d!==null&&d>7;
-  });
-  if(sansVues.length>0) msgs.push(`👁️ <strong>${sansVues.length} articles</strong> n'ont eu <strong>aucune vue</strong> sur Vinted depuis plus d'une semaine. Republiez-les ou revoyez les photos/le prix.`);
-  const tendance=allArticles.filter(isTrending);
-  if(tendance.length>0){
-    const noms=tendance.map(a=>a.name).join(', ');
-    msgs.push(`🔥 <strong>${noms}</strong> reçoi${tendance.length>1?'vent':'t'} beaucoup de favoris rapidement — envisagez d'augmenter le prix ou de répondre vite si on vous contacte dessus.`);
-  }
-  const vendus=allArticles.filter(a=>a.status==='vendu');
-  if(vendus.length>=3){
-    const byPlatform={};
-    vendus.forEach(a=>{byPlatform[a.platform]=(byPlatform[a.platform]||0)+calcProfit(a);});
-    const best=Object.entries(byPlatform).sort((a,b)=>b[1]-a[1])[0];
-    if(best) msgs.push(`🏆 Votre meilleure plateforme est <strong>${best[0]}</strong> avec ${fmtPrice(best[1])} de profit total.`);
-  }
-  if(msgs.length===0) msgs.push(`✅ Tout est en ordre. Continuez comme ça !`);
-  return msgs.map(m=>`<div class="coach-msg">🤖 ${m}</div>`).join('');
-}
-
 // ── STOCK UNIFIÉ (laver/photo/publier/stock/expédition/vendus en une page) ──
 // Label + couleur du statut d'un article, pour le badge coloré des cartes
 // (réutilise les mêmes couleurs que stepBadge()/getAllSteps()). Accepte soit
@@ -1784,7 +1873,97 @@ function findDuplicateArticles(){
   return Object.values(groups).filter(g=>g.length>1);
 }
 
+// ── DÉTECTION DE DOUBLONS PAR PHOTO ──
+// Les photos synchronisées depuis Vinted sont hébergées sur le CDN Vinted,
+// qui n'envoie pas d'Access-Control-Allow-Origin : lire les pixels via
+// canvas.getImageData() échouerait ("canvas tainted"). On repasse donc par
+// un proxy backend (/api/image-proxy, liste blanche de domaines) qui rejoue
+// l'image avec un ACAO permissif. Hash perceptuel simple (average hash 8x8 =
+// 64 bits), pas d'embeddings ML : suffisant pour repérer une même photo
+// réutilisée sous un nom différent, sans télécharger de modèle côté client.
+const photoHashCache={};
+async function fetchProxiedImageBitmap(url){
+  const token=(await sb.auth.getSession()).data.session?.access_token;
+  const r=await fetch(`${BACKEND}/api/image-proxy?url=${encodeURIComponent(url)}`,{headers:{'Authorization':`Bearer ${token}`}});
+  if(!r.ok) return null;
+  return createImageBitmap(await r.blob());
+}
+async function computePhotoHash(url){
+  const cached=photoHashCache[url];
+  if(cached!==undefined) return cached;
+  let hash=null;
+  try{
+    const bitmap=await fetchProxiedImageBitmap(url);
+    if(bitmap){
+      const size=8;
+      const canvas=document.createElement('canvas');
+      canvas.width=size; canvas.height=size;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(bitmap,0,0,size,size);
+      const {data}=ctx.getImageData(0,0,size,size);
+      const gray=[];
+      for(let i=0;i<data.length;i+=4) gray.push((data[i]+data[i+1]+data[i+2])/3);
+      const avg=gray.reduce((a,b)=>a+b,0)/gray.length;
+      hash=gray.map(v=>v>avg?'1':'0').join('');
+    }
+  }catch(e){ hash=null; }
+  photoHashCache[url]=hash;
+  return hash;
+}
+function hammingDistance(a,b){
+  let d=0;
+  for(let i=0;i<a.length;i++) if(a[i]!==b[i]) d++;
+  return d;
+}
+async function findPhotoDuplicates(articles, onProgress){
+  const withPhoto=articles.filter(a=>a.photo_url);
+  const hashed=[];
+  for(let i=0;i<withPhoto.length;i++){
+    const h=await computePhotoHash(withPhoto[i].photo_url);
+    if(h) hashed.push({article:withPhoto[i], hash:h});
+    if(onProgress) onProgress(i+1, withPhoto.length);
+  }
+  const groups=[]; const used=new Set();
+  for(let i=0;i<hashed.length;i++){
+    if(used.has(hashed[i].article.id)) continue;
+    const group=[hashed[i].article];
+    for(let j=i+1;j<hashed.length;j++){
+      if(used.has(hashed[j].article.id)) continue;
+      if(hammingDistance(hashed[i].hash,hashed[j].hash)<=8){
+        group.push(hashed[j].article);
+        used.add(hashed[j].article.id);
+      }
+    }
+    if(group.length>1){ used.add(hashed[i].article.id); groups.push(group); }
+  }
+  return groups;
+}
+window.checkPhotoDuplicates=async()=>{
+  const btn=document.getElementById('photoDupBtn');
+  const body=document.getElementById('duplicatesPhotoBody');
+  btn.disabled=true;
+  const candidates=allArticles.filter(a=>isPreSaleStatus(a.status));
+  const groups=await findPhotoDuplicates(candidates,(done,total)=>{
+    btn.textContent=`🔍 Analyse... ${done}/${total}`;
+  });
+  btn.textContent='🔍 Vérifier aussi par photo'; btn.disabled=false;
+  body.innerHTML=groups.length?groups.map(g=>`
+    <div class="checklist-card" style="margin-bottom:10px;">
+      <div class="checklist-title">Photos similaires</div>
+      ${g.map(a=>{
+        const status=statusMeta(a);
+        return `<div class="checklist-item" style="justify-content:space-between;">
+          <span>${a.photo_url?`<img src="${a.photo_url}" style="width:24px;height:24px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:6px;">`:''}<span class="tile-status-pill" style="position:static;display:inline-block;background:${status.color};margin-right:6px;">${status.label}</span>${a.name} — ${fmtPrice(a.buy_price||a.sell_price)}</span>
+          <button class="pf-btn" onclick="confirmDelete('${a.id}');setTimeout(checkPhotoDuplicates,300)">🗑 Supprimer</button>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join(''):`<p class="stockall-empty">Aucun doublon probable détecté par photo 👍</p>`;
+};
+
 window.openDuplicates=()=>{
+  document.getElementById('duplicatesPhotoBody').innerHTML='';
+  document.getElementById('photoDupBtn').textContent='🔍 Vérifier aussi par photo';
   const groups=findDuplicateArticles();
   const body=document.getElementById('duplicatesBody');
   body.innerHTML=groups.length?groups.map(g=>`
@@ -2701,6 +2880,65 @@ window.removePrepStep=(key)=>{
   renderStockAll();
 };
 
+// ── NOTIFICATIONS WEB PUSH (nouvelle vente / nouveau favori) ──
+// Clé publique VAPID : publique par nature (voir RFC 8292), peut être codée
+// en dur côté client. La clé privée correspondante ne vit que côté backend
+// (variable d'env VAPID_PRIVATE_KEY, jamais exposée ici).
+const VAPID_PUBLIC_KEY = 'BKfONAuL20-Yoo98FzdhaJbM96eVRyMN-dgomdZRhbHoGLgIXyBgCrXRcOvAHSyPnCsjPSGMD4YVsb3RFsIzxa0';
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+async function getPushSubscription(){
+  if(!('serviceWorker' in navigator)) return null;
+  const reg=await navigator.serviceWorker.ready;
+  return reg.pushManager.getSubscription();
+}
+async function renderPushStatus(){
+  const btn=document.getElementById('pushToggleBtn');
+  if(!btn) return;
+  if(!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)){
+    btn.textContent='Non supporté'; btn.disabled=true;
+    return;
+  }
+  const sub=await getPushSubscription().catch(()=>null);
+  btn.textContent=sub?'Désactiver':'Activer';
+  btn.disabled=false;
+}
+window.togglePushNotifications=async()=>{
+  const btn=document.getElementById('pushToggleBtn');
+  btn.disabled=true;
+  try{
+    const existing=await getPushSubscription();
+    if(existing){
+      await sb.from('push_subscriptions').delete().eq('endpoint',existing.endpoint);
+      await existing.unsubscribe();
+      btn.textContent='Activer';
+      return;
+    }
+    const permission=await Notification.requestPermission();
+    if(permission!=='granted'){ btn.textContent='Activer'; return; }
+    const reg=await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.subscribe({
+      userVisibleOnly:true,
+      applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    const json=sub.toJSON();
+    const {error}=await sb.from('push_subscriptions').upsert({
+      user_id:currentUser.id, endpoint:json.endpoint, p256dh:json.keys.p256dh, auth:json.keys.auth,
+    },{onConflict:'endpoint'});
+    if(error){ await sub.unsubscribe(); btn.textContent='Activer'; alert('Erreur activation : '+error.message); return; }
+    btn.textContent='Désactiver';
+  }catch(e){
+    alert("Impossible d'activer les notifications : "+e.message);
+    btn.textContent='Activer';
+  }finally{
+    btn.disabled=false;
+  }
+};
+
 // Chaque compte Vinted connecté a sa propre carte (login, statut, réputation,
 // bouton déconnecter) — un utilisateur peut en avoir plusieurs en parallèle.
 async function renderVintedConnectionStatus() {
@@ -3022,6 +3260,7 @@ window.sendFeedback = async () => {
 
 // ── INIT ──
 initTheme();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
 document.getElementById('landingLogo').src = LOGO_LIGHT;
 document.getElementById('heroBadgeLogo').src = LOGO_DARK;
 sb.auth.onAuthStateChange((event,session)=>{
