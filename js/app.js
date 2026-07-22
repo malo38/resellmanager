@@ -463,6 +463,15 @@ window.openModal=(article=null)=>{
   document.getElementById('mPhoto').value='';
   renderPhotoGallery();
   document.getElementById('mId').value=article?.id||'';
+  const skuField=document.getElementById('mSkuField');
+  const skuValue=document.getElementById('mSkuValue');
+  if(article?.sku){
+    skuField.style.display='block';
+    skuValue.textContent='#'+article.sku;
+    skuValue.dataset.sku=article.sku;
+  } else {
+    skuField.style.display='none';
+  }
   document.getElementById('mName').value=article?.name||'';
   document.getElementById('mBuy').value=article?.buy_price||'';
   document.getElementById('mSell').value=article?.sell_price||'';
@@ -1566,6 +1575,18 @@ function statusMeta(articleOrStatus){
   return getAllSteps().find(p=>p.key===status) || {label:status, color:'#888'};
 }
 
+// Copie "#SKU" dans le presse-papier — à coller en fin de titre Vinted, voir
+// resolve_sku côté backend (priorité au #SKU détecté dans le titre pour un
+// rattachement fiable, plutôt que le rapprochement approximatif par nom).
+window.copySku=(sku,el)=>{
+  navigator.clipboard.writeText('#'+sku);
+  if(el){
+    const original=el.textContent;
+    el.textContent='✓ Copié !';
+    setTimeout(()=>{el.textContent=original;},1200);
+  }
+};
+
 function articleTileHTML(a, opts={}){
   const allSteps=getAllSteps();
   const nextStep=allSteps[allSteps.findIndex(p=>p.key===a.status)+1];
@@ -1627,6 +1648,7 @@ function articleTileHTML(a, opts={}){
       </div>
       <div class="tile-big-info">
         <div class="tile-big-name">${a.name}${a.vinted_boosted?' <span class="badge badge-vinted" title="Boost Vinted payant actif">🚀 Boosté</span>':''}</div>
+        <div class="tile-sku" title="Cliquer pour copier — à coller en fin de titre Vinted pour un rattachement fiable" onclick="event.stopPropagation();copySku('${a.sku}',this)">#${a.sku}</div>
         <div class="tile-big-tags"><span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>${a.location?`<span class="tile-big-loc">📍 ${a.location}</span>`:''}</div>
         <div class="tile-big-date">📅 ${fmtDate(a.buy_date||a.created_at)}</div>
       </div>
@@ -1658,6 +1680,7 @@ function articleListRowHTML(a){
   return `<div class="tile-list-row" onclick="showDetail('${a.id}')">
     <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
     <div class="tile-list-name">${a.name}</div>
+    <span class="tile-list-sku" title="Cliquer pour copier — à coller en fin de titre Vinted" onclick="event.stopPropagation();copySku('${a.sku}',this)">#${a.sku}</span>
     <span class="tile-list-status" style="background:${status.color}">${status.label}</span>
     ${ageLabel}
     <div class="tile-list-price ${priceClass}">${priceLabel}</div>
@@ -2199,6 +2222,7 @@ function renderReplay(){
     return `<div class="tile-list-row" onclick="openReplayDetail('${a.id}')">
       <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
       <div class="tile-list-name">${a.name}</div>
+      <span class="tile-list-sku" title="Cliquer pour copier" onclick="event.stopPropagation();copySku('${a.sku}',this)">#${a.sku}</span>
       ${statusBadge}
       <div class="tile-list-price ${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</div>
     </div>`;
@@ -3069,6 +3093,7 @@ window.showDetail = (id) => {
           ${stepBadge(a.status)}
           ${a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:''}
         </div>
+        ${detailRow('🏷️ SKU', `<span class="tile-sku" style="margin-bottom:0;" title="Cliquer pour copier — à coller en fin de titre Vinted pour un rattachement fiable" onclick="copySku('${a.sku}',this)">#${a.sku}</span>`)}
         ${detailRow('🛒 Achat', fmtPrice(a.buy_price)+(a.buy_date?' · '+a.buy_date:''))}
         ${a.status==='vendu'?detailRow('💸 Vente', (isRefunded?fmtPrice(0):fmtPrice(a.sell_price))+(a.sell_date?' · '+a.sell_date:'')):''}
         ${a.extra_costs?detailRow('🧾 Frais annexes', fmtPrice(a.extra_costs)):''}
