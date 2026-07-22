@@ -610,11 +610,18 @@
       <!-- ANALYTICS -->
       <section class="page" id="page-analytics">
         <div class="kpi-grid" id="analyticsKpi"></div>
-        <div class="section-header"><h2>Profit par mois</h2><button class="btn-edit" onclick="exportAnnualRecapCSV()">⬇ Récap fiscal annuel (CSV)</button></div>
+        <div class="section-header">
+          <h2>Profit par mois</h2>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="analyticsYearSelect" class="stock-sort-select" onchange="renderAnalytics()"></select>
+            <button class="btn-edit" onclick="exportAnnualRecapCSV()">⬇ Récap fiscal annuel (CSV)</button>
+          </div>
+        </div>
         <div class="chart-card big">
           <div class="chart-bars" id="chartBars"></div>
           <div class="chart-labels" id="chartLabels"></div>
         </div>
+        <div id="monthDetailPanel"></div>
         <div class="section-header" style="margin-top:24px;"><h2>🏆 Hall of Fame — meilleures ventes</h2></div>
         <div id="hallOfFameList"></div>
       </section>
@@ -1153,6 +1160,6 @@
 
 <script src="js/i18n.js?v=1"></script>
 <script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=53"></script>
+<script src="js/app.js?v=54"></script>
 </body>
 </html>

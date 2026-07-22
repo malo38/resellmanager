@@ -2195,19 +2195,46 @@ function renderMiniChart(barsId,labelsId){
   ).join('');
 }
 
+// Les 12 mois d'une année précise (contrairement à getMonths(), qui reste
+// une fenêtre glissante des 6 derniers mois — utilisée ailleurs par le
+// dashboard, pas touchée ici).
+function getMonthsForYear(year){
+  return Array.from({length:12},(_,i)=>({
+    label:new Date(year,i,1).toLocaleString('fr',{month:'short'}),
+    profit:0, month:i, year,
+  }));
+}
+
 function renderAnalytics(){
-  const months=getMonths();
-  allArticles.filter(a=>a.status==='vendu').forEach(a=>{
+  // Sélecteur d'année (demandé le 2026-07-22, à la Pronote/École Directe) :
+  // liste toutes les années où au moins une vente existe, plus l'année en
+  // cours même si elle est encore vide.
+  const allVendus=allArticles.filter(a=>a.status==='vendu');
+  const years=Array.from(new Set(allVendus.map(a=>new Date(a.sell_date||a.created_at).getFullYear())));
+  const currentYear=new Date().getFullYear();
+  if(!years.includes(currentYear)) years.push(currentYear);
+  years.sort((a,b)=>b-a);
+  const yearSelect=document.getElementById('analyticsYearSelect');
+  const selectedYear=yearSelect?.value?parseInt(yearSelect.value):currentYear;
+  if(yearSelect){
+    yearSelect.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    yearSelect.value=years.includes(selectedYear)?selectedYear:currentYear;
+  }
+  const activeYear=yearSelect?parseInt(yearSelect.value):currentYear;
+  document.getElementById('monthDetailPanel').innerHTML='';
+
+  const months=getMonthsForYear(activeYear);
+  const vendus=allVendus.filter(a=>new Date(a.sell_date||a.created_at).getFullYear()===activeYear);
+  vendus.forEach(a=>{
     const d=new Date(a.sell_date||a.created_at);
-    const m=months.find(m=>m.month===d.getMonth()&&m.year===d.getFullYear());
+    const m=months.find(m=>m.month===d.getMonth());
     if(m) m.profit+=calcProfit(a);
   });
-  const vendus=allArticles.filter(a=>a.status==='vendu');
   const totalP=vendus.reduce((s,a)=>s+calcProfit(a),0);
   const avgP=vendus.length?totalP/vendus.length:0;
   const bestMonth=Math.max(0,...months.map(m=>m.profit));
   const now=new Date();
-  const profitMois=months.find(m=>m.month===now.getMonth()&&m.year===now.getFullYear())?.profit||0;
+  const profitMois=activeYear===now.getFullYear()?(months.find(m=>m.month===now.getMonth())?.profit||0):0;
   // Une vente avant l'achat est une erreur de données (dates mal synchronisées côté
   // Vinted), pas un vrai délai — on l'exclut plutôt que de fausser la moyenne.
   const avecDates=vendus.filter(a=>a.buy_date&&a.sell_date&&daysBetween(a.buy_date,a.sell_date)>=0);
@@ -2227,15 +2254,40 @@ function renderAnalytics(){
     <div class="kpi-card"><div class="kpi-label">Score moyen</div><div class="kpi-val green">${avgScore!==null?avgScore+'/100':'—'}</div></div>
   `;
   const maxP=Math.max(...months.map(m=>Math.abs(m.profit)),1);
-  document.getElementById('chartBars').innerHTML=months.map(m=>{
+  document.getElementById('chartBars').innerHTML=months.map((m,i)=>{
     const h=Math.max(4,Math.abs(m.profit)/maxP*110);
-    return `<div class="bar-wrap"><div class="bar ${m.profit<0?'negative':''}" style="height:${h}px;"></div></div>`;
+    return `<div class="bar-wrap" style="cursor:pointer;" onclick="showMonthDetail(${i})"><div class="bar ${m.profit<0?'negative':''}" style="height:${h}px;"></div></div>`;
   }).join('');
-  document.getElementById('chartLabels').innerHTML=months.map(m=>
-    `<div class="chart-label">${m.label}<strong>${m.profit>=0?'+':''}${fmtPrice(m.profit)}</strong></div>`
+  document.getElementById('chartLabels').innerHTML=months.map((m,i)=>
+    `<div class="chart-label" style="cursor:pointer;" onclick="showMonthDetail(${i})">${m.label}<strong>${m.profit>=0?'+':''}${fmtPrice(m.profit)}</strong></div>`
   ).join('');
   renderHallOfFame();
 }
+
+// Détail d'un mois précis (clic sur une barre/étiquette du graphique) —
+// demandé le 2026-07-22, façon Pronote/École Directe (choisir année + mois).
+window.showMonthDetail=(monthIdx)=>{
+  const year=parseInt(document.getElementById('analyticsYearSelect').value);
+  const monthName=new Date(year,monthIdx,1).toLocaleString('fr',{month:'long'});
+  const arts=allArticles.filter(a=>{
+    if(a.status!=='vendu') return false;
+    const d=new Date(a.sell_date||a.created_at);
+    return d.getFullYear()===year&&d.getMonth()===monthIdx;
+  });
+  const profit=arts.reduce((s,a)=>s+calcProfit(a),0);
+  const ca=arts.reduce((s,a)=>s+calcCA(a),0);
+  const avg=arts.length?profit/arts.length:0;
+  const panel=document.getElementById('monthDetailPanel');
+  panel.innerHTML=arts.length?`
+    <div class="section-header" style="margin-top:16px;"><h2>📅 ${monthName} ${year}</h2></div>
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Profit</div><div class="kpi-val ${profit>=0?'green':'red'}">${fmtPrice(profit)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Chiffre d'affaires</div><div class="kpi-val">${fmtPrice(ca)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Articles vendus</div><div class="kpi-val">${arts.length}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Profit moyen</div><div class="kpi-val">${fmtPrice(avg)}</div></div>
+    </div>
+  `:`<div class="section-header" style="margin-top:16px;"><h2>📅 ${monthName} ${year}</h2></div><p class="stockall-empty">Aucune vente ce mois-là.</p>`;
+};
 
 // ── HALL OF FAME ──
 function renderHallOfFame(){
