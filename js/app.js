@@ -1593,10 +1593,17 @@ window.copySku=(sku,el)=>{
 // nom+statut (des exemplaires à des étapes différentes restent distincts,
 // ex: 3 encore "à laver" et 2 déjà "en stock").
 function groupIdenticalArticles(arts){
+  // Le nom seul ne suffit pas : deux articles différents peuvent avoir un nom
+  // générique identique ("Short", "T-shirt basique"...) sans être le même
+  // article physique — signalé le 2026-07-22 (deux shorts distincts groupés
+  // à tort). On n'ajoute le prix d'achat ET la date d'achat à la clé : un
+  // vrai lot acheté en gros a ce même prix unitaire et cette même date
+  // d'entrée en stock, ce qui n'est presque jamais le cas de deux articles
+  // différents juste homonymes.
   const groups=new Map();
   const order=[];
   arts.forEach(a=>{
-    const key=(a.name||'').trim().toLowerCase()+'|'+a.status;
+    const key=(a.name||'').trim().toLowerCase()+'|'+a.status+'|'+(a.buy_price||0)+'|'+(a.buy_date||'');
     if(!groups.has(key)){ groups.set(key,[]); order.push(key); }
     groups.get(key).push(a);
   });
