@@ -732,9 +732,15 @@ function renderDashboard(){
   }).reduce((s,p)=>s+(p.transaction_status==='failed'?0:(parseFloat(p.price)||0)),0);
   const totalDepenses=allExpenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
   const profitNet=totalProfit-totalDepenses;
+  // Sans prix d'achat renseigné, calcProfit() prend 0 par défaut : le profit
+  // affiché est alors en réalité le chiffre d'affaires brut, pas un vrai
+  // profit — source de confusion signalée le 2026-07-22 ("comment il me sort
+  // un chiffre alors que j'ai pas renseigné de prix d'achat ?"). On ne change
+  // pas le calcul (0 reste la bonne hypothèse par défaut) mais on l'explique.
+  const vendusNoBuyPrice=vendus.filter(a=>!a.buy_price).length;
 
   const kpis=[
-    {key:'kpi_profit_total', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.profitTotal')}</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div></div>`},
+    {key:'kpi_profit_total', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.profitTotal')}</div><div class="kpi-val ${totalProfit>=0?'green':'red'}">${fmtPrice(totalProfit)}</div>${vendusNoBuyPrice>0?`<div class="kpi-sub" style="color:var(--warning)" title="Le profit suppose un prix d'achat de 0€ tant qu'il n'est pas renseigné">⚠️ ${vendusNoBuyPrice} vente${vendusNoBuyPrice>1?'s':''} sans prix d'achat</div>`:''}</div>`},
     {key:'kpi_profit_mois', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.profitMois')}</div><div class="kpi-val ${profitMois>=0?'green':'red'}">${fmtPrice(profitMois)}</div><div class="kpi-sub">${t('dashboard.automatic')}</div></div>`},
     {key:'kpi_profit_net', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.profitNet')}</div><div class="kpi-val ${profitNet>=0?'green':'red'}">${fmtPrice(profitNet)}</div><div class="kpi-sub">-${fmtPrice(totalDepenses)} de dépenses</div></div>`},
     {key:'kpi_stock', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.stock')}</div><div class="kpi-val">${stock.length}</div><div class="kpi-sub">${fmtPrice(investi)} investis</div></div>`},
@@ -1705,22 +1711,33 @@ function renderUnmatchedSales(){
   const wrap=document.getElementById('unmatchedSalesWrap');
   if(!wrap) return;
   if(!allUnmatchedSales.length){ wrap.innerHTML=''; return; }
-  // Inclut aussi les articles déjà "vendu" : une resynchro d'une vente déjà
-  // traitée (mais sans lien enregistré, ex: articles antérieurs à la
-  // migration SKU) doit pouvoir se relier à sa fiche existante plutôt que de
-  // forcer la création d'un doublon (signalé le 2026-07-15).
-  const options=`<option value="">— Choisir un article —</option>` +
-    allArticles.map(a=>`<option value="${a.id}">${a.name} (${fmtPrice(a.buy_price||a.sell_price)})${a.status==='vendu'?' — déjà vendu':''}</option>`).join('');
+  // Un <select> avec un article par <option> devient inutilisable au-delà
+  // d'une centaine d'articles (aucun moyen de chercher par SKU/nom/date,
+  // signalé le 2026-07-22 par une utilisatrice avec 600+ articles — un lot
+  // générique type "Lot 2 articles du 16/02" est illisible sans context).
+  // Remplacé par un champ texte + <datalist> natif : tape n'importe quel bout
+  // du SKU, du nom ou de la date, le navigateur filtre tout seul. Inclut
+  // aussi les articles déjà "vendu" : une resynchro d'une vente déjà traitée
+  // (mais sans lien enregistré, ex: articles antérieurs à la migration SKU)
+  // doit pouvoir se relier à sa fiche existante plutôt que de forcer la
+  // création d'un doublon (signalé le 2026-07-15).
+  const sortedArticles=allArticles.slice().sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  const datalistOptions=sortedArticles.map(a=>{
+    const dateTxt=fmtDate(a.buy_date||a.created_at);
+    const label=`${a.sku} — ${a.name} — ajouté le ${dateTxt} (${fmtPrice(a.buy_price||a.sell_price)})${a.status==='vendu'?' — déjà vendu':''}`;
+    return `<option value="${label.replace(/"/g,'&quot;')}">`;
+  }).join('');
   wrap.innerHTML=`
     <div class="info-banner" style="background:var(--warning-dim);color:var(--warning);margin-bottom:16px;">
       🔗 ${allUnmatchedSales.length} vente${allUnmatchedSales.length>1?'s':''} Vinted détectée${allUnmatchedSales.length>1?'s':''} sans article correspondant clair — reliez-les à un article existant ou créez-en un nouveau.
     </div>
+    <datalist id="unmatchedArticleOptions">${datalistOptions}</datalist>
     <div class="checklist-card" style="margin-bottom:16px;">
       ${allUnmatchedSales.map(u=>`
         <div class="checklist-item" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <span>${u.photo_url?`<img src="${u.photo_url}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;">`:''}<strong>${u.name||'(sans nom)'}</strong> — ${fmtPrice(u.sell_price)} — ${fmtDate(u.sell_date)}${u.vinted_shipping_status?' — '+u.vinted_shipping_status:''}</span>
           <span style="display:flex;gap:6px;align-items:center;">
-            <select id="unmatchedSelect-${u.id}" class="stock-sort-select">${options}</select>
+            <input type="text" id="unmatchedSearch-${u.id}" list="unmatchedArticleOptions" class="stock-sort-select" style="min-width:260px;" placeholder="🔎 Chercher par SKU, nom ou date...">
             <button class="pf-btn" onclick="linkUnmatchedSale('${u.id}')">Lier</button>
             <button class="pf-btn" onclick="createFromUnmatchedSale('${u.id}')">+ Nouvel article</button>
           </span>
@@ -1733,12 +1750,14 @@ function renderUnmatchedSales(){
 // jour l'article (statut/prix/date de vente) et enregistre le lien pour que
 // les prochaines synchros retrouvent directement cet article.
 window.linkUnmatchedSale=async(unmatchedId)=>{
-  const select=document.getElementById('unmatchedSelect-'+unmatchedId);
-  const articleId=select?.value;
-  if(!articleId){ alert('Choisissez un article dans la liste.'); return; }
+  const input=document.getElementById('unmatchedSearch-'+unmatchedId);
+  const typed=(input?.value||'').trim();
+  const sku=typed.split(' — ')[0].trim();
+  const article=sku?allArticles.find(a=>a.sku===sku):null;
+  if(!article){ alert('Tapez pour rechercher (SKU, nom ou date), puis choisissez une suggestion dans la liste.'); return; }
   const u=allUnmatchedSales.find(x=>x.id===unmatchedId);
-  const article=allArticles.find(a=>a.id===articleId);
-  if(!u||!article) return;
+  if(!u) return;
+  const articleId=article.id;
   const status=(u.vinted_transaction_status||'').toLowerCase()==='completed'?'vendu':'expedition';
   await sb.from('articles').update({
     status, sell_price:u.sell_price, sell_date:u.sell_date,
