@@ -4,7 +4,15 @@
  * sans avoir besoin d'installer d'outillage supplémentaire.
  */
 
-function today(){return new Date().toISOString().split('T')[0];}
+// toISOString() renvoie l'heure UTC, pas locale : en France (UTC+1/+2), entre
+// minuit local et le passage à minuit UTC, ça renvoyait encore la date de la
+// veille — décalait "aujourd'hui"/"ce mois-ci" pendant 1 à 2h chaque nuit
+// (ventes du jour non comptées, date d'achat par défaut fausse...). Construit
+// depuis les composants de date LOCAUX à la place (signalé le 2026-07-22).
+function today(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 
 function daysBetween(d1,d2){if(!d1||!d2)return null;return Math.round((new Date(d2)-new Date(d1))/86400000);}
 

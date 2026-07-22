@@ -3302,8 +3302,52 @@ window.sendFeedback = async () => {
   setTimeout(closeFeedback, 1500);
 };
 
+// ── LANDING : interactions visuelles (halo sur les cartes, apparition au
+// scroll, header flouté) — purement cosmétique, aucune donnée réelle. ──
+function initLandingInteractions(){
+  const header=document.querySelector('.landing-header');
+  if(header){
+    window.addEventListener('scroll',()=>{
+      header.classList.toggle('scrolled',window.scrollY>16);
+    },{passive:true});
+  }
+
+  const revealEls=document.querySelectorAll('.reveal-on-scroll');
+  if(revealEls.length){
+    if('IntersectionObserver' in window){
+      const groups={};
+      revealEls.forEach(el=>{
+        const parent=el.parentElement;
+        groups[parent]=groups[parent]||[];
+        const idx=groups[parent].length;
+        groups[parent].push(el);
+        el.style.transitionDelay=(idx%4*0.08)+'s';
+      });
+      const io=new IntersectionObserver((entries)=>{
+        entries.forEach(entry=>{
+          if(entry.isIntersecting){ entry.target.classList.add('revealed'); io.unobserve(entry.target); }
+        });
+      },{threshold:0.15});
+      revealEls.forEach(el=>io.observe(el));
+    } else {
+      revealEls.forEach(el=>el.classList.add('revealed'));
+    }
+  }
+
+  // Halo qui suit le curseur sur les cartes (feature/hero-highlight) — juste
+  // des variables CSS --mx/--my consommées par .tilt-card::before.
+  document.querySelectorAll('.tilt-card').forEach(card=>{
+    card.addEventListener('mousemove',(e)=>{
+      const rect=card.getBoundingClientRect();
+      card.style.setProperty('--mx',((e.clientX-rect.left)/rect.width*100)+'%');
+      card.style.setProperty('--my',((e.clientY-rect.top)/rect.height*100)+'%');
+    });
+  });
+}
+
 // ── INIT ──
 initTheme();
+initLandingInteractions();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
 document.getElementById('landingLogo').src = LOGO_LIGHT;
 document.getElementById('heroBadgeLogo').src = LOGO_DARK;
