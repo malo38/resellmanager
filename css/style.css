@@ -295,6 +295,11 @@ select option { background: var(--surface2); color: var(--text); }
 .tile-list-age { flex-shrink: 0; font-size: 11px; color: var(--muted); min-width: 26px; text-align: right; }
 .tile-list-row .tile-age-warn { color: var(--warning); font-weight: 700; }
 
+/* ── GROUPEMENT D'ARTICLES IDENTIQUES (même nom+statut, ex: achat en gros) ── */
+.tile-group-count { position: absolute; bottom: 5px; right: 5px; padding: 2px 6px; border-radius: 8px; font-size: 10.5px; font-weight: 800; color: #000; background: var(--accent); }
+.group-tile { border-color: var(--accent); }
+.tile-list-group-count { flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 999px; }
+
 /* ── VUE LISTE (bascule grille/liste) ── */
 .tile-list-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 10px 14px; cursor: pointer; transition: border-color 0.15s; }
 .tile-list-row:hover { border-color: var(--accent); }

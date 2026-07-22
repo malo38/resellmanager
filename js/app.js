@@ -1587,6 +1587,91 @@ window.copySku=(sku,el)=>{
   }
 };
 
+// ── GROUPEMENT DES ARTICLES IDENTIQUES ── (achat en gros : plusieurs
+// exemplaires du même produit au même statut) — évite une grille remplie de
+// N tuiles visuellement identiques, signalé le 2026-07-22. Regroupe par
+// nom+statut (des exemplaires à des étapes différentes restent distincts,
+// ex: 3 encore "à laver" et 2 déjà "en stock").
+function groupIdenticalArticles(arts){
+  const groups=new Map();
+  const order=[];
+  arts.forEach(a=>{
+    const key=(a.name||'').trim().toLowerCase()+'|'+a.status;
+    if(!groups.has(key)){ groups.set(key,[]); order.push(key); }
+    groups.get(key).push(a);
+  });
+  return order.map(key=>groups.get(key));
+}
+
+function groupTileHTML(group){
+  const first=group[0];
+  const status=statusMeta(first);
+  const totalBuy=group.reduce((s,a)=>s+(parseFloat(a.buy_price)||0),0);
+  const oldestDays=Math.max(...group.map(a=>daysInStock(a)||0));
+  const nameEsc=first.name.replace(/'/g,"\\'");
+  return `<div class="article-tile group-tile" onclick="openGroupDetail('${nameEsc}','${first.status}')">
+    <div class="tile-big-top">
+      <div class="tile-photo">
+        ${first.photo_url?`<img src="${first.photo_url}" alt="${first.name.replace(/"/g,'&quot;')}">`:'📦'}
+        <span class="tile-group-count">×${group.length}</span>
+      </div>
+      <div class="tile-big-info">
+        <div class="tile-big-name">${first.name}</div>
+        <div class="tile-big-tags"><span class="badge ${platformBadgeClass(first.platform)}">${first.platform}</span></div>
+        <div class="tile-big-date">📦 ${group.length} exemplaires identiques</div>
+      </div>
+    </div>
+    <div class="tile-big-divider"></div>
+    <div class="tile-big-stats">
+      <div class="tile-big-stat"><span class="tile-big-stat-label">Investi (total)</span><span class="tile-big-stat-val">${fmtPrice(totalBuy)}</span></div>
+      <div class="tile-big-stat"><span class="tile-big-stat-label">Le plus ancien</span><span class="tile-big-stat-val">${oldestDays}j</span></div>
+    </div>
+    <div class="tile-bottom-row">
+      <span class="tile-status-label" style="color:${status.color};">${status.label}</span>
+      <div class="tile-bottom-actions"><button class="tile-action-btn" title="Voir les ${group.length} exemplaires" aria-label="Voir les ${group.length} exemplaires" onclick="event.stopPropagation();openGroupDetail('${nameEsc}','${first.status}')">🔍</button></div>
+    </div>
+  </div>`;
+}
+
+function groupListRowHTML(group){
+  const first=group[0];
+  const status=statusMeta(first);
+  const nameEsc=first.name.replace(/'/g,"\\'");
+  return `<div class="tile-list-row group-tile" onclick="openGroupDetail('${nameEsc}','${first.status}')">
+    <div class="tile-list-photo">${first.photo_url?`<img src="${first.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
+    <div class="tile-list-name">${first.name}</div>
+    <span class="tile-list-group-count">×${group.length}</span>
+    <span class="tile-list-status" style="background:${status.color}">${status.label}</span>
+  </div>`;
+}
+
+window.openGroupDetail=(name,status)=>{
+  const items=allArticles.filter(a=>a.name===name&&a.status===status);
+  const nameEsc=name.replace(/'/g,"\\'");
+  document.getElementById('groupDetailTitle').textContent=`${name} (${items.length} exemplaires)`;
+  const allSteps=getAllSteps();
+  document.getElementById('groupDetailBody').innerHTML=items.map(a=>{
+    const nextStep=allSteps[allSteps.findIndex(p=>p.key===a.status)+1];
+    const republishBtn=a.vinted_item_id&&a.status==='stock'
+      ?`<button class="pf-btn" onclick="event.stopPropagation();quickRepublish('${a.vinted_item_id}',this)">🔄 Republier</button>`:'';
+    return `<div class="checklist-item" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <span>${a.photo_url?`<img src="${a.photo_url}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;">`:''}<span class="tile-sku" style="margin-bottom:0;" title="Cliquer pour copier" onclick="copySku('${a.sku}',this)">#${a.sku}</span> ${fmtPrice(a.buy_price)}</span>
+      <span style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${nextStep?`<button class="pf-btn" onclick="moveGroupItemStep('${a.id}','${nextStep.key}','${nameEsc}','${status}')">→ ${nextStep.label}</button>`:''}
+        ${republishBtn}
+        <button class="pf-btn" onclick="closeGroupDetail();showDetail('${a.id}')">Détail</button>
+        <button class="pf-btn" onclick="confirmDelete('${a.id}');setTimeout(()=>openGroupDetail('${nameEsc}','${status}'),300)">🗑 Supprimer</button>
+      </span>
+    </div>`;
+  }).join('');
+  document.getElementById('groupDetailBg').classList.add('open');
+};
+window.closeGroupDetail=()=>document.getElementById('groupDetailBg').classList.remove('open');
+window.moveGroupItemStep=async(id,step,name,status)=>{
+  await moveToStep(id,step);
+  openGroupDetail(name,status);
+};
+
 function articleTileHTML(a, opts={}){
   const allSteps=getAllSteps();
   const nextStep=allSteps[allSteps.findIndex(p=>p.key===a.status)+1];
@@ -1892,10 +1977,13 @@ function renderStockAll(){
   shown=sortStockArticles(shown);
   const gridEl=document.getElementById('stockallGrid');
   gridEl.classList.toggle('view-list', stockViewMode==='list');
+  // Groupement désactivé en mode sélection multiple : la sélection cible des
+  // articles précis, une tuile de groupe n'aurait pas de sens à cocher.
+  const stockGroups=selectMode.stockall?shown.map(a=>[a]):groupIdenticalArticles(shown);
   gridEl.innerHTML=shown.length
     ?(stockViewMode==='list'
-        ?shown.map(a=>articleListRowHTML(a)).join('')
-        :shown.map(a=>articleTileHTML(a,{showMove:true,selectSection:'stockall'})).join(''))
+        ?stockGroups.map(g=>g.length>1?groupListRowHTML(g):articleListRowHTML(g[0])).join('')
+        :stockGroups.map(g=>g.length>1?groupTileHTML(g):articleTileHTML(g[0],{showMove:true,selectSection:'stockall'})).join(''))
     :`<p class="stockall-empty">Aucun article.</p>`;
 }
 
