@@ -327,32 +327,32 @@
         <div class="weekly-card" id="weeklySummary" data-widget="weekly"></div>
         <div class="completeness-card" id="completenessBox" data-widget="completeness"></div>
         <div class="settings-card" id="quickCalcCard" data-widget="calc">
-          <h2 class="settings-title">🧮 Calculateur de marge rapide</h2>
-          <p class="setting-sub" style="margin-bottom:12px;">Testez un prix avant d'acheter un article.</p>
+          <h2 class="settings-title" data-i18n="dashboard.calc.title">🧮 Calculateur de marge rapide</h2>
+          <p class="setting-sub" style="margin-bottom:12px;" data-i18n="dashboard.calc.sub">Testez un prix avant d'acheter un article.</p>
           <div class="quick-calc-row">
             <div class="quick-calc-field">
-              <label>Prix d'achat</label>
+              <label data-i18n="dashboard.calc.buy">Prix d'achat</label>
               <input type="number" id="quickCalcBuy" placeholder="0" step="0.01" oninput="renderQuickCalc()">
             </div>
             <div class="quick-calc-field">
-              <label>Prix de vente</label>
+              <label data-i18n="dashboard.calc.sell">Prix de vente</label>
               <input type="number" id="quickCalcSell" placeholder="0" step="0.01" oninput="renderQuickCalc()">
             </div>
           </div>
           <div class="quick-calc-result" id="quickCalcResult"></div>
           <div class="market-price-row">
-            <input type="text" id="marketPriceQuery" placeholder="ex: jean levis, robe zara..." onkeydown="if(event.key==='Enter')checkMarketPrice()">
-            <button class="btn-edit" onclick="checkMarketPrice()">🔍 Voir les prix similaires sur Vinted</button>
+            <input type="text" id="marketPriceQuery" placeholder="ex: jean levis, robe zara..." data-i18n-placeholder="dashboard.calc.marketPricePlaceholder" onkeydown="if(event.key==='Enter')checkMarketPrice()">
+            <button class="btn-edit" onclick="checkMarketPrice()" data-i18n="dashboard.calc.marketPriceBtn">🔍 Voir les prix similaires sur Vinted</button>
           </div>
           <div id="marketPriceResult"></div>
         </div>
         <div class="dash-cols">
           <div data-widget="recent">
-            <div class="section-header"><h2>Derniers articles</h2></div>
+            <div class="section-header"><h2 data-i18n="dashboard.recent">Derniers articles</h2></div>
             <div id="recentList"></div>
           </div>
           <div data-widget="chart">
-            <div class="section-header"><h2>Profit mensuel</h2></div>
+            <div class="section-header"><h2 data-i18n="dashboard.chartTitle">Profit mensuel</h2></div>
             <div class="chart-card">
               <div class="chart-bars" id="dashChartBars"></div>
               <div class="chart-labels" id="dashChartLabels"></div>
@@ -372,10 +372,10 @@
         <div class="stock-ministats" id="achatsMinistats"></div>
         <div class="stock-toolbar">
           <div class="stock-search-wrap">
-            <input type="text" id="achatsSearchInput" class="stock-search" placeholder="🔎 Rechercher un achat..." oninput="onAchatsSearch(this.value)" />
+            <input type="text" id="achatsSearchInput" class="stock-search" placeholder="🔎 Rechercher un achat..." data-i18n-placeholder="achats.searchPlaceholder" oninput="onAchatsSearch(this.value)" />
           </div>
-          <button class="pf-btn" onclick="resetAchatsFilters()" title="Effacer la recherche">↺ Réinitialiser</button>
-          <button class="pf-btn" style="margin-left:auto;" onclick="exportAchatsCSV()">⬇ CSV</button>
+          <button class="pf-btn" onclick="resetAchatsFilters()" title="Effacer la recherche" data-i18n-title="achats.resetTitle" data-i18n="common.reset">↺ Réinitialiser</button>
+          <button class="pf-btn" style="margin-left:auto;" onclick="exportAchatsCSV()" data-i18n="common.csv">⬇ CSV</button>
         </div>
         <div id="achatsDisputeWrap"></div>
         <div id="achatsPickupWrap"></div>
@@ -388,7 +388,7 @@
         <div class="stock-ministats" id="boostMinistats"></div>
         <div class="stock-toolbar">
           <div class="stock-search-wrap">
-            <input type="text" id="boostSearchInput" class="stock-search" placeholder="🔎 Rechercher un article boosté..." oninput="onBoostSearch(this.value)" />
+            <input type="text" id="boostSearchInput" class="stock-search" placeholder="🔎 Rechercher un article boosté..." data-i18n-placeholder="boost.searchPlaceholder" oninput="onBoostSearch(this.value)" />
           </div>
         </div>
         <div id="boostList"></div>
@@ -405,34 +405,34 @@
 
         <div class="stock-toolbar">
           <div class="stock-search-wrap">
-            <input type="text" id="stockSearchInput" class="stock-search" placeholder="🔎 Rechercher un article..." oninput="onStockSearch(this.value)" />
+            <input type="text" id="stockSearchInput" class="stock-search" placeholder="🔎 Rechercher un article..." data-i18n-placeholder="stock.searchPlaceholder" oninput="onStockSearch(this.value)" />
           </div>
           <select id="stockPlatformSelect" class="stock-sort-select" onchange="filterPlatform(this.value,null,'stockall')">
-            <option value="Tous">Toutes plateformes</option>
-            <option value="Vinted">Vinted</option>
-            <option value="eBay">eBay</option>
-            <option value="Leboncoin">Leboncoin</option>
-            <option value="Autre">Autre</option>
+            <option value="Tous" data-i18n="common.platform.all">Toutes plateformes</option>
+            <option value="Vinted" data-i18n="common.platform.vinted">Vinted</option>
+            <option value="eBay" data-i18n="common.platform.ebay">eBay</option>
+            <option value="Leboncoin" data-i18n="common.platform.leboncoin">Leboncoin</option>
+            <option value="Autre" data-i18n="common.platform.autre">Autre</option>
           </select>
           <select id="stockSortSelect" class="stock-sort-select" onchange="onStockSort(this.value)">
-            <option value="recent">Plus récent</option>
-            <option value="oldest">En stock depuis le plus longtemps</option>
-            <option value="price_desc">Prix décroissant</option>
-            <option value="price_asc">Prix croissant</option>
+            <option value="recent" data-i18n="common.sort.recent">Plus récent</option>
+            <option value="oldest" data-i18n="stock.sort.oldest">En stock depuis le plus longtemps</option>
+            <option value="price_desc" data-i18n="stock.sort.priceDesc">Prix décroissant</option>
+            <option value="price_asc" data-i18n="stock.sort.priceAsc">Prix croissant</option>
           </select>
           <div class="view-toggle" id="stockViewToggle">
-            <button class="view-toggle-btn" data-view="grid" onclick="setStockView('grid')" title="Vue grille">⊞</button>
-            <button class="view-toggle-btn" data-view="list" onclick="setStockView('list')" title="Vue liste">☰</button>
+            <button class="view-toggle-btn" data-view="grid" onclick="setStockView('grid')" title="Vue grille" data-i18n-title="common.viewGrid">⊞</button>
+            <button class="view-toggle-btn" data-view="list" onclick="setStockView('list')" title="Vue liste" data-i18n-title="common.viewList">☰</button>
           </div>
           <div class="actions-menu">
-            <button class="pf-btn" onclick="toggleActionsMenu(this)">⋯ Plus</button>
+            <button class="pf-btn" onclick="toggleActionsMenu(this)" data-i18n="common.more">⋯ Plus</button>
             <div class="actions-menu-body">
-              <button id="selectModeBtn-stockall" onclick="toggleSelectMode('stockall');closeActionsMenu()">☑ Sélection multiple</button>
-              <button onclick="exportArticlesCSV('stock');closeActionsMenu()">⬇ Export CSV</button>
-              <button onclick="openCsvImport();closeActionsMenu()" title="Créer plusieurs articles d'un coup depuis un fichier CSV">⬆ Import CSV</button>
-              <button id="duplicatesBtn" onclick="openDuplicates();closeActionsMenu()" title="Repère les articles qui semblent être en double (même nom)">🧬 Doublons</button>
-              <button id="resyncAllBtn" onclick="resyncAllFromVinted(this);closeActionsMenu()" title="Force tous vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min)">🔄 Tout réinitialiser depuis Vinted</button>
-              <button onclick="resetStockFilters();closeActionsMenu()" title="Efface catégorie, qualité, tri, plateforme et recherche">↺ Réinitialiser les filtres</button>
+              <button id="selectModeBtn-stockall" onclick="toggleSelectMode('stockall');closeActionsMenu()" data-i18n="stock.selectMode">☑ Sélection multiple</button>
+              <button onclick="exportArticlesCSV('stock');closeActionsMenu()" data-i18n="common.exportCsv">⬇ Export CSV</button>
+              <button onclick="openCsvImport();closeActionsMenu()" title="Créer plusieurs articles d'un coup depuis un fichier CSV" data-i18n-title="stock.importCsvTitle" data-i18n="stock.importCsv">⬆ Import CSV</button>
+              <button id="duplicatesBtn" onclick="openDuplicates();closeActionsMenu()" title="Repère les articles qui semblent être en double (même nom)" data-i18n-title="stock.duplicatesTitle" data-i18n="stock.duplicates">🧬 Doublons</button>
+              <button id="resyncAllBtn" onclick="resyncAllFromVinted(this);closeActionsMenu()" title="Force tous vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min)" data-i18n-title="stock.resyncAllTitle" data-i18n="stock.resyncAll">🔄 Tout réinitialiser depuis Vinted</button>
+              <button onclick="resetStockFilters();closeActionsMenu()" title="Efface catégorie, qualité, tri, plateforme et recherche" data-i18n-title="stock.resetFiltersTitle" data-i18n="stock.resetFilters">↺ Réinitialiser les filtres</button>
             </div>
           </div>
         </div>
@@ -440,7 +440,7 @@
         <div class="bulk-bar" id="bulkBar-stockall" style="display:none">
           <span id="bulkCount-stockall">0 sélectionné(s)</span>
           <select id="bulkTarget-stockall"></select>
-          <button class="btn-confirm" onclick="applyBulkMove('stockall')">Appliquer</button>
+          <button class="btn-confirm" onclick="applyBulkMove('stockall')" data-i18n="common.apply">Appliquer</button>
         </div>
 
         <!-- Chips fusionnées : catégorie (à laver, en stock...) + qualité de fiche (sans photo...), générées par renderStockAll() -->
@@ -451,7 +451,7 @@
 
       <!-- MESSAGES VINTED -->
       <section class="page" id="page-messages">
-        <div class="info-banner">💬 Votre messagerie Vinted, synchronisée automatiquement toutes les 5 minutes par l'extension Chrome — plus besoin d'ouvrir Vinted pour voir si on vous a répondu.</div>
+        <div class="info-banner" data-i18n="messages.banner">💬 Votre messagerie Vinted, synchronisée automatiquement toutes les 5 minutes par l'extension Chrome — plus besoin d'ouvrir Vinted pour voir si on vous a répondu.</div>
         <div id="messagesList"></div>
       </section>
 
@@ -460,23 +460,23 @@
         <div class="stock-ministats" id="ventesMinistats"></div>
         <div class="stock-toolbar">
           <div class="stock-search-wrap">
-            <input type="text" id="ventesSearchInput" class="stock-search" placeholder="🔎 Rechercher une vente..." oninput="onVentesSearch(this.value)" />
+            <input type="text" id="ventesSearchInput" class="stock-search" placeholder="🔎 Rechercher une vente..." data-i18n-placeholder="ventes.searchPlaceholder" oninput="onVentesSearch(this.value)" />
           </div>
           <select id="ventesPlatformSelect" class="stock-sort-select" onchange="filterPlatform(this.value,null,'replay')">
-            <option value="Tous">Toutes plateformes</option>
-            <option value="Vinted">Vinted</option>
-            <option value="eBay">eBay</option>
-            <option value="Leboncoin">Leboncoin</option>
-            <option value="Autre">Autre</option>
+            <option value="Tous" data-i18n="common.platform.all">Toutes plateformes</option>
+            <option value="Vinted" data-i18n="common.platform.vinted">Vinted</option>
+            <option value="eBay" data-i18n="common.platform.ebay">eBay</option>
+            <option value="Leboncoin" data-i18n="common.platform.leboncoin">Leboncoin</option>
+            <option value="Autre" data-i18n="common.platform.autre">Autre</option>
           </select>
           <select id="vendusSort" class="stock-sort-select" onchange="renderReplay()">
-            <option value="recent">Plus récent</option>
-            <option value="fastest">Vendu le plus vite</option>
-            <option value="profit">Plus rentable</option>
-            <option value="margin">Meilleure marge</option>
+            <option value="recent" data-i18n="common.sort.recent">Plus récent</option>
+            <option value="fastest" data-i18n="ventes.sort.fastest">Vendu le plus vite</option>
+            <option value="profit" data-i18n="ventes.sort.profit">Plus rentable</option>
+            <option value="margin" data-i18n="ventes.sort.margin">Meilleure marge</option>
           </select>
-          <button class="pf-btn" onclick="resetVentesFilters()" title="Effacer filtres, tri et recherche">↺ Réinitialiser</button>
-          <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('vendus')">⬇ CSV</button>
+          <button class="pf-btn" onclick="resetVentesFilters()" title="Effacer filtres, tri et recherche" data-i18n-title="ventes.resetTitle" data-i18n="common.reset">↺ Réinitialiser</button>
+          <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('vendus')" data-i18n="common.csv">⬇ CSV</button>
         </div>
         <div id="replayList"></div>
       </section>
@@ -485,12 +485,12 @@
       <div class="modal-bg" id="replayDetailBg">
         <div class="modal" style="max-width:420px;">
           <div class="modal-header">
-            <h3>▶ Parcours de la vente</h3>
+            <h3 data-i18n="ventes.replayTitle">▶ Parcours de la vente</h3>
             <button class="modal-close" onclick="closeReplayDetail()">✕</button>
           </div>
           <div class="modal-body" id="replayDetailBody"></div>
           <div class="modal-actions">
-            <button class="btn-cancel" onclick="closeReplayDetail()">Fermer</button>
+            <button class="btn-cancel" onclick="closeReplayDetail()" data-i18n="common.close">Fermer</button>
           </div>
         </div>
       </div>
@@ -498,40 +498,40 @@
       <!-- HISTORIQUE (tous les mouvements d'argent : achats, ventes, dépenses) -->
       <!-- MESSAGES FAVORIS -->
       <section class="page" id="page-favoris">
-        <div class="info-banner" id="favorisNoExtensionWarning" style="display:none;background:var(--warning-dim);color:var(--warning);">🔌 Cette page nécessite l'extension Chrome connectée — c'est elle qui envoie les messages automatiquement. <a href="#" id="favorisInstallLink" target="_blank" style="color:inherit;font-weight:700;text-decoration:underline;">Installer / connecter l'extension</a></div>
-        <div class="info-banner" id="favorisAccountWarning" style="display:none;background:var(--warning-dim);color:var(--warning);">⚠️ Plusieurs comptes Vinted connectés — sélectionnez-en un précis (en haut de la sidebar) pour configurer son automatisation, "Tous les comptes" n'affiche que celle du compte le plus récemment synchronisé.</div>
-        <div class="info-banner" style="background:var(--surface2);color:var(--muted);">ℹ️ Par défaut, <strong>1 message envoyé toutes les ~5 minutes</strong> (à chaque cycle de synchro de l'extension), pas tout d'un coup — pour rester discret vis-à-vis de Vinted.</div>
+        <div class="info-banner" id="favorisNoExtensionWarning" style="display:none;background:var(--warning-dim);color:var(--warning);"><span data-i18n="favoris.extNeeded">🔌 Cette page nécessite l'extension Chrome connectée — c'est elle qui envoie les messages automatiquement.</span> <a href="#" id="favorisInstallLink" target="_blank" style="color:inherit;font-weight:700;text-decoration:underline;" data-i18n="favoris.extInstallLink">Installer / connecter l'extension</a></div>
+        <div class="info-banner" id="favorisAccountWarning" style="display:none;background:var(--warning-dim);color:var(--warning);" data-i18n="favoris.multiAccountWarning">⚠️ Plusieurs comptes Vinted connectés — sélectionnez-en un précis (en haut de la sidebar) pour configurer son automatisation, "Tous les comptes" n'affiche que celle du compte le plus récemment synchronisé.</div>
+        <div class="info-banner" style="background:var(--surface2);color:var(--muted);" data-i18n="favoris.rateInfo">ℹ️ Par défaut, <strong>1 message envoyé toutes les ~5 minutes</strong> (à chaque cycle de synchro de l'extension), pas tout d'un coup — pour rester discret vis-à-vis de Vinted.</div>
         <div class="settings-card">
-          <h2 class="settings-title">Modèle de message</h2>
+          <h2 class="settings-title" data-i18n="favoris.templateTitle">Modèle de message</h2>
           <div class="field full">
-            <label>Votre message</label>
-            <textarea id="favMessage" rows="4" placeholder="Bonjour ! J'ai vu que {item} vous intéresse 😊 N'hésitez pas si vous avez des questions, et je peux faire un geste sur le prix si vous l'achetez rapidement !"></textarea>
+            <label data-i18n="favoris.messageLabel">Votre message</label>
+            <textarea id="favMessage" rows="4" placeholder="Bonjour ! J'ai vu que {item} vous intéresse 😊 N'hésitez pas si vous avez des questions, et je peux faire un geste sur le prix si vous l'achetez rapidement !" data-i18n-placeholder="favoris.messagePlaceholder"></textarea>
           </div>
           <div class="checklist-item" style="margin-top:12px;">
             <input type="checkbox" id="autoMsgEnabled" />
-            <label for="autoMsgEnabled">Envoyer automatiquement (nécessite un onglet vinted.fr ouvert, via l'extension)</label>
+            <label for="autoMsgEnabled" data-i18n="favoris.autoSend">Envoyer automatiquement (nécessite un onglet vinted.fr ouvert, via l'extension)</label>
           </div>
           <div class="goal-row" style="margin-top:10px;">
-            <div class="field"><label>Max par jour</label><input type="number" id="autoMsgDailyLimit" min="0" value="20" /></div>
-            <div class="field"><label>Délai min (sec)</label><input type="number" id="autoMsgDelayMin" min="10" value="60" /></div>
-            <div class="field"><label>Délai max (sec)</label><input type="number" id="autoMsgDelayMax" min="10" value="180" /></div>
-            <div class="field"><label>Messages par cycle (~5 min)</label><input type="number" id="autoMsgBatchSize" min="1" max="10" value="1" oninput="toggleBatchWarning('autoMsgBatchSize','autoMsgBatchWarning')" /></div>
+            <div class="field"><label data-i18n="favoris.dailyLimit">Max par jour</label><input type="number" id="autoMsgDailyLimit" min="0" value="20" /></div>
+            <div class="field"><label data-i18n="favoris.delayMin">Délai min (sec)</label><input type="number" id="autoMsgDelayMin" min="10" value="60" /></div>
+            <div class="field"><label data-i18n="favoris.delayMax">Délai max (sec)</label><input type="number" id="autoMsgDelayMax" min="10" value="180" /></div>
+            <div class="field"><label data-i18n="favoris.batchSize">Messages par cycle (~5 min)</label><input type="number" id="autoMsgBatchSize" min="1" max="10" value="1" oninput="toggleBatchWarning('autoMsgBatchSize','autoMsgBatchWarning')" /></div>
           </div>
-          <p class="setting-sub" id="autoMsgBatchWarning" style="display:none;color:var(--warning);margin-top:8px;">⚠️ Envoyer plusieurs messages d'un coup peut ressembler à un comportement automatisé aux yeux de Vinted. 1 par cycle est le réglage le plus sûr — à n'augmenter que si vous savez ce que vous faites.</p>
-          <button class="btn-confirm" style="margin-top:12px;" onclick="saveFavMessage()">Enregistrer</button>
+          <p class="setting-sub" id="autoMsgBatchWarning" style="display:none;color:var(--warning);margin-top:8px;" data-i18n="favoris.batchWarning">⚠️ Envoyer plusieurs messages d'un coup peut ressembler à un comportement automatisé aux yeux de Vinted. 1 par cycle est le réglage le plus sûr — à n'augmenter que si vous savez ce que vous faites.</p>
+          <button class="btn-confirm" style="margin-top:12px;" onclick="saveFavMessage()" data-i18n="common.save">Enregistrer</button>
           <p id="favMsgSaved" class="success-msg"></p>
           <p class="setting-sub" id="autoMsgStatus" style="margin-top:8px;"></p>
         </div>
 
         <div class="settings-card" id="serverAutomationCard" style="display:none;border:1px solid var(--warning);">
-          <h2 class="settings-title">⚠️ Automatisation côté serveur (bêta)</h2>
-          <p class="setting-sub">
+          <h2 class="settings-title" data-i18n="favoris.serverAutoTitle">⚠️ Automatisation côté serveur (bêta)</h2>
+          <p class="setting-sub" data-i18n="favoris.serverAutoDesc">
             Par défaut, les messages automatiques ne partent que lorsque votre extension Chrome
             tourne (ordinateur allumé, Chrome ouvert). En activant cette option, VintControl
             enverra les messages depuis son propre serveur, même ordinateur éteint — en utilisant
             votre session Vinted capturée par l'extension.
           </p>
-          <p class="setting-sub" style="color:var(--warning);font-weight:600;">
+          <p class="setting-sub" style="color:var(--warning);font-weight:600;" data-i18n="favoris.serverAutoRisk">
             Risque : les requêtes partiront de l'adresse IP du serveur VintControl (pas la
             vôtre), ce qui peut augmenter le risque de détection et de restriction/bannissement
             de votre compte Vinted par leur système anti-fraude. Fonctionnalité expérimentale,
@@ -539,77 +539,77 @@
           </p>
           <div class="checklist-item" style="margin-top:12px;">
             <input type="checkbox" id="serverAutomationEnabled" onchange="onServerAutomationToggle()" />
-            <label for="serverAutomationEnabled">
+            <label for="serverAutomationEnabled" data-i18n="favoris.serverAutoCheckbox">
               J'ai compris le risque et j'active l'envoi automatique depuis le serveur VintControl
             </label>
           </div>
           <p class="setting-sub" id="serverAutomationStatus" style="margin-top:8px;"></p>
         </div>
 
-        <div class="section-header" style="margin-top:20px;"><h2>Historique des messages auto-envoyés</h2></div>
+        <div class="section-header" style="margin-top:20px;"><h2 data-i18n="favoris.historyTitle">Historique des messages auto-envoyés</h2></div>
         <div id="autoMsgHistory"></div>
       </section>
 
       <!-- REPUBLICATION -->
       <section class="page" id="page-republier">
-        <div class="info-banner">🔄 Republier régulièrement vos annonces Vinted les remet en avant dans les résultats de recherche.</div>
-        <div class="info-banner" id="republierNoExtensionWarning" style="display:none;background:var(--warning-dim);color:var(--warning);">🔌 Cette page nécessite l'extension Chrome connectée — c'est elle qui republie automatiquement. <a href="#" id="republierInstallLink" target="_blank" style="color:inherit;font-weight:700;text-decoration:underline;">Installer / connecter l'extension</a></div>
-        <div class="info-banner" id="republierAccountWarning" style="display:none;background:var(--warning-dim);color:var(--warning);">⚠️ Plusieurs comptes Vinted connectés — sélectionnez-en un précis (en haut de la sidebar) pour configurer son automatisation, "Tous les comptes" n'affiche que celle du compte le plus récemment synchronisé.</div>
-        <div class="info-banner" style="background:var(--surface2);color:var(--muted);">ℹ️ Par défaut, <strong>1 article republié toutes les ~5 minutes</strong> (à chaque cycle de synchro de l'extension), pas tout d'un coup — pour rester discret vis-à-vis de Vinted.</div>
+        <div class="info-banner" data-i18n="republier.banner">🔄 Republier régulièrement vos annonces Vinted les remet en avant dans les résultats de recherche.</div>
+        <div class="info-banner" id="republierNoExtensionWarning" style="display:none;background:var(--warning-dim);color:var(--warning);"><span data-i18n="republier.extNeeded">🔌 Cette page nécessite l'extension Chrome connectée — c'est elle qui republie automatiquement.</span> <a href="#" id="republierInstallLink" target="_blank" style="color:inherit;font-weight:700;text-decoration:underline;" data-i18n="favoris.extInstallLink">Installer / connecter l'extension</a></div>
+        <div class="info-banner" id="republierAccountWarning" style="display:none;background:var(--warning-dim);color:var(--warning);" data-i18n="favoris.multiAccountWarning">⚠️ Plusieurs comptes Vinted connectés — sélectionnez-en un précis (en haut de la sidebar) pour configurer son automatisation, "Tous les comptes" n'affiche que celle du compte le plus récemment synchronisé.</div>
+        <div class="info-banner" style="background:var(--surface2);color:var(--muted);" data-i18n="republier.rateInfo">ℹ️ Par défaut, <strong>1 article republié toutes les ~5 minutes</strong> (à chaque cycle de synchro de l'extension), pas tout d'un coup — pour rester discret vis-à-vis de Vinted.</div>
         <div class="settings-card">
-          <h2 class="settings-title">Fréquence de republication</h2>
-          <p class="setting-sub" style="margin-bottom:12px;">Tous les combien de jours voulez-vous republier vos articles ?</p>
+          <h2 class="settings-title" data-i18n="republier.freqTitle">Fréquence de republication</h2>
+          <p class="setting-sub" style="margin-bottom:12px;" data-i18n="republier.freqSub">Tous les combien de jours voulez-vous republier vos articles ?</p>
           <div class="goal-row">
-            <input type="number" id="republishDays" placeholder="ex: 3" min="1" />
+            <input type="number" id="republishDays" placeholder="ex: 3" data-i18n-placeholder="republier.freqPlaceholder" min="1" />
           </div>
           <div class="checklist-item" style="margin-top:12px;">
             <input type="checkbox" id="autoRepublishEnabled" />
-            <label for="autoRepublishEnabled">Republier automatiquement (supprime puis recrée l'annonce à l'identique, via l'extension — nécessite un onglet vinted.fr ouvert)</label>
+            <label for="autoRepublishEnabled" data-i18n="republier.autoEnable">Republier automatiquement (supprime puis recrée l'annonce à l'identique, via l'extension — nécessite un onglet vinted.fr ouvert)</label>
           </div>
           <div class="goal-row" style="margin-top:10px;">
-            <div class="field"><label>Max par jour</label><input type="number" id="autoRepublishDailyLimit" min="0" value="5" /></div>
-            <div class="field"><label>Articles par cycle (~5 min)</label><input type="number" id="autoRepublishBatchSize" min="1" max="5" value="1" oninput="toggleBatchWarning('autoRepublishBatchSize','autoRepublishBatchWarning')" /></div>
+            <div class="field"><label data-i18n="favoris.dailyLimit">Max par jour</label><input type="number" id="autoRepublishDailyLimit" min="0" value="5" /></div>
+            <div class="field"><label data-i18n="republier.batchSize">Articles par cycle (~5 min)</label><input type="number" id="autoRepublishBatchSize" min="1" max="5" value="1" oninput="toggleBatchWarning('autoRepublishBatchSize','autoRepublishBatchWarning')" /></div>
           </div>
-          <p class="setting-sub" id="autoRepublishBatchWarning" style="display:none;color:var(--warning);margin-top:8px;">⚠️ Republier plusieurs annonces d'un coup peut ressembler à un comportement automatisé aux yeux de Vinted. 1 par cycle est le réglage le plus sûr — à n'augmenter que si vous savez ce que vous faites.</p>
-          <button class="btn-confirm" style="margin-top:12px;" onclick="saveRepublishDays()">Enregistrer</button>
+          <p class="setting-sub" id="autoRepublishBatchWarning" style="display:none;color:var(--warning);margin-top:8px;" data-i18n="republier.batchWarning">⚠️ Republier plusieurs annonces d'un coup peut ressembler à un comportement automatisé aux yeux de Vinted. 1 par cycle est le réglage le plus sûr — à n'augmenter que si vous savez ce que vous faites.</p>
+          <button class="btn-confirm" style="margin-top:12px;" onclick="saveRepublishDays()" data-i18n="common.save">Enregistrer</button>
           <p id="republishSaved" class="success-msg"></p>
           <p class="setting-sub" id="autoRepublishStatus" style="margin-top:8px;"></p>
         </div>
-        <div class="section-header" style="margin-top:20px;"><h2>Articles à republier maintenant</h2></div>
+        <div class="section-header" style="margin-top:20px;"><h2 data-i18n="republier.listTitle">Articles à republier maintenant</h2></div>
         <div id="republierList"></div>
       </section>
 
       <!-- DÉLÉGATION -->
       <section class="page" id="page-delegation">
-        <div class="info-banner">🤝 Déléguez la préparation de vos articles (photos) à quelqu'un d'autre, avec un suivi de rémunération. Le délégué doit déjà avoir un compte VintControl.</div>
+        <div class="info-banner" data-i18n="delegation.banner">🤝 Déléguez la préparation de vos articles (photos) à quelqu'un d'autre, avec un suivi de rémunération. Le délégué doit déjà avoir un compte VintControl.</div>
 
         <div id="delegateTasksSection"></div>
 
         <div class="settings-card">
-          <h2 class="settings-title">Ajouter un(e) délégué(e)</h2>
-          <div class="field"><label>Email du délégué</label><input type="email" id="delegateEmail" placeholder="email@exemple.com" /></div>
-          <div class="field"><label>Étape à déléguer</label><select id="delegateStepKey"></select></div>
-          <div class="field"><label>Type de rémunération</label>
+          <h2 class="settings-title" data-i18n="delegation.addTitle">Ajouter un(e) délégué(e)</h2>
+          <div class="field"><label data-i18n="delegation.email">Email du délégué</label><input type="email" id="delegateEmail" placeholder="email@exemple.com" /></div>
+          <div class="field"><label data-i18n="delegation.step">Étape à déléguer</label><select id="delegateStepKey"></select></div>
+          <div class="field"><label data-i18n="delegation.compType">Type de rémunération</label>
             <select id="delegateCompType" onchange="toggleDelegateCompFields()">
-              <option value="per_item">À l'article</option>
-              <option value="hourly">À l'heure</option>
+              <option value="per_item" data-i18n="delegation.perItem">À l'article</option>
+              <option value="hourly" data-i18n="delegation.hourly">À l'heure</option>
             </select>
           </div>
           <div id="delegatePerItemFields">
-            <label class="field-label">Détail du prix par article</label>
+            <label class="field-label" data-i18n="delegation.rateDetail">Détail du prix par article</label>
             <div id="delegateRateLines"></div>
-            <button class="btn-edit" onclick="addDelegateRateLine()">+ Ajouter une ligne</button>
-            <p class="setting-sub" style="margin-top:8px;">💰 Total par article : <strong id="delegateRateTotal">0,00 €</strong></p>
+            <button class="btn-edit" onclick="addDelegateRateLine()" data-i18n="delegation.addLine">+ Ajouter une ligne</button>
+            <p class="setting-sub" style="margin-top:8px;"><span data-i18n="delegation.rateTotal">💰 Total par article :</span> <strong id="delegateRateTotal">0,00 €</strong></p>
           </div>
           <div id="delegateHourlyFields" class="field" style="display:none;">
-            <label>Taux horaire (€)</label>
+            <label data-i18n="delegation.hourlyRate">Taux horaire (€)</label>
             <input type="number" id="delegateHourlyRate" step="0.01" placeholder="0,00" />
           </div>
-          <button class="btn-confirm" style="margin-top:12px;" onclick="addDelegate()">Ajouter</button>
+          <button class="btn-confirm" style="margin-top:12px;" onclick="addDelegate()" data-i18n="common.add">Ajouter</button>
           <p id="delegateAddMsg" class="success-msg"></p>
         </div>
 
-        <div class="section-header" style="margin-top:20px;"><h2>Mes délégué(e)s</h2></div>
+        <div class="section-header" style="margin-top:20px;"><h2 data-i18n="delegation.listTitle">Mes délégué(e)s</h2></div>
         <div id="delegatesList"></div>
       </section>
 
@@ -617,10 +617,10 @@
       <section class="page" id="page-analytics">
         <div class="kpi-grid" id="analyticsKpi"></div>
         <div class="section-header">
-          <h2>Profit par mois</h2>
+          <h2 data-i18n="analytics.profitByMonth">Profit par mois</h2>
           <div style="display:flex;gap:8px;align-items:center;">
             <select id="analyticsYearSelect" class="stock-sort-select" onchange="renderAnalytics()"></select>
-            <button class="btn-edit" onclick="exportAnnualRecapCSV()">⬇ Récap fiscal annuel (CSV)</button>
+            <button class="btn-edit" onclick="exportAnnualRecapCSV()" data-i18n="analytics.fiscalRecap">⬇ Récap fiscal annuel (CSV)</button>
           </div>
         </div>
         <div class="chart-card big">
@@ -628,52 +628,52 @@
           <div class="chart-labels" id="chartLabels"></div>
         </div>
         <div id="monthDetailPanel"></div>
-        <div class="section-header" style="margin-top:24px;"><h2>🏆 Hall of Fame — meilleures ventes</h2></div>
+        <div class="section-header" style="margin-top:24px;"><h2 data-i18n="analytics.hallOfFame">🏆 Hall of Fame — meilleures ventes</h2></div>
         <div id="hallOfFameList"></div>
       </section>
 
       <!-- COMPTABILITÉ -->
       <section class="page" id="page-comptabilite">
-        <div class="info-banner">🧮 Estimez votre marge réelle après charges, pour préparer vos déclarations. Ces chiffres sont indicatifs et ne remplacent pas l'avis d'un comptable.</div>
+        <div class="info-banner" data-i18n="compta.banner">🧮 Estimez votre marge réelle après charges, pour préparer vos déclarations. Ces chiffres sont indicatifs et ne remplacent pas l'avis d'un comptable.</div>
         <div class="settings-card" style="margin-bottom:16px;">
           <div class="expense-form-row">
             <select id="comptaPeriod" class="stock-sort-select" onchange="renderComptabilite()">
-              <option value="month">Ce mois</option>
-              <option value="lastmonth">Mois dernier</option>
-              <option value="year">Cette année</option>
-              <option value="all" selected>Depuis le début</option>
+              <option value="month" data-i18n="compta.period.month">Ce mois</option>
+              <option value="lastmonth" data-i18n="compta.period.lastmonth">Mois dernier</option>
+              <option value="year" data-i18n="compta.period.year">Cette année</option>
+              <option value="all" selected data-i18n="compta.period.all">Depuis le début</option>
             </select>
             <select id="comptaRegime" class="stock-sort-select" onchange="renderComptabilite()">
-              <option value="micro_vente" selected>Micro-entrepreneur — vente de marchandises (URSSAF 12,3%)</option>
-              <option value="micro_service">Micro-entrepreneur — prestations de services (URSSAF 21,2%)</option>
-              <option value="tva_marge">Société — TVA sur la marge (20%)</option>
-              <option value="custom">Taux personnalisé</option>
+              <option value="micro_vente" selected data-i18n="compta.regime.microVente">Micro-entrepreneur — vente de marchandises (URSSAF 12,3%)</option>
+              <option value="micro_service" data-i18n="compta.regime.microService">Micro-entrepreneur — prestations de services (URSSAF 21,2%)</option>
+              <option value="tva_marge" data-i18n="compta.regime.tvaMarge">Société — TVA sur la marge (20%)</option>
+              <option value="custom" data-i18n="compta.regime.custom">Taux personnalisé</option>
             </select>
             <label class="field-label" id="comptaCustomRateWrap" style="display:none;align-items:center;gap:8px;white-space:nowrap;">
-              Taux (%)
+              <span data-i18n="compta.rateLabel">Taux (%)</span>
               <input type="number" id="comptaChargeRate" value="12.3" step="0.1" style="width:80px;" oninput="renderComptabilite()" />
             </label>
           </div>
           <div class="expense-form-row" style="margin-top:10px;">
-            <button class="btn-confirm" onclick="exportComptabiliteCSV()">⬇ Exporter (CSV)</button>
-            <button class="btn-confirm" onclick="exportComptabiliteExcel()">⬇ Exporter (Excel)</button>
+            <button class="btn-confirm" onclick="exportComptabiliteCSV()" data-i18n="compta.exportCsv">⬇ Exporter (CSV)</button>
+            <button class="btn-confirm" onclick="exportComptabiliteExcel()" data-i18n="compta.exportExcel">⬇ Exporter (Excel)</button>
           </div>
         </div>
         <div class="kpi-grid" id="comptaKpi"></div>
-        <div class="section-header" style="margin-top:24px;"><h2>Détail des ventes</h2></div>
+        <div class="section-header" style="margin-top:24px;"><h2 data-i18n="compta.salesDetail">Détail des ventes</h2></div>
         <div id="comptaList"></div>
       </section>
 
       <!-- DÉPENSES -->
       <section class="page" id="page-depenses">
-        <div class="info-banner">🧾 Suivez vos dépenses générales (emballages, fournitures, abonnements...) pour un profit vraiment net, en plus du coût de vos articles.</div>
+        <div class="info-banner" data-i18n="depenses.banner">🧾 Suivez vos dépenses générales (emballages, fournitures, abonnements...) pour un profit vraiment net, en plus du coût de vos articles.</div>
         <div class="settings-card" style="margin-bottom:16px;">
-          <h2 class="settings-title">Ajouter une dépense</h2>
+          <h2 class="settings-title" data-i18n="depenses.addTitle">Ajouter une dépense</h2>
           <div class="expense-form-row">
-            <input type="text" id="expenseLabel" placeholder="Libellé (ex: Cartons, étiquettes...)" />
-            <input type="number" id="expenseAmount" placeholder="Montant (€)" step="0.01" />
+            <input type="text" id="expenseLabel" placeholder="Libellé (ex: Cartons, étiquettes...)" data-i18n-placeholder="depenses.labelPlaceholder" />
+            <input type="number" id="expenseAmount" placeholder="Montant (€)" data-i18n-placeholder="depenses.amountPlaceholder" step="0.01" />
             <input type="date" id="expenseDate" />
-            <button class="btn-confirm" onclick="addExpense()">Ajouter</button>
+            <button class="btn-confirm" onclick="addExpense()" data-i18n="common.add">Ajouter</button>
           </div>
         </div>
         <div class="section-header"><span class="count-label" id="expensesCount"></span></div>
@@ -684,10 +684,10 @@
       <section class="page" id="page-objectif">
         <div class="goal-hero" id="goalHero"></div>
         <div class="goal-card">
-          <label class="field-label">Modifier l'objectif mensuel (€)</label>
+          <label class="field-label" data-i18n="objectif.editLabel">Modifier l'objectif mensuel (€)</label>
           <div class="goal-row">
-            <input type="number" id="goalInput" placeholder="ex: 500" />
-            <button class="btn-confirm" onclick="saveGoal()">Enregistrer</button>
+            <input type="number" id="goalInput" placeholder="ex: 500" data-i18n-placeholder="objectif.placeholder" />
+            <button class="btn-confirm" onclick="saveGoal()" data-i18n="common.save">Enregistrer</button>
           </div>
         </div>
       </section>
@@ -695,21 +695,21 @@
       <!-- SETTINGS -->
       <section class="page" id="page-settings">
         <div class="settings-card">
-          <h2 class="settings-title">Apparence</h2>
+          <h2 class="settings-title" data-i18n="settings.appearance">Apparence</h2>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Mode d'affichage</div>
-              <div class="setting-sub">Choisissez entre le thème clair et sombre</div>
+              <div class="setting-label" data-i18n="settings.displayMode">Mode d'affichage</div>
+              <div class="setting-sub" data-i18n="settings.displayModeSub">Choisissez entre le thème clair et sombre</div>
             </div>
             <div class="theme-toggle">
-              <button class="theme-btn" id="btnDark" onclick="setTheme('dark')">🌙 Sombre</button>
-              <button class="theme-btn" id="btnLight" onclick="setTheme('light')">☀️ Clair</button>
+              <button class="theme-btn" id="btnDark" onclick="setTheme('dark')" data-i18n="settings.dark">🌙 Sombre</button>
+              <button class="theme-btn" id="btnLight" onclick="setTheme('light')" data-i18n="settings.light">☀️ Clair</button>
             </div>
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Langue</div>
-              <div class="setting-sub">Choisissez la langue de l'interface</div>
+              <div class="setting-label" data-i18n="settings.language">Langue</div>
+              <div class="setting-sub" data-i18n="settings.languageSub">Choisissez la langue de l'interface</div>
             </div>
             <div class="lang-toggle">
               <button class="lang-btn" data-lang="fr" onclick="setLang('fr')">FR</button>
@@ -718,116 +718,116 @@
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">🙈 Mode discret</div>
-              <div class="setting-sub">Floute les noms d'articles et les montants — pratique pour partager une capture d'écran sans tout dévoiler. Survolez un élément flouté pour le voir temporairement.</div>
+              <div class="setting-label" data-i18n="settings.discreet">🙈 Mode discret</div>
+              <div class="setting-sub" data-i18n="settings.discreetSub">Floute les noms d'articles et les montants — pratique pour partager une capture d'écran sans tout dévoiler. Survolez un élément flouté pour le voir temporairement.</div>
             </div>
             <label class="theme-toggle" style="cursor:pointer;">
               <input type="checkbox" id="discreetModeToggle" style="display:none;" onchange="toggleDiscreetMode(this.checked)">
-              <span class="theme-btn" id="discreetModeLabel" onclick="document.getElementById('discreetModeToggle').click()">Désactivé</span>
+              <span class="theme-btn" id="discreetModeLabel" onclick="document.getElementById('discreetModeToggle').click()" data-i18n="settings.discreetOff">Désactivé</span>
             </label>
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
-          <h2 class="settings-title">🔔 Notifications</h2>
+          <h2 class="settings-title" data-i18n="settings.notifications">🔔 Notifications</h2>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Nouvelle vente / nouveau favori</div>
-              <div class="setting-sub" id="pushStatusSub">Recevez une notification (même sur téléphone, si vous ajoutez VintControl à l'écran d'accueil) dès qu'une vente ou un favori est détecté. Nécessite que votre ordinateur soit allumé avec l'extension active au moment de la détection.</div>
+              <div class="setting-label" data-i18n="settings.notifTitle">Nouvelle vente / nouveau favori</div>
+              <div class="setting-sub" id="pushStatusSub" data-i18n="settings.notifSub">Recevez une notification (même sur téléphone, si vous ajoutez VintControl à l'écran d'accueil) dès qu'une vente ou un favori est détecté. Nécessite que votre ordinateur soit allumé avec l'extension active au moment de la détection.</div>
             </div>
-            <button class="btn-confirm" id="pushToggleBtn" onclick="togglePushNotifications()">Activer</button>
+            <button class="btn-confirm" id="pushToggleBtn" onclick="togglePushNotifications()" data-i18n="settings.notifEnable">Activer</button>
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
-          <h2 class="settings-title">🧺 Étapes de préparation</h2>
-          <p class="setting-sub" style="margin-bottom:12px;">Personnalisez les étapes avant la mise en stock (à laver, à plier...) selon vos habitudes. "En stock", "À expédier" et "Vendus" restent fixes.</p>
+          <h2 class="settings-title" data-i18n="settings.prepSteps">🧺 Étapes de préparation</h2>
+          <p class="setting-sub" style="margin-bottom:12px;" data-i18n="settings.prepStepsSub">Personnalisez les étapes avant la mise en stock (à laver, à plier...) selon vos habitudes. "En stock", "À expédier" et "Vendus" restent fixes.</p>
           <div id="prepStepsList"></div>
           <div class="expense-form-row" style="margin-top:10px;">
-            <input type="text" id="newPrepStepLabel" placeholder="ex: À repasser, À plier..." onkeydown="if(event.key==='Enter')addPrepStep()">
-            <button class="btn-confirm" onclick="addPrepStep()">+ Ajouter</button>
+            <input type="text" id="newPrepStepLabel" placeholder="ex: À repasser, À plier..." data-i18n-placeholder="settings.prepStepsPlaceholder" onkeydown="if(event.key==='Enter')addPrepStep()">
+            <button class="btn-confirm" onclick="addPrepStep()" data-i18n="common.add">+ Ajouter</button>
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
-          <h2 class="settings-title">🔗 Connexion Vinted</h2>
+          <h2 class="settings-title" data-i18n="settings.vintedConnection">🔗 Connexion Vinted</h2>
 
           <!-- Un compte par ligne : plusieurs comptes Vinted possibles en parallèle -->
           <div id="vintedAccountsList">Chargement...</div>
 
           <!-- Instructions extension -->
           <div style="background:var(--surface2);border-radius:var(--radius);padding:14px;font-size:13px;line-height:1.7;color:var(--text);margin-top:14px;margin-bottom:14px;">
-            <div style="font-weight:700;margin-bottom:10px;">Connecter un compte Vinted (le premier, ou un compte supplémentaire)</div>
+            <div style="font-weight:700;margin-bottom:10px;" data-i18n="settings.vintedConnectTitle">Connecter un compte Vinted (le premier, ou un compte supplémentaire)</div>
             <div style="display:flex;flex-direction:column;gap:10px;">
               <div style="display:flex;gap:10px;align-items:flex-start;">
                 <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">1</span>
-                <div>Installez l'extension <strong>VintControl</strong> sur Chrome en cliquant sur le bouton ci-dessous.</div>
+                <div data-i18n="settings.vintedStep1">Installez l'extension <strong>VintControl</strong> sur Chrome en cliquant sur le bouton ci-dessous.</div>
               </div>
               <div style="display:flex;gap:10px;align-items:flex-start;">
                 <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">2</span>
-                <div>Cliquez sur l'icône 🔗 VintControl dans Chrome et connectez-vous avec votre email/mot de passe <strong>VintControl</strong> (pas Vinted).</div>
+                <div data-i18n="settings.vintedStep2">Cliquez sur l'icône 🔗 VintControl dans Chrome et connectez-vous avec votre email/mot de passe <strong>VintControl</strong> (pas Vinted).</div>
               </div>
               <div style="display:flex;gap:10px;align-items:flex-start;">
                 <span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">3</span>
-                <div>Ouvrez un onglet <strong>vinted.fr</strong> et cliquez <strong>"Synchroniser maintenant"</strong> dans l'extension. C'est tout !</div>
+                <div data-i18n="settings.vintedStep3">Ouvrez un onglet <strong>vinted.fr</strong> et cliquez <strong>"Synchroniser maintenant"</strong> dans l'extension. C'est tout !</div>
               </div>
             </div>
             <div id="extensionInstallBtn"></div>
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
-          <h2 class="settings-title">Compte</h2>
+          <h2 class="settings-title" data-i18n="settings.account">Compte</h2>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Changer le mot de passe</div>
-              <div class="setting-sub">Un email de réinitialisation sera envoyé</div>
+              <div class="setting-label" data-i18n="settings.changePassword">Changer le mot de passe</div>
+              <div class="setting-sub" data-i18n="settings.changePasswordSub">Un email de réinitialisation sera envoyé</div>
             </div>
-            <button class="btn-confirm" onclick="sendResetEmail()">Envoyer</button>
+            <button class="btn-confirm" onclick="sendResetEmail()" data-i18n="common.send">Envoyer</button>
           </div>
           <div class="setting-row" style="margin-top:12px;">
             <div>
-              <div class="setting-label">Se déconnecter</div>
-              <div class="setting-sub">Fermer la session sur cet appareil</div>
+              <div class="setting-label" data-i18n="settings.logout">Se déconnecter</div>
+              <div class="setting-sub" data-i18n="settings.logoutSub">Fermer la session sur cet appareil</div>
             </div>
-            <button class="btn-cancel" onclick="doLogout()">Déconnexion</button>
+            <button class="btn-cancel" onclick="doLogout()" data-i18n="settings.logoutBtn">Déconnexion</button>
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
-          <h2 class="settings-title">Vos données</h2>
+          <h2 class="settings-title" data-i18n="settings.yourData">Vos données</h2>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Exporter toutes mes données</div>
-              <div class="setting-sub">Articles, achats et dépenses, en un seul fichier JSON téléchargé</div>
+              <div class="setting-label" data-i18n="settings.exportData">Exporter toutes mes données</div>
+              <div class="setting-sub" data-i18n="settings.exportDataSub">Articles, achats et dépenses, en un seul fichier JSON téléchargé</div>
             </div>
-            <button class="btn-confirm" onclick="exportMyData()">⬇ Exporter</button>
+            <button class="btn-confirm" onclick="exportMyData()">⬇ <span data-i18n="settings.exportData2">Exporter</span></button>
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
-          <h2 class="settings-title">🧾 Profil vendeur (pour les factures)</h2>
-          <p class="setting-sub" style="margin-bottom:12px;">Ces informations apparaissent sur les factures générées pour vos ventes. Indicatif — vérifiez la conformité avec votre comptable.</p>
-          <div class="field"><label>Nom / Raison sociale</label><input type="text" id="sellerBusinessName" placeholder="ex: Jean Dupont, ou Ma Boutique SARL" /></div>
-          <div class="field"><label>SIRET</label><input type="text" id="sellerSiret" placeholder="ex: 123 456 789 00012" /></div>
-          <div class="field"><label>Adresse</label><input type="text" id="sellerAddress" placeholder="ex: 12 rue de la Paix, 75002 Paris" /></div>
-          <div class="field"><label>Régime fiscal</label>
+          <h2 class="settings-title" data-i18n="settings.sellerProfile">🧾 Profil vendeur (pour les factures)</h2>
+          <p class="setting-sub" style="margin-bottom:12px;" data-i18n="settings.sellerProfileSub">Ces informations apparaissent sur les factures générées pour vos ventes. Indicatif — vérifiez la conformité avec votre comptable.</p>
+          <div class="field"><label data-i18n="settings.businessName">Nom / Raison sociale</label><input type="text" id="sellerBusinessName" placeholder="ex: Jean Dupont, ou Ma Boutique SARL" /></div>
+          <div class="field"><label data-i18n="settings.siret">SIRET</label><input type="text" id="sellerSiret" placeholder="ex: 123 456 789 00012" /></div>
+          <div class="field"><label data-i18n="settings.address">Adresse</label><input type="text" id="sellerAddress" placeholder="ex: 12 rue de la Paix, 75002 Paris" /></div>
+          <div class="field"><label data-i18n="settings.regime">Régime fiscal</label>
             <select id="sellerRegime">
-              <option value="micro_vente">Micro-entrepreneur — vente de marchandises</option>
-              <option value="micro_service">Micro-entrepreneur — prestations de services</option>
-              <option value="tva_marge">Société — TVA sur la marge</option>
+              <option value="micro_vente" data-i18n="settings.regimeMicroVente">Micro-entrepreneur — vente de marchandises</option>
+              <option value="micro_service" data-i18n="settings.regimeMicroService">Micro-entrepreneur — prestations de services</option>
+              <option value="tva_marge" data-i18n="settings.regimeTvaMarge">Société — TVA sur la marge</option>
             </select>
           </div>
-          <button class="btn-confirm" onclick="saveSellerProfile()">Enregistrer</button>
+          <button class="btn-confirm" onclick="saveSellerProfile()" data-i18n="common.save">Enregistrer</button>
           <p id="sellerProfileMsg" class="success-msg"></p>
         </div>
         <div class="settings-card" style="margin-top:16px;">
-          <h2 class="settings-title">🧮 Accès comptable</h2>
-          <p class="setting-sub" style="margin-bottom:12px;">Générez un lien à envoyer à votre comptable : il verra vos ventes et dépenses en lecture seule, sans avoir besoin d'un compte VintControl. Révocable à tout moment.</p>
+          <h2 class="settings-title" data-i18n="settings.accountantAccess">🧮 Accès comptable</h2>
+          <p class="setting-sub" style="margin-bottom:12px;" data-i18n="settings.accountantAccessSub">Générez un lien à envoyer à votre comptable : il verra vos ventes et dépenses en lecture seule, sans avoir besoin d'un compte VintControl. Révocable à tout moment.</p>
           <div id="accountantLinkBox"></div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
-          <h2 class="settings-title">Votre avis compte</h2>
+          <h2 class="settings-title" data-i18n="settings.feedback">Votre avis compte</h2>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Signaler un bug ou une suggestion</div>
-              <div class="setting-sub">Envoyé directement, on vous répond si besoin</div>
+              <div class="setting-label" data-i18n="settings.feedbackTitle">Signaler un bug ou une suggestion</div>
+              <div class="setting-sub" data-i18n="settings.feedbackSub">Envoyé directement, on vous répond si besoin</div>
             </div>
-            <button class="btn-confirm" onclick="openFeedback()">💬 Envoyer un avis</button>
+            <button class="btn-confirm" onclick="openFeedback()" data-i18n="settings.feedbackBtn">💬 Envoyer un avis</button>
           </div>
         </div>
         <p id="settingsMsg" class="success-msg" style="margin-top:12px;"></p>
@@ -835,14 +835,14 @@
 
       <!-- AIDE & SUPPORT -->
       <section class="page" id="page-aide">
-        <div class="info-banner">🛟 Une question, un bug, une idée ? Écrivez-moi directement, je réponds perso.</div>
+        <div class="info-banner" data-i18n="aide.banner">🛟 Une question, un bug, une idée ? Écrivez-moi directement, je réponds perso.</div>
         <div class="settings-card">
-          <h2 class="settings-title">Nous contacter</h2>
+          <h2 class="settings-title" data-i18n="aide.contactTitle">Nous contacter</h2>
           <div class="field full">
-            <label>Votre message</label>
-            <textarea id="aideMessage" rows="5" placeholder="Un bug ? Une idée d'amélioration ? Une question sur une fonctionnalité ? Dites-nous tout."></textarea>
+            <label data-i18n="aide.messageLabel">Votre message</label>
+            <textarea id="aideMessage" rows="5" placeholder="Un bug ? Une idée d'amélioration ? Une question sur une fonctionnalité ? Dites-nous tout." data-i18n-placeholder="aide.messagePlaceholder"></textarea>
           </div>
-          <button class="btn-confirm" id="btnAideSend" onclick="sendAideMessage()">Envoyer</button>
+          <button class="btn-confirm" id="btnAideSend" onclick="sendAideMessage()" data-i18n="common.send">Envoyer</button>
           <p id="aideMsg" class="success-msg"></p>
         </div>
       </section>
@@ -855,62 +855,62 @@
 <div class="modal-bg" id="modalBg" onclick="handleModalBgClick(event)">
   <div class="modal" style="max-width:560px;">
     <div class="modal-header">
-      <h3 id="modalTitle">Ajouter un article</h3>
+      <h3 id="modalTitle" data-i18n="modal.addArticle">Ajouter un article</h3>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="mId" />
       <div class="field full" id="mSkuField" style="display:none;margin-bottom:12px;">
-        <label>🏷️ SKU</label>
+        <label data-i18n="modal.sku">🏷️ SKU</label>
         <div>
           <span class="tile-sku" id="mSkuValue" style="margin-bottom:0;" title="Cliquer pour copier" onclick="copySku(this.dataset.sku,this)"></span>
-          <span class="setting-sub" style="margin-left:8px;">à coller en fin du titre Vinted pour un rattachement fiable et automatique</span>
+          <span class="setting-sub" style="margin-left:8px;" data-i18n="modal.skuHint">à coller en fin du titre Vinted pour un rattachement fiable et automatique</span>
         </div>
       </div>
       <div class="form-grid">
-        <div class="field full"><label>Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" /></div>
-        <div class="field"><label>Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" /></div>
-        <div class="field"><label>Plateforme</label>
-          <select id="mPlatform"><option>Vinted</option><option>eBay</option><option>Leboncoin</option><option>Autre</option></select>
+        <div class="field full"><label data-i18n="modal.name">Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" data-i18n-placeholder="modal.namePlaceholder" /></div>
+        <div class="field"><label data-i18n="modal.buyPrice">Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" /></div>
+        <div class="field"><label data-i18n="modal.platform">Plateforme</label>
+          <select id="mPlatform"><option data-i18n="common.platform.vinted">Vinted</option><option data-i18n="common.platform.ebay">eBay</option><option data-i18n="common.platform.leboncoin">Leboncoin</option><option data-i18n="common.platform.autre">Autre</option></select>
         </div>
-        <div class="field"><label>Statut / Étape</label>
+        <div class="field"><label data-i18n="modal.status">Statut / Étape</label>
           <select id="mStatus" onchange="toggleDates()"></select>
         </div>
-        <div class="field"><label>Date d'achat</label><input type="date" id="mBuyDate" /></div>
+        <div class="field"><label data-i18n="modal.buyDate">Date d'achat</label><input type="date" id="mBuyDate" /></div>
       </div>
 
       <button type="button" class="form-advanced-toggle" id="advancedToggleBtn" onclick="toggleAdvancedFields()">
-        <span>Plus d'options <span style="color:var(--muted);font-weight:400;">(quantité, prix visé, emplacement...)</span></span>
+        <span><span data-i18n="modal.moreOptions">Plus d'options</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.moreOptionsHint">(quantité, prix visé, emplacement...)</span></span>
         <span class="form-advanced-caret" id="advancedCaret">▾</span>
       </button>
       <div class="form-advanced-body" id="advancedFields">
         <div class="form-grid">
-          <div class="field" id="mQuantityField"><label>Quantité <span style="color:var(--muted);font-weight:400;">(articles identiques, ex: revente en gros)</span></label><input type="number" id="mQuantity" min="1" value="1" /></div>
-          <div class="field"><label>Prix de vente visé (€) <span style="color:var(--muted);font-weight:400;">optionnel</span></label><input type="number" id="mSell" placeholder="ex: prix affiché sur l'annonce" step="0.01" /></div>
-          <div class="field"><label>Frais annexes (€)</label><input type="number" id="mExtraCosts" placeholder="0,00" step="0.01" /></div>
-          <div class="field" id="sellDateField" style="display:none"><label>Date de vente</label><input type="date" id="mSellDate" /></div>
-          <div class="field full"><label>📍 Emplacement</label><input type="text" id="mLocation" placeholder="ex: Bac 3 · Étagère 2 · Sac bleu" /></div>
-          <div class="field full"><label>🛍️ Source d'achat</label>
+          <div class="field" id="mQuantityField"><label><span data-i18n="modal.quantity">Quantité</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.quantityHint">(articles identiques, ex: revente en gros)</span></label><input type="number" id="mQuantity" min="1" value="1" /></div>
+          <div class="field"><label><span data-i18n="modal.targetSellPrice">Prix de vente visé (€)</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.optional">optionnel</span></label><input type="number" id="mSell" placeholder="ex: prix affiché sur l'annonce" data-i18n-placeholder="modal.targetSellPricePlaceholder" step="0.01" /></div>
+          <div class="field"><label data-i18n="modal.extraCosts">Frais annexes (€)</label><input type="number" id="mExtraCosts" placeholder="0,00" step="0.01" /></div>
+          <div class="field" id="sellDateField" style="display:none"><label data-i18n="modal.sellDate">Date de vente</label><input type="date" id="mSellDate" /></div>
+          <div class="field full"><label data-i18n="modal.location">📍 Emplacement</label><input type="text" id="mLocation" placeholder="ex: Bac 3 · Étagère 2 · Sac bleu" data-i18n-placeholder="modal.locationPlaceholder" /></div>
+          <div class="field full"><label data-i18n="modal.source">🛍️ Source d'achat</label>
             <select id="mSource">
-              <option value="Vinted">Vinted</option>
+              <option value="Vinted" data-i18n="common.platform.vinted">Vinted</option>
               <option value="Bot">Bot</option>
-              <option value="Brocante">Brocante</option>
-              <option value="Grossiste">Grossiste</option>
-              <option value="Autre">Autre</option>
+              <option value="Brocante" data-i18n="modal.sourceBrocante">Brocante</option>
+              <option value="Grossiste" data-i18n="modal.sourceGrossiste">Grossiste</option>
+              <option value="Autre" data-i18n="common.platform.autre">Autre</option>
             </select>
           </div>
         </div>
       </div>
 
       <div class="field full" style="margin-top:12px;">
-        <label>Photos <span style="color:var(--muted);font-weight:400;">(la première est la principale — cliquez une vignette pour la mettre en avant)</span></label>
+        <label><span data-i18n="modal.photos">Photos</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.photosHint">(la première est la principale — cliquez une vignette pour la mettre en avant)</span></label>
         <div class="photo-gallery" id="photoGallery"></div>
         <input type="file" id="mPhoto" accept="image/*" multiple style="display:none" onchange="addPhotos(event)" />
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
-      <button class="btn-confirm" id="btnSave" onclick="saveArticle()">Enregistrer</button>
+      <button class="btn-cancel" onclick="closeModal()" data-i18n="common.cancel">Annuler</button>
+      <button class="btn-confirm" id="btnSave" onclick="saveArticle()" data-i18n="common.save">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -918,11 +918,11 @@
 <!-- CONFIRM DELETE -->
 <div class="modal-bg" id="confirmBg">
   <div class="modal" style="max-width:340px;">
-    <div class="modal-header"><h3>Supprimer l'article ?</h3></div>
-    <div class="modal-body"><p style="color:var(--muted);font-size:14px;">Cette action est irréversible.</p></div>
+    <div class="modal-header"><h3 data-i18n="modal.confirmDeleteTitle">Supprimer l'article ?</h3></div>
+    <div class="modal-body"><p style="color:var(--muted);font-size:14px;" data-i18n="modal.confirmDeleteBody">Cette action est irréversible.</p></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeConfirm()">Annuler</button>
-      <button class="btn-danger" id="btnConfirmDelete">Supprimer</button>
+      <button class="btn-cancel" onclick="closeConfirm()" data-i18n="common.cancel">Annuler</button>
+      <button class="btn-danger" id="btnConfirmDelete" data-i18n="common.delete">Supprimer</button>
     </div>
   </div>
 </div>
@@ -932,26 +932,26 @@
 <div class="modal-bg" id="sellConfirmBg">
   <div class="modal" style="max-width:380px;">
     <div class="modal-header">
-      <h3>✅ Article vendu</h3>
+      <h3 data-i18n="modal.soldTitle">✅ Article vendu</h3>
       <button class="modal-close" onclick="closeSellConfirm()">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="scId" />
       <p id="scArticleName" style="font-weight:600;margin-bottom:12px;"></p>
       <div class="form-grid">
-        <div class="field full"><label>Prix de vente (€)</label><input type="number" id="scSellPrice" step="0.01" oninput="updateSellPreview()" /></div>
-        <div class="field full"><label>Frais annexes (€)</label><input type="number" id="scExtraCosts" placeholder="0,00" step="0.01" oninput="updateSellPreview()" /></div>
-        <div class="field full"><label>Date de vente</label><input type="date" id="scSellDate" onchange="updateSellPreview()" /></div>
+        <div class="field full"><label data-i18n="modal.sellPrice">Prix de vente (€)</label><input type="number" id="scSellPrice" step="0.01" oninput="updateSellPreview()" /></div>
+        <div class="field full"><label data-i18n="modal.extraCosts">Frais annexes (€)</label><input type="number" id="scExtraCosts" placeholder="0,00" step="0.01" oninput="updateSellPreview()" /></div>
+        <div class="field full"><label data-i18n="modal.sellDate">Date de vente</label><input type="date" id="scSellDate" onchange="updateSellPreview()" /></div>
       </div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-        <div class="detail-row"><span class="detail-row-label">Prix d'achat</span><span class="detail-row-val" id="scBuyPreview">-0,00 €</span></div>
-        <div class="detail-row"><span class="detail-row-label">Vente</span><span class="detail-row-val" id="scSellPreview">+0,00 €</span></div>
-        <div class="detail-row" style="font-weight:700;"><span class="detail-row-label">Bénéfice net</span><span class="detail-row-val" id="scProfitPreview">0,00 €</span></div>
+        <div class="detail-row"><span class="detail-row-label" data-i18n="modal.buyPricePreview">Prix d'achat</span><span class="detail-row-val" id="scBuyPreview">-0,00 €</span></div>
+        <div class="detail-row"><span class="detail-row-label" data-i18n="modal.sellPreview">Vente</span><span class="detail-row-val" id="scSellPreview">+0,00 €</span></div>
+        <div class="detail-row" style="font-weight:700;"><span class="detail-row-label" data-i18n="modal.netProfit">Bénéfice net</span><span class="detail-row-val" id="scProfitPreview">0,00 €</span></div>
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeSellConfirm()">Annuler</button>
-      <button class="btn-confirm" onclick="submitSellConfirm()">Confirmer la vente</button>
+      <button class="btn-cancel" onclick="closeSellConfirm()" data-i18n="common.cancel">Annuler</button>
+      <button class="btn-confirm" onclick="submitSellConfirm()" data-i18n="modal.confirmSale">Confirmer la vente</button>
     </div>
   </div>
 </div>
@@ -960,12 +960,12 @@
 <div class="modal-bg" id="historyBg">
   <div class="modal" style="max-width:420px;">
     <div class="modal-header">
-      <h3 id="historyTitle">Évolution</h3>
+      <h3 id="historyTitle" data-i18n="modal.evolution">Évolution</h3>
       <button class="modal-close" onclick="closeHistory()">✕</button>
     </div>
     <div class="modal-body" id="historyBody"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeHistory()">Fermer</button>
+      <button class="btn-cancel" onclick="closeHistory()" data-i18n="common.close">Fermer</button>
     </div>
   </div>
 </div>
@@ -975,18 +975,18 @@
 <div class="modal-bg" id="csvImportBg">
   <div class="modal" style="max-width:520px;">
     <div class="modal-header">
-      <h3>⬆ Import CSV en masse</h3>
+      <h3 data-i18n="modal.csvImportTitle">⬆ Import CSV en masse</h3>
       <button class="modal-close" onclick="closeCsvImport()">✕</button>
     </div>
     <div class="modal-body">
-      <p class="setting-sub">Créez plusieurs fiches d'un coup depuis un fichier CSV (colonnes attendues : Nom, Prix achat, Plateforme, Date achat, Emplacement, Source — seule "Nom" est obligatoire).</p>
-      <p class="setting-sub"><a href="#" onclick="downloadCsvTemplate();return false;">📄 Télécharger un modèle</a></p>
+      <p class="setting-sub" data-i18n="modal.csvImportDesc">Créez plusieurs fiches d'un coup depuis un fichier CSV (colonnes attendues : Nom, Prix achat, Plateforme, Date achat, Emplacement, Source — seule "Nom" est obligatoire).</p>
+      <p class="setting-sub"><a href="#" onclick="downloadCsvTemplate();return false;" data-i18n="modal.csvImportTemplate">📄 Télécharger un modèle</a></p>
       <input type="file" id="csvImportFile" accept=".csv" onchange="handleCsvFile(this)" />
       <div id="csvImportPreview" style="margin-top:12px;"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeCsvImport()">Annuler</button>
-      <button class="btn-confirm" id="csvImportBtn" disabled onclick="confirmCsvImport()">Importer</button>
+      <button class="btn-cancel" onclick="closeCsvImport()" data-i18n="common.cancel">Annuler</button>
+      <button class="btn-confirm" id="csvImportBtn" disabled onclick="confirmCsvImport()" data-i18n="modal.csvImportBtn">Importer</button>
     </div>
   </div>
 </div>
@@ -995,12 +995,12 @@
 <div class="modal-bg" id="groupDetailBg">
   <div class="modal" style="max-width:560px;">
     <div class="modal-header">
-      <h3 id="groupDetailTitle">Exemplaires identiques</h3>
+      <h3 id="groupDetailTitle" data-i18n="modal.identicalItems">Exemplaires identiques</h3>
       <button class="modal-close" onclick="closeGroupDetail()">✕</button>
     </div>
     <div class="modal-body" id="groupDetailBody"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeGroupDetail()">Fermer</button>
+      <button class="btn-cancel" onclick="closeGroupDetail()" data-i18n="common.close">Fermer</button>
     </div>
   </div>
 </div>
@@ -1008,17 +1008,17 @@
 <div class="modal-bg" id="duplicatesBg">
   <div class="modal" style="max-width:520px;">
     <div class="modal-header">
-      <h3>🧬 Articles en double probables</h3>
+      <h3 data-i18n="modal.probableDuplicates">🧬 Articles en double probables</h3>
       <button class="modal-close" onclick="closeDuplicates()">✕</button>
     </div>
     <div class="modal-body" id="duplicatesBody"></div>
     <div class="modal-body" style="border-top:1px solid var(--border);padding-top:14px;">
-      <p class="setting-sub">La détection ci-dessus compare les noms. Vous pouvez aussi comparer les photos (plus lent, plus fiable pour repérer un article listé deux fois sous des noms différents) :</p>
-      <button class="pf-btn" id="photoDupBtn" onclick="checkPhotoDuplicates()">🔍 Vérifier aussi par photo</button>
+      <p class="setting-sub" data-i18n="modal.duplicatesDesc">La détection ci-dessus compare les noms. Vous pouvez aussi comparer les photos (plus lent, plus fiable pour repérer un article listé deux fois sous des noms différents) :</p>
+      <button class="pf-btn" id="photoDupBtn" onclick="checkPhotoDuplicates()" data-i18n="modal.checkPhotoDup">🔍 Vérifier aussi par photo</button>
       <div id="duplicatesPhotoBody" style="margin-top:10px;"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeDuplicates()">Fermer</button>
+      <button class="btn-cancel" onclick="closeDuplicates()" data-i18n="common.close">Fermer</button>
     </div>
   </div>
 </div>
@@ -1027,15 +1027,15 @@
 <div class="modal-bg" id="detailBg">
   <div class="modal modal-detail-large">
     <div class="modal-header">
-      <h3 id="detailTitle">Détail</h3>
+      <h3 id="detailTitle" data-i18n="modal.detail">Détail</h3>
       <button class="modal-close" onclick="closeDetail()">✕</button>
     </div>
     <div class="modal-body" id="detailBody"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeDetail()">Fermer</button>
-      <button class="btn-cancel" id="detailResyncBtn" style="display:none;" title="Reprend le vrai statut Vinted au prochain cycle de synchro (≤5 min)">🔄 Réinitialiser depuis Vinted</button>
-      <button class="btn-cancel" id="detailDeleteBtn" style="color:var(--danger);border-color:var(--danger);">✕ Supprimer</button>
-      <button class="btn-confirm" id="detailEditBtn">✎ Modifier</button>
+      <button class="btn-cancel" onclick="closeDetail()" data-i18n="common.close">Fermer</button>
+      <button class="btn-cancel" id="detailResyncBtn" style="display:none;" title="Reprend le vrai statut Vinted au prochain cycle de synchro (≤5 min)" data-i18n-title="modal.resyncFromVintedTitle" data-i18n="modal.resyncFromVinted">🔄 Réinitialiser depuis Vinted</button>
+      <button class="btn-cancel" id="detailDeleteBtn" style="color:var(--danger);border-color:var(--danger);">✕ <span data-i18n="common.delete">Supprimer</span></button>
+      <button class="btn-confirm" id="detailEditBtn" data-i18n="modal.edit">✎ Modifier</button>
     </div>
   </div>
 </div>
@@ -1044,33 +1044,33 @@
 <div class="modal-bg" id="saleCardBg">
   <div class="modal" style="max-width:360px;">
     <div class="modal-header">
-      <h3>Partager cette vente</h3>
+      <h3 data-i18n="modal.shareSale">Partager cette vente</h3>
       <button class="modal-close" onclick="closeSaleCard()">✕</button>
     </div>
     <div class="modal-body">
       <div id="saleCardContent" class="sale-card">
         <div class="sale-card-brand app-logo-wrap"><img src="" alt="VintControl" class="app-logo sale-card-logo" /></div>
-        <div class="sale-card-badge">✓ VENTE RÉUSSIE</div>
+        <div class="sale-card-badge" data-i18n="modal.saleSuccess">✓ VENTE RÉUSSIE</div>
         <div class="sale-card-name" id="scName"></div>
         <div class="sale-card-photo-wrap" id="scPhotoWrap"></div>
         <div class="sale-card-stats">
-          <div class="sale-card-stat"><div class="sale-card-stat-label">PRIX D'ACHAT</div><div class="sale-card-stat-val profit-neg" id="scCardBuy"></div></div>
-          <div class="sale-card-stat"><div class="sale-card-stat-label">PRIX DE VENTE</div><div class="sale-card-stat-val profit-pos" id="scCardSell"></div></div>
+          <div class="sale-card-stat"><div class="sale-card-stat-label" data-i18n="modal.buyPriceLabel">PRIX D'ACHAT</div><div class="sale-card-stat-val profit-neg" id="scCardBuy"></div></div>
+          <div class="sale-card-stat"><div class="sale-card-stat-label" data-i18n="modal.sellPriceLabel">PRIX DE VENTE</div><div class="sale-card-stat-val profit-pos" id="scCardSell"></div></div>
         </div>
         <div class="sale-card-profit-box">
-          <div class="sale-card-profit-label">BÉNÉFICE NET</div>
+          <div class="sale-card-profit-label" data-i18n="modal.netProfitLabel">BÉNÉFICE NET</div>
           <div class="sale-card-profit-val" id="scCardProfit"></div>
           <div class="sale-card-profit-pills">
             <span class="sale-card-pill" id="scCardRoi"></span>
             <span class="sale-card-pill" id="scCardMargin"></span>
           </div>
         </div>
-        <div class="sale-card-footer">VintControl · Gestion de revente simplifiée</div>
+        <div class="sale-card-footer">VintControl · <span data-i18n="modal.footerTagline">Gestion de revente simplifiée</span></div>
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeSaleCard()">Fermer</button>
-      <button class="btn-confirm" onclick="downloadSaleCard()">⬇ Télécharger</button>
+      <button class="btn-cancel" onclick="closeSaleCard()" data-i18n="common.close">Fermer</button>
+      <button class="btn-confirm" onclick="downloadSaleCard()" data-i18n="common.download">⬇ Télécharger</button>
     </div>
   </div>
 </div>
@@ -1079,32 +1079,32 @@
 <div class="modal-bg" id="dashWidgetsBg">
   <div class="modal" style="max-width:400px;">
     <div class="modal-header">
-      <h3>Personnaliser le tableau de bord</h3>
+      <h3 data-i18n="modal.customizeDashboard">Personnaliser le tableau de bord</h3>
       <button class="modal-close" onclick="closeDashboardSettings()">✕</button>
     </div>
     <div class="modal-body" style="max-height:60vh;overflow-y:auto;">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">Indicateurs (bande du haut)</p>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_profit_total" checked><label for="widget_kpi_profit_total">Profit total</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_profit_mois" checked><label for="widget_kpi_profit_mois">Profit ce mois</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_profit_net" checked><label for="widget_kpi_profit_net">Profit net (après dépenses)</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_stock" checked><label for="widget_kpi_stock">En stock</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_expedition" checked><label for="widget_kpi_expedition">À expédier</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_vendus" checked><label for="widget_kpi_vendus">Vendus</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_capital" checked><label for="widget_kpi_capital">Capital bloqué +30j</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_achats" checked><label for="widget_kpi_achats">🛍️ Achats Vinted ce mois</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_ca" checked><label for="widget_kpi_ca">Chiffre d'affaires</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_roi" checked><label for="widget_kpi_roi">ROI global</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_kpi_wallet" checked><label for="widget_kpi_wallet">💰 Solde Vinted</label></div>
-      <p style="font-size:13px;color:var(--muted);margin:14px 0 8px;">Sections</p>
-      <div class="checklist-item"><input type="checkbox" id="widget_weekly" checked><label for="widget_weekly">📅 Résumé hebdomadaire</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_completeness" checked><label for="widget_completeness">📋 Complétude des fiches</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_calc" checked><label for="widget_calc">🧮 Calculateur de marge rapide</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_recent" checked><label for="widget_recent">📦 Derniers articles</label></div>
-      <div class="checklist-item"><input type="checkbox" id="widget_chart" checked><label for="widget_chart">📊 Profit mensuel (graphique)</label></div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:8px;" data-i18n="modal.kpiSectionTitle">Indicateurs (bande du haut)</p>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_profit_total" checked><label for="widget_kpi_profit_total" data-i18n="dashboard.kpi.profitTotal">Profit total</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_profit_mois" checked><label for="widget_kpi_profit_mois" data-i18n="dashboard.kpi.profitMois">Profit ce mois</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_profit_net" checked><label for="widget_kpi_profit_net" data-i18n="dashboard.kpi.profitNet">Profit net (après dépenses)</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_stock" checked><label for="widget_kpi_stock" data-i18n="dashboard.kpi.stock">En stock</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_expedition" checked><label for="widget_kpi_expedition" data-i18n="dashboard.kpi.expedition">À expédier</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_vendus" checked><label for="widget_kpi_vendus" data-i18n="dashboard.kpi.vendus">Vendus</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_capital" checked><label for="widget_kpi_capital" data-i18n="dashboard.kpi.capital">Capital bloqué +30j</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_achats" checked><label for="widget_kpi_achats" data-i18n="dashboard.kpi.achats">🛍️ Achats Vinted ce mois</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_ca" checked><label for="widget_kpi_ca" data-i18n="dashboard.kpi.ca">Chiffre d'affaires</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_roi" checked><label for="widget_kpi_roi" data-i18n="dashboard.kpi.roi">ROI global</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_kpi_wallet" checked><label for="widget_kpi_wallet" data-i18n="dashboard.kpi.wallet">💰 Solde Vinted</label></div>
+      <p style="font-size:13px;color:var(--muted);margin:14px 0 8px;" data-i18n="modal.sectionsTitle">Sections</p>
+      <div class="checklist-item"><input type="checkbox" id="widget_weekly" checked><label for="widget_weekly" data-i18n="modal.widget.weekly">📅 Résumé hebdomadaire</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_completeness" checked><label for="widget_completeness" data-i18n="modal.widget.completeness">📋 Complétude des fiches</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_calc" checked><label for="widget_calc" data-i18n="modal.widget.calc">🧮 Calculateur de marge rapide</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_recent" checked><label for="widget_recent" data-i18n="modal.widget.recent">📦 Derniers articles</label></div>
+      <div class="checklist-item"><input type="checkbox" id="widget_chart" checked><label for="widget_chart" data-i18n="modal.widget.chart">📊 Profit mensuel (graphique)</label></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeDashboardSettings()">Fermer</button>
-      <button class="btn-confirm" onclick="saveDashboardSettings()">Enregistrer</button>
+      <button class="btn-cancel" onclick="closeDashboardSettings()" data-i18n="common.close">Fermer</button>
+      <button class="btn-confirm" onclick="saveDashboardSettings()" data-i18n="common.save">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1118,7 +1118,7 @@
     </div>
     <div class="modal-body" id="infoBody"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeInfo()">Fermer</button>
+      <button class="btn-cancel" onclick="closeInfo()" data-i18n="common.close">Fermer</button>
     </div>
   </div>
 </div>
@@ -1127,17 +1127,17 @@
 <div class="modal-bg" id="resetPasswordBg">
   <div class="modal" style="max-width:420px;">
     <div class="modal-header">
-      <h3>Choisissez un nouveau mot de passe</h3>
+      <h3 data-i18n="modal.newPasswordTitle">Choisissez un nouveau mot de passe</h3>
     </div>
     <div class="modal-body">
-      <p class="setting-sub" style="margin-bottom:14px;">Ce mot de passe est celui à utiliser aussi bien sur le site que dans l'extension Chrome.</p>
-      <div class="field"><label>Nouveau mot de passe</label><input type="password" id="newPassword1" placeholder="••••••••" /></div>
-      <div class="field"><label>Confirmez</label><input type="password" id="newPassword2" placeholder="••••••••" /></div>
+      <p class="setting-sub" style="margin-bottom:14px;" data-i18n="modal.newPasswordHint">Ce mot de passe est celui à utiliser aussi bien sur le site que dans l'extension Chrome.</p>
+      <div class="field"><label data-i18n="modal.newPassword">Nouveau mot de passe</label><input type="password" id="newPassword1" placeholder="••••••••" /></div>
+      <div class="field"><label data-i18n="modal.confirmPassword">Confirmez</label><input type="password" id="newPassword2" placeholder="••••••••" /></div>
       <p id="resetPasswordMsg" class="success-msg"></p>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="cancelPasswordReset()">Annuler</button>
-      <button class="btn-confirm" id="btnResetPasswordSave" onclick="saveNewPassword()">Enregistrer</button>
+      <button class="btn-cancel" onclick="cancelPasswordReset()" data-i18n="common.cancel">Annuler</button>
+      <button class="btn-confirm" id="btnResetPasswordSave" onclick="saveNewPassword()" data-i18n="common.save">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1146,19 +1146,19 @@
 <div class="modal-bg" id="feedbackBg">
   <div class="modal" style="max-width:420px;">
     <div class="modal-header">
-      <h3>Envoyer un avis</h3>
+      <h3 data-i18n="modal.sendFeedback">Envoyer un avis</h3>
       <button class="modal-close" onclick="closeFeedback()">✕</button>
     </div>
     <div class="modal-body">
       <div class="field full">
-        <label>Votre message</label>
-        <textarea id="feedbackMessage" rows="5" placeholder="Un bug ? Une idée d'amélioration ? Dites-nous tout."></textarea>
+        <label data-i18n="aide.messageLabel">Votre message</label>
+        <textarea id="feedbackMessage" rows="5" placeholder="Un bug ? Une idée d'amélioration ? Dites-nous tout." data-i18n-placeholder="modal.feedbackPlaceholder"></textarea>
       </div>
       <p id="feedbackMsg" class="success-msg"></p>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeFeedback()">Annuler</button>
-      <button class="btn-confirm" id="btnFeedbackSend" onclick="sendFeedback()">Envoyer</button>
+      <button class="btn-cancel" onclick="closeFeedback()" data-i18n="common.cancel">Annuler</button>
+      <button class="btn-confirm" id="btnFeedbackSend" onclick="sendFeedback()" data-i18n="common.send">Envoyer</button>
     </div>
   </div>
 </div>
@@ -1168,14 +1168,14 @@
   <div class="modal" style="max-width:440px;">
     <div class="modal-body" id="onboardingBody" style="padding-top:24px;"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" id="onboardingSkip" onclick="closeOnboarding()">Passer</button>
-      <button class="btn-confirm" id="onboardingNext" onclick="onboardingNext()">Suivant</button>
+      <button class="btn-cancel" id="onboardingSkip" onclick="closeOnboarding()" data-i18n="modal.onboardingSkip">Passer</button>
+      <button class="btn-confirm" id="onboardingNext" onclick="onboardingNext()" data-i18n="modal.onboardingNext">Suivant</button>
     </div>
   </div>
 </div>
 
-<script src="js/i18n.js?v=1"></script>
+<script src="js/i18n.js?v=3"></script>
 <script src="js/calc.js?v=15"></script>
-<script src="js/app.js?v=58"></script>
+<script src="js/app.js?v=59"></script>
 </body>
 </html>

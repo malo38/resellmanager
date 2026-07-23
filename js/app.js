@@ -62,6 +62,9 @@ function getAllSteps(){ return [...getPrepSteps(), ...FIXED_STEPS]; }
 function isPreSaleStatus(status){ return status==='stock'||getPrepSteps().some(s=>s.key===status); }
 
 const PAGE_TITLES = { dashboard:'Tableau de bord', stock:'Stock', achats:'Achats', messages:'Messages Vinted', analytics:'Statistiques', comptabilite:'Comptabilité', objectif:'Objectifs', depenses:'Dépenses', ventes:'Ventes', settings:'Paramètres', boost:'Boost', calendrier:'Calendrier', favoris:'Messages favoris', republier:'Republication', delegation:'Délégation', aide:'Aide & Support' };
+// Chaque titre de page de PAGE_TITLES a sa propre clé nav.* (déjà utilisée
+// pour le libellé correspondant dans la sidebar, voir js/i18n.js).
+const PAGE_TITLE_KEYS = { dashboard:'nav.dashboard', stock:'nav.stock', achats:'nav.achats', messages:'nav.messages', analytics:'nav.analytics', comptabilite:'nav.comptabilite', objectif:'nav.objectif', depenses:'nav.depenses', ventes:'nav.ventes', settings:'nav.settings', boost:'nav.boost', calendrier:'nav.calendrier', favoris:'nav.favoris', republier:'nav.republier', delegation:'nav.delegation', aide:'nav.aide' };
 
 // ── THEME ──
 function setTheme(t) {
@@ -284,10 +287,7 @@ window.goPage = (id, btn) => {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
-  // Seul le Tableau de bord est traduit pour l'instant (phase 1 de l'anglais,
-  // voir js/i18n.js) — les autres titres de page restent en français tant
-  // que ces pages n'ont pas encore leurs propres clés de traduction.
-  document.getElementById('topbarTitle').textContent=id==='dashboard'?t('nav.dashboard'):(PAGE_TITLES[id]||'');
+  document.getElementById('topbarTitle').textContent=t(PAGE_TITLE_KEYS[id]||'')||(PAGE_TITLES[id]||'');
   if(id==='settings') { renderVintedConnectionStatus(); renderPrepStepsSettings(); renderAccountantLink(); renderSellerProfile(); renderPushStatus(); }
   if(id==='ventes') renderReplay();
   if(id==='achats') renderAchats();
@@ -801,7 +801,7 @@ function renderDashboard(){
 
   document.getElementById('recentList').innerHTML=allArticles.slice(0,4).length
     ?`<div class="article-list">${allArticles.slice(0,4).map(a=>articleHTML(a)).join('')}</div>`
-    :emptyState('Aucun article encore.');
+    :emptyState(t('empty.noArticles'));
   renderMiniChart('dashChartBars','dashChartLabels');
   renderCompletenessScore();
   renderWeeklySummary();
@@ -1489,7 +1489,7 @@ async function renderDelegatesList(){
   const el=document.getElementById('delegatesList');
   if(!el) return;
   const {data:delegations}=await sb.from('delegations').select('*, delegation_rate_lines(*)').eq('owner_id',currentUser.id);
-  if(!delegations?.length){ el.innerHTML=emptyState('Aucun délégué pour le moment.'); return; }
+  if(!delegations?.length){ el.innerHTML=emptyState(t('empty.noDelegates')); return; }
   const rows=await Promise.all(delegations.map(async d=>{
     let owed=0;
     if(d.compensation_type==='per_item'){
@@ -1983,10 +1983,10 @@ function renderStockAll(){
   const rotationBase=activeArts.length+vendus.length;
   const rotationRate=rotationBase?Math.round(vendus.length/rotationBase*100):null;
   document.getElementById('stockMinistats').innerHTML=`
-    <div class="ministat"><div class="ministat-label">Articles</div><div class="ministat-val">${activeArts.length}</div></div>
-    <div class="ministat"><div class="ministat-label">Vendus</div><div class="ministat-val">${vendus.length}</div></div>
-    <div class="ministat"><div class="ministat-label">CA</div><div class="ministat-val">${fmtPrice(ca)}</div></div>
-    <div class="ministat"><div class="ministat-label">Taux de rotation</div><div class="ministat-val">${rotationRate===null?'—':rotationRate+'%'}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('stock.articles')}</div><div class="ministat-val">${activeArts.length}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('stock.vendus')}</div><div class="ministat-val">${vendus.length}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('stock.ca')}</div><div class="ministat-val">${fmtPrice(ca)}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('stock.rotationRate')}</div><div class="ministat-val">${rotationRate===null?'—':rotationRate+'%'}</div></div>
   `;
 
   if(!categories.some(c=>c.key===stockCategoryFilter)) stockCategoryFilter='Tous';
@@ -2354,7 +2354,7 @@ function renderHallOfFame(){
       <div class="article-right">
         <div class="article-profit profit-pos">+${fmtPrice(calcProfit(a))}</div>
       </div>
-    </div>`).join('') : emptyState('Vendez un article avec profit pour apparaître ici !');
+    </div>`).join('') : emptyState(t('empty.noHallOfFame'));
 }
 
 let ventesSearchTerm='';
@@ -2412,16 +2412,16 @@ function renderReplay(){
   const totalProfit=allVentes.reduce((s,a)=>s+calcProfit(a),0);
   const ministatsEl=document.getElementById('ventesMinistats');
   if(ministatsEl) ministatsEl.innerHTML=`
-    <div class="ministat"><div class="ministat-label">Profit aujourd'hui</div><div class="ministat-val">${fmtPrice(totalToday)}</div></div>
-    <div class="ministat"><div class="ministat-label">Profit ce mois-ci</div><div class="ministat-val">${fmtPrice(totalMonth)}</div></div>
-    <div class="ministat"><div class="ministat-label">Profit total</div><div class="ministat-val">${fmtPrice(totalProfit)}</div></div>
-    <div class="ministat"><div class="ministat-label">Nombre de ventes</div><div class="ministat-val">${allVentes.length}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('ventes.profitToday')}</div><div class="ministat-val">${fmtPrice(totalToday)}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('ventes.profitMonth')}</div><div class="ministat-val">${fmtPrice(totalMonth)}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('ventes.profitTotal')}</div><div class="ministat-val">${fmtPrice(totalProfit)}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('ventes.count')}</div><div class="ministat-val">${allVentes.length}</div></div>
   `;
   const platformSelect=document.getElementById('ventesPlatformSelect');
   if(platformSelect) platformSelect.value=currentFilter.replay;
 
   const container=document.getElementById('replayList');
-  if(!arts.length){container.innerHTML=emptyState('Aucun article vendu encore.');return;}
+  if(!arts.length){container.innerHTML=emptyState(t('empty.noSoldArticles'));return;}
   // Liste compacte (comme la page Achats) : le détail du parcours achat →
   // vente s'ouvre au clic dans une fenêtre dédiée, plutôt que d'être étalé
   // en permanence sur chaque ligne. Badge orange "À expédier" pour les
@@ -2538,7 +2538,7 @@ function renderCalendar() {
     </div>` : '').join('');
 
   if (!expedition.length && !publier.length && !photo.length && !laver.length) {
-    html = emptyState('Rien à faire aujourd\'hui, tout est à jour ! 🎉');
+    html = emptyState(t('empty.calendarDone'));
   }
 
   html += `<div class="task-group"><div class="task-group-title">🎯 Objectif du mois</div>
@@ -2607,7 +2607,7 @@ async function renderAutoMsgStatus() {
         <div class="article-name">${m.recipient_login||'Utilisateur'}${m.item_title?' — '+m.item_title:''}</div>
         <div class="article-meta">${fmtDate(m.sent_at)}</div>
       </div>
-    </div>`).join('') : emptyState('Aucun message auto-envoyé pour le moment.');
+    </div>`).join('') : emptyState(t('empty.noAutoMessages'));
 }
 
 async function renderFavoris() {
@@ -2698,11 +2698,11 @@ function timeAgo(iso){
 
 async function renderMessages(){
   const container=document.getElementById('messagesList');
-  container.innerHTML=emptyState('Chargement...');
+  container.innerHTML=emptyState(t('empty.loading'));
   const {data,error}=await applyAccountFilter(sb.from('vinted_conversations')
     .select('*').eq('user_id',currentUser.id)).order('updated_at',{ascending:false});
   if(error||!data||!data.length){
-    container.innerHTML=emptyState('Aucun message Vinted synchronisé pour le moment. Gardez un onglet vinted.fr ouvert pour que l\'extension synchronise votre messagerie.');
+    container.innerHTML=emptyState(t('empty.noMessages'));
     return;
   }
   container.innerHTML=data.map(m=>`
@@ -2746,7 +2746,7 @@ function renderDepenses(){
           <button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="deleteExpense('${e.id}')">✕</button>
         </div>
       </div>
-    </div>`).join('') : emptyState('Aucune dépense enregistrée pour le moment.');
+    </div>`).join('') : emptyState(t('empty.noExpenses'));
 }
 
 window.addExpense = async () => {
@@ -2819,12 +2819,12 @@ function geocodeQuery(shortLoc){
   const parts=(shortLoc||'').split(',').map(s=>s.trim()).filter(Boolean);
   return parts.length>=3 ? parts.slice(-2).join(', ') : shortLoc;
 }
-const DISPUTE_LABELS={litige:'🚩 En litige',rembourse:'✅ Remboursé',compense:'💶 Compensé'};
 function disputeBadge(p){
   if(!p.dispute_status) return '';
   const cls=p.dispute_status==='litige'?'dispute-badge dispute-badge-litige':'dispute-badge dispute-badge-resolved';
   const amount=p.dispute_amount?` (${fmtPrice(p.dispute_amount)})`:'';
-  return `<span class="${cls}">${DISPUTE_LABELS[p.dispute_status]}${amount}</span>`;
+  const labels={litige:'🚩 '+t('achats.disputeStatusLitige'),rembourse:t('achats.markRefunded'),compense:t('achats.markCompensated')};
+  return `<span class="${cls}">${labels[p.dispute_status]}${amount}</span>`;
 }
 window.setDisputeStatus=async(purchaseId,status)=>{
   const p=allPurchases.find(x=>x.id===purchaseId);
@@ -2921,11 +2921,11 @@ function renderAchats(){
   const isResolved=p=>p.dispute_status==='rembourse'||p.dispute_status==='compense';
   const totalRecupere=arts.filter(isResolved).reduce((s,p)=>s+(parseFloat(p.dispute_amount)||0),0);
   document.getElementById('achatsMinistats').innerHTML=`
-    <div class="ministat"><div class="ministat-label">Achats aujourd'hui</div><div class="ministat-val">${fmtPrice(totalToday)}</div></div>
-    <div class="ministat"><div class="ministat-label">Achats ce mois-ci</div><div class="ministat-val">${fmtPrice(totalMonth)}</div></div>
-    <div class="ministat"><div class="ministat-label">Total achats</div><div class="ministat-val">${fmtPrice(totalAll)}</div></div>
-    <div class="ministat"><div class="ministat-label">Nombre d'achats</div><div class="ministat-val">${arts.length}</div></div>
-    ${totalRecupere>0?`<div class="ministat"><div class="ministat-label">Récupéré (litiges)</div><div class="ministat-val" style="color:var(--accent);">${fmtPrice(totalRecupere)}</div></div>`:''}
+    <div class="ministat"><div class="ministat-label">${t('achats.today')}</div><div class="ministat-val">${fmtPrice(totalToday)}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('achats.thisMonth')}</div><div class="ministat-val">${fmtPrice(totalMonth)}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('achats.total')}</div><div class="ministat-val">${fmtPrice(totalAll)}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('achats.count')}</div><div class="ministat-val">${arts.length}</div></div>
+    ${totalRecupere>0?`<div class="ministat"><div class="ministat-label">${t('achats.recovered')}</div><div class="ministat-val" style="color:var(--accent);">${fmtPrice(totalRecupere)}</div></div>`:''}
   `;
 
   // "Colis à récupérer" : Vinted décrit déjà ça en texte dans le statut de
@@ -2950,16 +2950,16 @@ function renderAchats(){
       return `<div class="pickup-item">
         ${p.photo_url?`<img class="pickup-photo" src="${p.photo_url}">`:'<div class="pickup-photo">🛍️</div>'}
         <div class="pickup-info">
-          <div class="pickup-title">${p.title||'(sans titre)'}</div>
+          <div class="pickup-title">${p.title||t('achats.noTitle')}</div>
           ${location?`<div class="pickup-location" title="${location.replace(/"/g,'&quot;')}">📍 ${location}</div>`:''}
           <div class="pickup-badges">
-            ${auto?`<span class="pickup-badge dispute-badge-litige" title="Délai habituel de retrait dépassé (estimation) — colis probablement retourné à l'expéditeur ou perdu.">⚠️ Délai de retrait dépassé${info.deadline?` depuis le ${fmtDate(info.deadline)}`:''}</span>`:''}
+            ${auto?`<span class="pickup-badge dispute-badge-litige" title="${t('achats.overdueTooltip')}">${t('achats.overdueBadge')}${info.deadline?` ${t('achats.overdueSince')} ${fmtDate(info.deadline)}`:''}</span>`:''}
             ${disputeBadge(p)}
           </div>
           <div class="dispute-actions">
-            ${!p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','litige')">🚩 Signaler un litige</button>`:''}
-            ${p.dispute_status==='litige'?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','rembourse')">✅ Remboursé</button><button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','compense')">💶 Compensé</button>`:''}
-            ${p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="clearDisputeStatus('${p.id}')" title="Retirer ce statut">↺ Annuler</button>`:''}
+            ${!p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','litige')">${t('achats.signalDispute')}</button>`:''}
+            ${p.dispute_status==='litige'?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','rembourse')">${t('achats.markRefunded')}</button><button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','compense')">${t('achats.markCompensated')}</button>`:''}
+            ${p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="clearDisputeStatus('${p.id}')" title="${t('achats.clearDisputeTitle')}">${t('achats.clearDispute')}</button>`:''}
           </div>
         </div>
       </div>`;
@@ -2967,7 +2967,7 @@ function renderAchats(){
     const rows=[...overdueUnresolved.map(p=>disputeRow(p,true)), ...manualDisputes.map(p=>disputeRow(p,false))];
     disputeWrap.innerHTML=rows.length?`
       <div class="checklist-card dispute-card">
-        <div class="checklist-title">⚠️ Litiges & colis à risque — ${rows.length}</div>
+        <div class="checklist-title">${t('achats.disputePanelTitle')} ${rows.length}</div>
         <div class="pickup-list">${rows.join('')}</div>
       </div>`:'';
   }
@@ -2980,16 +2980,16 @@ function renderAchats(){
       // MÊME date limite estimée) plutôt que deux badges indépendants — pour
       // que les deux nombres se recoupent sans ambiguïté (confusion signalée
       // le 2026-07-16 : "6 jours d'attente" lu comme "6 jours restants").
-      const waitBadge=info.since!==null?`<span class="pickup-badge">📦 Arrivé il y a ${info.since} jour${info.since>1?'s':''}</span>`:'';
+      const waitBadge=info.since!==null?`<span class="pickup-badge">${tf('achats.arrivedAgo',{n:info.since,s:info.since>1?'s':''})}</span>`:'';
       let estBadge='';
       if(info.deadline && info.remaining>0){
-        estBadge=`<span class="pickup-badge pickup-badge-est" title="Estimation basée sur le délai habituel de ${CARRIER_LABELS[p.pickup_carrier]||p.pickup_carrier} — à vérifier, Vinted ne communique aucune date officielle.">≈ ${info.remaining} jour${info.remaining>1?'s':''} restant${info.remaining>1?'s':''} (jusqu'au ${fmtDate(info.deadline)})</span>`;
+        estBadge=`<span class="pickup-badge pickup-badge-est" title="${tf('achats.pickupEstTooltip',{carrier:CARRIER_LABELS[p.pickup_carrier]||p.pickup_carrier})}">${tf('achats.remaining',{n:info.remaining,s:info.remaining>1?'s':'',s2:info.remaining>1?'s':'',date:fmtDate(info.deadline)})}</span>`;
       }
       const location=shortLocation(p.pickup_location)||p.status;
       return `<div class="pickup-item">
         ${p.photo_url?`<img class="pickup-photo" src="${p.photo_url}">`:'<div class="pickup-photo">🛍️</div>'}
         <div class="pickup-info">
-          <div class="pickup-title">${p.title||'(sans titre)'}</div>
+          <div class="pickup-title">${p.title||t('achats.noTitle')}</div>
           <div class="pickup-location" title="${location.replace(/"/g,'&quot;')}">📍 ${location}</div>
           <div class="pickup-badges">${waitBadge}${estBadge}</div>
         </div>
@@ -2997,9 +2997,9 @@ function renderAchats(){
     };
     pickupWrap.innerHTML=`
       <div class="checklist-card" style="margin-bottom:16px;">
-        <div class="checklist-title">📍 Colis à récupérer — ${activePickups.length}</div>
+        <div class="checklist-title">${t('achats.pickupPanelTitle')} ${activePickups.length}</div>
         <div id="achatsPickupMapEl" class="pickup-map"></div>
-        <div class="pickup-list">${activePickups.length?activePickups.map(pickupRow).join(''):'<p class="setting-sub">Aucun colis à récupérer pour le moment.</p>'}</div>
+        <div class="pickup-list">${activePickups.length?activePickups.map(pickupRow).join(''):`<p class="setting-sub">${t('achats.noPickup')}</p>`}</div>
       </div>`;
     renderPickupMap(activePickups.concat(overdueUnresolved));
   }
@@ -3009,12 +3009,12 @@ function renderAchats(){
   list.innerHTML=shown.length?shown.map(p=>`
     <div class="tile-list-row" onclick="window.open('https://www.vinted.fr','_blank')" title="${(p.status||'').replace(/"/g,'&quot;')}">
       <div class="tile-list-photo">${p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'🛍️'}</div>
-      <div class="tile-list-name">${p.title||'(sans titre)'}</div>
-      ${p.dispute_status?disputeBadge(p):`<button class="litige-flag-btn" onclick="event.stopPropagation();setDisputeStatus('${p.id}','litige')" title="Signaler un litige">🚩</button>`}
+      <div class="tile-list-name">${p.title||t('achats.noTitle')}</div>
+      ${p.dispute_status?disputeBadge(p):`<button class="litige-flag-btn" onclick="event.stopPropagation();setDisputeStatus('${p.id}','litige')" title="${t('achats.signalDisputeTitle')}">🚩</button>`}
       <span class="tile-list-status" style="background:#60a5fa;">${fmtDate(p.purchase_date)}</span>
       <div class="tile-list-price">${fmtPrice(p.price)}</div>
     </div>
-  `).join(''):emptyState('Aucun achat pour le moment.');
+  `).join(''):emptyState(t('achats.noPurchase'));
 
   geocodePendingPickups(toPickup);
 }
@@ -3032,8 +3032,8 @@ function renderBoost(){
   const base=selectedVintedAccountId?allArticles.filter(a=>a.vinted_account_id===selectedVintedAccountId):allArticles;
   const boosted=base.filter(a=>a.vinted_boosted);
   document.getElementById('boostMinistats').innerHTML=`
-    <div class="ministat"><div class="ministat-label">Articles boostés</div><div class="ministat-val">${boosted.length}</div></div>
-    <div class="ministat"><div class="ministat-label">Valeur du stock boosté</div><div class="ministat-val">${fmtPrice(boosted.reduce((s,a)=>s+(parseFloat(a.sell_price)||0),0))}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('boost.count')}</div><div class="ministat-val">${boosted.length}</div></div>
+    <div class="ministat"><div class="ministat-label">${t('boost.value')}</div><div class="ministat-val">${fmtPrice(boosted.reduce((s,a)=>s+(parseFloat(a.sell_price)||0),0))}</div></div>
   `;
   let shown=boostSearchTerm?boosted.filter(a=>a.name.toLowerCase().includes(boostSearchTerm)):boosted;
   shown=[...shown].sort((a,b)=>new Date(b.synced_at||0)-new Date(a.synced_at||0));
@@ -3044,7 +3044,7 @@ function renderBoost(){
       <span class="tile-list-status" style="background:#f97316;">🚀 Boosté</span>
       <div class="tile-list-price">${fmtPrice(a.sell_price)}</div>
     </div>
-  `).join(''):emptyState('Aucun article boosté pour le moment — active un Boost depuis Vinted, il apparaîtra ici au prochain cycle de synchro.');
+  `).join(''):emptyState(t('empty.noBoost'));
 }
 
 window.exportAchatsCSV=()=>{
@@ -3218,7 +3218,7 @@ async function renderRepublier() {
         ${a.vinted_item_id?`<a href="https://www.vinted.fr/items/${a.vinted_item_id}" target="_blank" rel="noopener" class="btn-edit" style="text-decoration:none;flex-shrink:0;">Voir sur Vinted →</a>`:''}
       </div>`;
       }).join('')}</div>`
-    : emptyState('Aucun article à republier pour le moment.');
+    : emptyState(t('empty.noRepublish'));
 
   const config = await backendFetch('/api/extension/republish-config'+accountQueryParam());
   if(config){
@@ -3420,13 +3420,13 @@ function reputationGridHtml(data){
 // ── HISTORIQUE VUES/FAVORIS ──
 window.showHistory = async (itemId, itemName) => {
   document.getElementById('historyTitle').textContent = `Évolution — ${itemName}`;
-  document.getElementById('historyBody').innerHTML = emptyState('Chargement...');
+  document.getElementById('historyBody').innerHTML = emptyState(t('empty.loading'));
   document.getElementById('historyBg').classList.add('open');
   const { data, error } = await applyAccountFilter(sb.from('vinted_stats_history')
     .select('*').eq('user_id', currentUser.id).eq('vinted_item_id', itemId)).order('stat_date', { ascending: true });
   const bodyEl = document.getElementById('historyBody');
   if(error || !data || !data.length){
-    bodyEl.innerHTML = emptyState('Pas encore assez de données. Revenez dans quelques jours pour voir l\'évolution.');
+    bodyEl.innerHTML = emptyState(t('empty.notEnoughData'));
     return;
   }
   const maxVal = Math.max(...data.map(d=>Math.max(d.vues||0,d.favoris||0)), 1);
