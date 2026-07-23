@@ -2947,9 +2947,11 @@ function geocodeQuery(shortLoc){
 }
 function disputeBadge(p){
   if(!p.dispute_status) return '';
-  const cls=p.dispute_status==='litige'?'dispute-badge dispute-badge-litige':'dispute-badge dispute-badge-resolved';
+  const cls=p.dispute_status==='litige'?'dispute-badge dispute-badge-litige'
+    :p.dispute_status==='perdu'?'dispute-badge dispute-badge-lost'
+    :'dispute-badge dispute-badge-resolved';
   const amount=p.dispute_amount?` (${fmtPrice(p.dispute_amount)})`:'';
-  const labels={litige:'🚩 '+t('achats.disputeStatusLitige'),rembourse:t('achats.markRefunded'),compense:t('achats.markCompensated')};
+  const labels={litige:'🚩 '+t('achats.disputeStatusLitige'),rembourse:t('achats.markRefunded'),compense:t('achats.markCompensated'),perdu:'📭 '+t('achats.disputeStatusLost')};
   return `<span class="${cls}">${labels[p.dispute_status]}${amount}</span>`;
 }
 window.setDisputeStatus=async(purchaseId,status)=>{
@@ -2976,6 +2978,34 @@ window.clearDisputeStatus=async(purchaseId)=>{
   if(error){ alert('Erreur : '+error.message); return; }
   Object.assign(p,patch);
   renderAchats();
+};
+
+// Colis dont le délai estimé de retrait est dépassé : proposer de le
+// retirer, avec l'achat, plutôt que de le laisser traîner indéfiniment dans
+// le panneau litiges (signalé le 2026-07-23). Marqué "perdu" plutôt que
+// vraiment supprimé de la table : Vinted renvoie cette même commande à
+// chaque synchro (son historique ne s'efface jamais côté Vinted), un vrai
+// DELETE reviendrait donc tout seul au cycle suivant (≤5 min). dispute_status
+// n'est jamais touché par la synchro backend, donc "perdu" survit et retire
+// durablement l'achat des listes actives.
+window.deleteLostPurchase=async(purchaseId)=>{
+  const p=allPurchases.find(x=>x.id===purchaseId);
+  if(!p) return;
+  if(!confirm(t('achats.confirmDeleteLost'))) return;
+  try{
+    // La fiche stock créée automatiquement à l'achat (via vinted_links,
+    // context "order_purchase") n'a plus lieu d'être : un colis jamais reçu
+    // n'a rien à laver/préparer/vendre.
+    const link=await sb.from('vinted_links').select('sku').eq('context','order_purchase').eq('vinted_id',purchaseId).limit(1);
+    const sku=link.data?.[0]?.sku;
+    if(sku) await sb.from('articles').delete().eq('sku',sku).eq('user_id',currentUser.id);
+  }catch(e){}
+  const patch={dispute_status:'perdu', dispute_amount:0, dispute_updated_at:new Date().toISOString()};
+  const {error}=await sb.from('vinted_purchases').update(patch).eq('id',purchaseId).eq('user_id',currentUser.id);
+  if(error){ alert('Erreur : '+error.message); return; }
+  Object.assign(p,patch);
+  renderAchats();
+  renderStockAll();
 };
 
 // ── Carte des points relais (colis en attente de retrait) ──
@@ -3044,7 +3074,7 @@ function renderAchats(){
   // litige — un compteur À PART, jamais soustrait du "Total achats" : ce
   // dernier doit rester la dépense brute réelle (même principe que le
   // profit affiché sur une vente remboursée, voir calcProfit).
-  const isResolved=p=>p.dispute_status==='rembourse'||p.dispute_status==='compense';
+  const isResolved=p=>p.dispute_status==='rembourse'||p.dispute_status==='compense'||p.dispute_status==='perdu';
   const totalRecupere=arts.filter(isResolved).reduce((s,p)=>s+(parseFloat(p.dispute_amount)||0),0);
   document.getElementById('achatsMinistats').innerHTML=`
     <div class="ministat"><div class="ministat-label">${t('achats.today')}</div><div class="ministat-val">${fmtPrice(totalToday)}</div></div>
@@ -3086,6 +3116,7 @@ function renderAchats(){
             ${!p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','litige')">${t('achats.signalDispute')}</button>`:''}
             ${p.dispute_status==='litige'?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','rembourse')">${t('achats.markRefunded')}</button><button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','compense')">${t('achats.markCompensated')}</button>`:''}
             ${p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="clearDisputeStatus('${p.id}')" title="${t('achats.clearDisputeTitle')}">${t('achats.clearDispute')}</button>`:''}
+            ${auto?`<button class="pf-btn pf-btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteLostPurchase('${p.id}')" title="${t('achats.deleteLostTitle')}">${t('achats.deleteLost')}</button>`:''}
           </div>
         </div>
       </div>`;

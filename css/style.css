@@ -480,6 +480,7 @@ select option { background: var(--surface2); color: var(--text); }
 .dispute-badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
 .dispute-badge-litige { background: var(--warning-dim); color: var(--warning); }
 .dispute-badge-resolved { background: var(--accent-dim); color: var(--accent); }
+.dispute-badge-lost { background: rgba(239,68,68,0.15); color: var(--danger); }
 .dispute-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .pf-btn-sm { padding: 3px 10px; font-size: 11px; }
 .litige-flag-btn { background: none; border: none; cursor: pointer; font-size: 13px; opacity: 0.5; padding: 0 4px; transition: opacity 0.15s; }

@@ -180,6 +180,10 @@ const TRANSLATIONS = {
     'achats.remaining': '≈ {n} jour{s} restant{s2} (jusqu\'au {date})',
     'achats.signalDisputeTitle': 'Signaler un litige',
     'achats.disputeStatusLitige': 'En litige',
+    'achats.disputeStatusLost': 'Colis perdu',
+    'achats.deleteLost': '🗑 Colis perdu, retirer',
+    'achats.deleteLostTitle': "Retire ce colis et l'achat de vos listes (marqué comme perdu — l'article lié en stock, s'il y en a un, est aussi supprimé)",
+    'achats.confirmDeleteLost': "Retirer ce colis et l'achat ? Il sera marqué comme perdu et disparaîtra de vos listes actives. La fiche stock liée (si elle existe) sera aussi supprimée. Cette action ne supprime pas l'historique de commande côté Vinted.",
 
     'boost.searchPlaceholder': '🔎 Rechercher un article boosté...',
 
@@ -602,6 +606,10 @@ const TRANSLATIONS = {
     'achats.remaining': '≈ {n} day{s} left (until {date})',
     'achats.signalDisputeTitle': 'Report a dispute',
     'achats.disputeStatusLitige': 'Disputed',
+    'achats.disputeStatusLost': 'Lost parcel',
+    'achats.deleteLost': '🗑 Lost parcel, remove',
+    'achats.deleteLostTitle': "Removes this parcel and purchase from your lists (marked as lost — the linked stock item, if any, is deleted too)",
+    'achats.confirmDeleteLost': "Remove this parcel and purchase? It will be marked as lost and disappear from your active lists. The linked stock item (if any) will also be deleted. This does not delete the order history on Vinted's side.",
 
     'boost.searchPlaceholder': '🔎 Search a boosted item...',
 
