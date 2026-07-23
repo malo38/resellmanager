@@ -186,6 +186,7 @@ function showError(msg){document.getElementById('authError').textContent=msg;}
 
 function loginAs(user) {
   currentUser=user;
+  verifiedGroupKeys.clear();
   const name=user.user_metadata?.name||user.email.split('@')[0];
   document.getElementById('landingScreen').style.display='none';
   document.getElementById('authScreen').style.display='none';
@@ -210,6 +211,22 @@ function loginAs(user) {
   restoreNavGroupsState();
   restoreNavOrder();
   initNavDragDrop();
+  initSidebarScrollCue();
+}
+
+// Affiche une ombre en bas de la sidebar quand elle contient plus d'items que
+// ce qui tient à l'écran — sans ça, un item en fin de liste (ex: Republication
+// sur un écran bas) peut sembler "invisible" alors qu'il suffit de scroller
+// (signalé le 2026-07-23). Réévalué au scroll, au resize et à chaque
+// pliage/dépliage de section (qui change la hauteur scrollable).
+function initSidebarScrollCue(){
+  const nav=document.querySelector('.sidebar-nav');
+  if(!nav) return;
+  const update=()=>nav.classList.toggle('has-more-below', nav.scrollHeight-nav.scrollTop-nav.clientHeight>4);
+  nav.addEventListener('scroll', update);
+  window.addEventListener('resize', update);
+  nav.querySelectorAll('.nav-group-header').forEach(h=>h.addEventListener('click', ()=>setTimeout(update,200)));
+  setTimeout(update,100);
 }
 
 // ── MULTICOMPTE VINTED ──
@@ -755,7 +772,7 @@ function renderAll(){renderDashboard();renderStockAll();renderAnalytics();render
 function renderDashboard(){
   const vendus=allArticles.filter(a=>a.status==='vendu');
   const stock=allArticles.filter(a=>isPreSaleStatus(a.status));
-  const expedition=allArticles.filter(a=>a.status==='expedition');
+  const expedition=allArticles.filter(a=>a.status==='expedition'&&!isInTransit(a));
   const totalProfit=vendus.reduce((s,a)=>s+calcProfit(a),0);
   const investi=stock.reduce((s,a)=>s+(parseFloat(a.buy_price)||0),0);
   const ca=vendus.reduce((s,a)=>s+calcCA(a),0);
@@ -1602,10 +1619,19 @@ document.addEventListener('click', (e) => {
 function statusMeta(articleOrStatus){
   const isArticle=articleOrStatus&&typeof articleOrStatus==='object';
   const status=isArticle?articleOrStatus.status:articleOrStatus;
-  if(status==='expedition'&&isArticle&&/exp[ée]di[ée]|acheminement/i.test(articleOrStatus.vinted_shipping_status||'')){
+  if(status==='expedition'&&isArticle&&isInTransit(articleOrStatus)){
     return {label:'📮 En cours d\'acheminement', color:'#38bdf8'};
   }
   return getAllSteps().find(p=>p.key===status) || {label:status, color:'#888'};
+}
+
+// Un article "expedition" déjà remis au transporteur n'a plus besoin d'être
+// compté/affiché comme "à expédier" (KPI dashboard, checklist Calendrier) —
+// il ne reste dans cette action que tant qu'il n'a pas quitté nos mains
+// (signalé le 2026-07-23 : le KPI et la checklist gardaient le compte même
+// une fois le colis parti, alors que statusMeta() changeait déjà son badge).
+function isInTransit(a){
+  return a.status==='expedition'&&/exp[ée]di[ée]|acheminement/i.test(a.vinted_shipping_status||'');
 }
 
 // Copie "#SKU" dans le presse-papier — à coller en fin de titre Vinted, voir
@@ -1625,31 +1651,113 @@ window.copySku=(sku,el)=>{
 // N tuiles visuellement identiques, signalé le 2026-07-22. Regroupe par
 // nom+statut (des exemplaires à des étapes différentes restent distincts,
 // ex: 3 encore "à laver" et 2 déjà "en stock").
+// Articles qu'un utilisateur a explicitement dégroupés (bouton "↔ Dégrouper"
+// dans le détail d'un groupe) — toujours affichés en tuile individuelle,
+// même s'ils matchent encore la clé nom+prix+date d'un groupe (signalé le
+// 2026-07-23). Relu à chaque appel (pas de cache mémoire) pour rester correct
+// si jamais l'utilisateur change de compte VintControl sans recharger la page.
+function getNeverGroupIds(){
+  return new Set(JSON.parse(localStorage.getItem('neverGroupIds_'+currentUser.id)||'[]'));
+}
+window.ungroupArticle=(id)=>{
+  const set=getNeverGroupIds();
+  set.add(id);
+  localStorage.setItem('neverGroupIds_'+currentUser.id, JSON.stringify([...set]));
+  closeGroupDetail();
+  renderStockAll();
+};
+
+// Cache (par utilisateur) des articles qu'une vérification photo asynchrone
+// a jugés visuellement différents du reste de leur groupe nom+prix+date —
+// voir verifyGroupPhotos. verifiedGroupKeys évite de relancer la vérification
+// (appels réseau vers /api/image-proxy) à chaque rendu pour un groupe déjà
+// tranché ; vidé à la connexion (loginAs) pour ne jamais mélanger deux users.
+function getPhotoMismatchCache(){
+  return JSON.parse(localStorage.getItem('groupPhotoMismatch_'+currentUser.id)||'{}');
+}
+function savePhotoMismatchCache(cache){
+  localStorage.setItem('groupPhotoMismatch_'+currentUser.id, JSON.stringify(cache));
+}
+const verifiedGroupKeys=new Set();
+
+// Vérifie après coup (asynchrone, en tâche de fond) que les photos des
+// membres d'un groupe se ressemblent bien, via le hash perceptuel déjà
+// utilisé par la détection de doublons par photo (findPhotoDuplicates). Un
+// article dont la photo ne ressemble à AUCUNE autre du groupe (distance de
+// Hamming minimale trop grande) est sorti automatiquement au prochain rendu —
+// signalé le 2026-07-23 : deux articles différents partageant nom, prix et
+// date d'achat restaient groupés à tort malgré la clé resserrée du 2026-07-22.
+async function verifyGroupPhotos(key, group){
+  verifiedGroupKeys.add(key);
+  const MISMATCH_THRESHOLD=14; // sur 64 bits — plus permissif que le seuil "doublon strict" (8) pour tolérer une photo différente par exemplaire dans un vrai lot.
+  const withPhoto=group.filter(a=>a.photo_url);
+  if(withPhoto.length<2) return;
+  const hashes=await Promise.all(withPhoto.map(a=>computePhotoHash(a.photo_url)));
+  const valid=withPhoto.map((a,i)=>({a,hash:hashes[i]})).filter(x=>x.hash);
+  if(valid.length<2) return;
+  const mismatchIds=valid.filter(x=>{
+    const minDist=Math.min(...valid.filter(y=>y!==x).map(y=>hammingDistance(x.hash,y.hash)));
+    return minDist>MISMATCH_THRESHOLD;
+  }).map(x=>x.a.id);
+  if(mismatchIds.length){
+    const cache=getPhotoMismatchCache();
+    cache[key]=mismatchIds;
+    savePhotoMismatchCache(cache);
+    renderStockAll();
+  }
+}
+
+function groupKeyFor(a){
+  return (a.name||'').trim().toLowerCase()+'|'+a.status+'|'+(a.buy_price||0)+'|'+(a.buy_date||'');
+}
+
+// Renvoie une liste de {key, items} — jamais de simples tableaux d'articles —
+// pour que le détail d'un groupe (openGroupDetail) puisse retrouver EXACTEMENT
+// le même sous-ensemble que celui affiché sur la tuile cliquée, plutôt que de
+// re-filtrer par nom+statut seul (bug trouvé le 2026-07-23 : deux groupes
+// distincts du même nom, à des prix/dates différents, se retrouvaient fusionnés
+// dans la fenêtre de détail alors qu'ils étaient bien séparés sur la grille).
 function groupIdenticalArticles(arts){
   // Le nom seul ne suffit pas : deux articles différents peuvent avoir un nom
   // générique identique ("Short", "T-shirt basique"...) sans être le même
   // article physique — signalé le 2026-07-22 (deux shorts distincts groupés
-  // à tort). On n'ajoute le prix d'achat ET la date d'achat à la clé : un
-  // vrai lot acheté en gros a ce même prix unitaire et cette même date
-  // d'entrée en stock, ce qui n'est presque jamais le cas de deux articles
-  // différents juste homonymes.
+  // à tort). On ajoute le prix d'achat ET la date d'achat à la clé : un vrai
+  // lot acheté en gros a ce même prix unitaire et cette même date d'entrée en
+  // stock, ce qui n'est presque jamais le cas de deux articles différents
+  // juste homonymes. La comparaison photo ci-dessous rattrape les cas
+  // restants où même prix+date coïncident aussi par hasard.
+  const neverGroup=getNeverGroupIds();
+  const mismatches=getPhotoMismatchCache();
   const groups=new Map();
   const order=[];
   arts.forEach(a=>{
-    const key=(a.name||'').trim().toLowerCase()+'|'+a.status+'|'+(a.buy_price||0)+'|'+(a.buy_date||'');
-    if(!groups.has(key)){ groups.set(key,[]); order.push(key); }
-    groups.get(key).push(a);
+    if(neverGroup.has(a.id)){
+      const soloKey='solo|'+a.id;
+      groups.set(soloKey,[a]); order.push(soloKey);
+      return;
+    }
+    const key=groupKeyFor(a);
+    const bad=mismatches[key];
+    const effectiveKey=(bad&&bad.includes(a.id))?'solo|'+a.id:key;
+    if(!groups.has(effectiveKey)){ groups.set(effectiveKey,[]); order.push(effectiveKey); }
+    groups.get(effectiveKey).push(a);
   });
-  return order.map(key=>groups.get(key));
+  const result=order.map(key=>({key, items:groups.get(key)}));
+  window._stockGroupsByKey={};
+  result.forEach(g=>{ window._stockGroupsByKey[g.key]=g.items; });
+  result.forEach(g=>{
+    if(g.items.length>1 && !verifiedGroupKeys.has(g.key)) verifyGroupPhotos(g.key, g.items);
+  });
+  return result;
 }
 
-function groupTileHTML(group){
+function groupTileHTML(key, group){
   const first=group[0];
   const status=statusMeta(first);
   const totalBuy=group.reduce((s,a)=>s+(parseFloat(a.buy_price)||0),0);
   const oldestDays=Math.max(...group.map(a=>daysInStock(a)||0));
-  const nameEsc=first.name.replace(/'/g,"\\'");
-  return `<div class="article-tile group-tile" onclick="openGroupDetail('${nameEsc}','${first.status}')">
+  const keyEsc=key.replace(/'/g,"\\'");
+  return `<div class="article-tile group-tile" onclick="openGroupDetail('${keyEsc}')">
     <div class="tile-big-top">
       <div class="tile-photo">
         ${first.photo_url?`<img src="${first.photo_url}" alt="${first.name.replace(/"/g,'&quot;')}">`:'📦'}
@@ -1668,16 +1776,16 @@ function groupTileHTML(group){
     </div>
     <div class="tile-bottom-row">
       <span class="tile-status-label" style="color:${status.color};">${status.label}</span>
-      <div class="tile-bottom-actions"><button class="tile-action-btn" title="Voir les ${group.length} exemplaires" aria-label="Voir les ${group.length} exemplaires" onclick="event.stopPropagation();openGroupDetail('${nameEsc}','${first.status}')">🔍</button></div>
+      <div class="tile-bottom-actions"><button class="tile-action-btn" title="Voir les ${group.length} exemplaires" aria-label="Voir les ${group.length} exemplaires" onclick="event.stopPropagation();openGroupDetail('${keyEsc}')">🔍</button></div>
     </div>
   </div>`;
 }
 
-function groupListRowHTML(group){
+function groupListRowHTML(key, group){
   const first=group[0];
   const status=statusMeta(first);
-  const nameEsc=first.name.replace(/'/g,"\\'");
-  return `<div class="tile-list-row group-tile" onclick="openGroupDetail('${nameEsc}','${first.status}')">
+  const keyEsc=key.replace(/'/g,"\\'");
+  return `<div class="tile-list-row group-tile" onclick="openGroupDetail('${keyEsc}')">
     <div class="tile-list-photo">${first.photo_url?`<img src="${first.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
     <div class="tile-list-name">${first.name}</div>
     <span class="tile-list-group-count">×${group.length}</span>
@@ -1685,10 +1793,11 @@ function groupListRowHTML(group){
   </div>`;
 }
 
-window.openGroupDetail=(name,status)=>{
-  const items=allArticles.filter(a=>a.name===name&&a.status===status);
-  const nameEsc=name.replace(/'/g,"\\'");
-  document.getElementById('groupDetailTitle').textContent=`${name} (${items.length} exemplaires)`;
+window.openGroupDetail=(key)=>{
+  const items=(window._stockGroupsByKey||{})[key]||[];
+  if(items.length<2){ closeGroupDetail(); return; }
+  const keyEsc=key.replace(/'/g,"\\'");
+  document.getElementById('groupDetailTitle').textContent=`${items[0].name} (${items.length} exemplaires)`;
   const allSteps=getAllSteps();
   document.getElementById('groupDetailBody').innerHTML=items.map(a=>{
     const nextStep=allSteps[allSteps.findIndex(p=>p.key===a.status)+1];
@@ -1697,19 +1806,21 @@ window.openGroupDetail=(name,status)=>{
     return `<div class="checklist-item" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <span>${a.photo_url?`<img src="${a.photo_url}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;">`:''}<span class="tile-sku" style="margin-bottom:0;" title="Cliquer pour copier" onclick="copySku('${a.sku}',this)">#${a.sku}</span> ${fmtPrice(a.buy_price)}</span>
       <span style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${nextStep?`<button class="pf-btn" onclick="moveGroupItemStep('${a.id}','${nextStep.key}','${nameEsc}','${status}')">→ ${nextStep.label}</button>`:''}
+        ${nextStep?`<button class="pf-btn" onclick="moveGroupItemStep('${a.id}','${nextStep.key}','${keyEsc}')">→ ${nextStep.label}</button>`:''}
         ${republishBtn}
         <button class="pf-btn" onclick="closeGroupDetail();showDetail('${a.id}')">Détail</button>
-        <button class="pf-btn" onclick="confirmDelete('${a.id}');setTimeout(()=>openGroupDetail('${nameEsc}','${status}'),300)">🗑 Supprimer</button>
+        <button class="pf-btn" title="Ce n'est pas le même article — le sortir définitivement de ce groupe" onclick="ungroupArticle('${a.id}')">↔ Dégrouper</button>
+        <button class="pf-btn" onclick="confirmDelete('${a.id}');setTimeout(()=>openGroupDetail('${keyEsc}'),300)">🗑 Supprimer</button>
       </span>
     </div>`;
   }).join('');
   document.getElementById('groupDetailBg').classList.add('open');
 };
 window.closeGroupDetail=()=>document.getElementById('groupDetailBg').classList.remove('open');
-window.moveGroupItemStep=async(id,step,name,status)=>{
+window.moveGroupItemStep=async(id,step,key)=>{
   await moveToStep(id,step);
-  openGroupDetail(name,status);
+  renderStockAll();
+  openGroupDetail(key);
 };
 
 function articleTileHTML(a, opts={}){
@@ -2032,11 +2143,11 @@ function renderStockAll(){
   gridEl.classList.toggle('view-list', stockViewMode==='list');
   // Groupement désactivé en mode sélection multiple : la sélection cible des
   // articles précis, une tuile de groupe n'aurait pas de sens à cocher.
-  const stockGroups=selectMode.stockall?shown.map(a=>[a]):groupIdenticalArticles(shown);
+  const stockGroups=selectMode.stockall?shown.map(a=>({key:'solo|'+a.id,items:[a]})):groupIdenticalArticles(shown);
   gridEl.innerHTML=shown.length
     ?(stockViewMode==='list'
-        ?stockGroups.map(g=>g.length>1?groupListRowHTML(g):articleListRowHTML(g[0])).join('')
-        :stockGroups.map(g=>g.length>1?groupTileHTML(g):articleTileHTML(g[0],{showMove:true,selectSection:'stockall'})).join(''))
+        ?stockGroups.map(g=>g.items.length>1?groupListRowHTML(g.key,g.items):articleListRowHTML(g.items[0])).join('')
+        :stockGroups.map(g=>g.items.length>1?groupTileHTML(g.key,g.items):articleTileHTML(g.items[0],{showMove:true,selectSection:'stockall'})).join(''))
     :`<p class="stockall-empty">Aucun article.</p>`;
 
   saveFilterState('stockall',{category:stockCategoryFilter,quality:stockQualityFilter,sort:stockSortMode,platform:currentFilter.stockall});
@@ -2515,7 +2626,7 @@ function renderCalendar() {
     <div class="calendar-date">${now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
     <div class="calendar-sub">Voici ce qu'il vous reste à faire aujourd'hui</div>
   `;
-  const expedition = allArticles.filter(a=>a.status==='expedition');
+  const expedition = allArticles.filter(a=>a.status==='expedition'&&!isInTransit(a));
   const publier = allArticles.filter(a=>a.status==='publier');
   const photo = allArticles.filter(a=>a.status==='photo');
   const laver = allArticles.filter(a=>a.status==='laver');
@@ -2622,8 +2733,15 @@ async function renderFavoris() {
     document.getElementById('favorisInstallLink').href = EXTENSION_STORE_URL;
   }
 
-  const config = await backendFetch('/api/extension/automessage-config'+accountQueryParam());
-  if(config){
+  // Applique d'abord la dernière config connue (cache localStorage) de façon
+  // synchrone, avant même l'appel réseau — sans ça, la case "automatique"
+  // reste décochée par défaut (valeur HTML de base) pendant 2-3s à chaque
+  // fois qu'on revient sur la page, le temps que backendFetch réponde,
+  // donnant l'impression qu'elle "se coche toute seule" en retard (signalé
+  // le 2026-07-23). La vraie réponse réseau vient ensuite corriger si besoin
+  // et rafraîchit le cache pour la prochaine visite.
+  const cacheKey='automsgConfigCache_'+currentUser.id+'_'+(selectedVintedAccountId||'all');
+  const applyAutoMsgConfig=(config)=>{
     document.getElementById('favMessage').value = config.template || saved;
     document.getElementById('autoMsgEnabled').checked = !!config.enabled;
     document.getElementById('autoMsgDailyLimit').value = config.daily_limit;
@@ -2632,6 +2750,14 @@ async function renderFavoris() {
     document.getElementById('autoMsgBatchSize').value = config.batch_size || 1;
     toggleBatchWarning('autoMsgBatchSize','autoMsgBatchWarning');
     document.getElementById('serverAutomationEnabled').checked = !!config.server_automation_enabled;
+  };
+  const cached=JSON.parse(localStorage.getItem(cacheKey)||'null');
+  if(cached) applyAutoMsgConfig(cached);
+
+  const config = await backendFetch('/api/extension/automessage-config'+accountQueryParam());
+  if(config){
+    applyAutoMsgConfig(config);
+    localStorage.setItem(cacheKey, JSON.stringify(config));
   }
   renderAutoMsgStatus();
 
@@ -3220,12 +3346,23 @@ async function renderRepublier() {
       }).join('')}</div>`
     : emptyState(t('empty.noRepublish'));
 
-  const config = await backendFetch('/api/extension/republish-config'+accountQueryParam());
-  if(config){
+  // Même cache-avant-réseau que renderFavoris (voir son commentaire) : évite
+  // que la case "automatique" reste décochée par défaut 2-3s à chaque visite
+  // le temps que le réseau réponde (signalé le 2026-07-23).
+  const cacheKey='republishConfigCache_'+currentUser.id+'_'+(selectedVintedAccountId||'all');
+  const applyRepublishConfig=(config)=>{
     document.getElementById('autoRepublishEnabled').checked = !!config.enabled;
     document.getElementById('autoRepublishDailyLimit').value = config.daily_limit;
     document.getElementById('autoRepublishBatchSize').value = config.batch_size || 1;
     toggleBatchWarning('autoRepublishBatchSize','autoRepublishBatchWarning');
+  };
+  const cached=JSON.parse(localStorage.getItem(cacheKey)||'null');
+  if(cached) applyRepublishConfig(cached);
+
+  const config = await backendFetch('/api/extension/republish-config'+accountQueryParam());
+  if(config){
+    applyRepublishConfig(config);
+    localStorage.setItem(cacheKey, JSON.stringify(config));
   }
   renderAutoRepublishStatus();
   updateRepublishBadge();
