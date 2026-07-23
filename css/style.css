@@ -20,6 +20,16 @@
 
 body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
 
+/* Barre de défilement personnalisée : celle par défaut du navigateur reste
+   blanche/claire même en thème sombre, ce qui tranche fort sur le bord droit
+   de l'écran (signalé le 2026-07-23). Suit les variables de thème existantes
+   pour rester correcte en clair comme en sombre. */
+* { scrollbar-color: var(--border2) var(--bg); scrollbar-width: thin; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
 /* ── AUTH ── */
 .auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; background: var(--bg); }
 .auth-layout { display: flex; align-items: stretch; gap: 0; width: 100%; max-width: 920px; }
@@ -617,6 +627,14 @@ select option { background: var(--surface2); color: var(--text); }
   background-size: 42px 42px;
   padding: 56px 24px 64px; text-align: center; overflow: hidden;
 }
+/* La grille + les halos s'arrêtaient net en bas du hero, créant une ligne de
+   démarcation visible avec la section suivante (signalé le 2026-07-22) —
+   fondu progressif vers le fond uni plutôt qu'une coupure franche. */
+.hero-dark::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 140px;
+  background: linear-gradient(to bottom, transparent, #0a0a0a);
+  pointer-events: none; z-index: 1;
+}
 .hero-corner { position: absolute; width: 22px; height: 22px; border: 2px solid rgba(0,229,160,0.35); opacity: 0.8; }
 .hero-corner-tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
 .hero-corner-tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
@@ -706,7 +724,7 @@ html { scroll-behavior: smooth; }
 @keyframes auroraFloat2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px,-30px) scale(1.1); } }
 @keyframes auroraFloat3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-30px,25px); } }
 /* Le contenu réel du hero doit rester au-dessus des dégradés flous. */
-.hero-dark > *:not(.hero-aurora) { position: relative; z-index: 1; }
+.hero-dark > *:not(.hero-aurora) { position: relative; z-index: 2; }
 
 .landing-header { position: sticky; top: 0; z-index: 50; transition: background-color 0.25s ease, backdrop-filter 0.25s ease, box-shadow 0.25s ease; }
 .landing-header.scrolled { background: rgba(10,10,10,0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 1px 0 rgba(255,255,255,0.07); margin: 0 -24px; padding-left: 24px; padding-right: 24px; }
