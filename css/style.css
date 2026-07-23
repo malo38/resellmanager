@@ -365,6 +365,14 @@ select option { background: var(--surface2); color: var(--text); }
 .goal-row input { flex: 1; padding: 10px 12px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface2); color: var(--text); font-size: 14px; font-family: inherit; outline: none; }
 .goal-row input:focus { border-color: var(--accent); }
 
+/* ── TOASTS (remplacent alert() natif du navigateur, voir showToast() dans app.js) ── */
+#toastContainer { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+.toast { pointer-events: auto; background: var(--surface); border: 1px solid var(--border2); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; color: var(--text); box-shadow: 0 8px 24px rgba(0,0,0,0.25); max-width: 340px; opacity: 0; transform: translateX(12px); transition: opacity 0.2s ease, transform 0.2s ease; }
+.toast.show { opacity: 1; transform: translateX(0); }
+.toast.toast-success { border-left-color: var(--accent); }
+.toast.toast-error { border-left-color: var(--danger); }
+.toast.toast-warning { border-left-color: var(--warning); }
+
 /* ── MODAL ── */
 .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
 .modal-bg.open { display: flex; }

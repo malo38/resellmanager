@@ -766,6 +766,43 @@ function articleHTML(a, opts={}) {
 
 function emptyState(msg){return `<div class="empty-state"><div class="empty-icon">📭</div>${msg}</div>`;}
 
+// ── TOASTS & CONFIRMATION CUSTOM (remplacent alert()/confirm() natifs du
+// navigateur — signalé le 2026-07-23 : la popup système de Chrome jure avec
+// le reste de l'interface). Introduits d'abord pour republishNow/quickRepublish,
+// réutilisables partout ailleurs par la suite.
+function showToast(message, type='success'){
+  const container=document.getElementById('toastContainer');
+  if(!container){ return; }
+  const el=document.createElement('div');
+  el.className=`toast toast-${type}`;
+  el.textContent=message;
+  container.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>el.remove(),250);
+  },3500);
+}
+window.showToast=showToast;
+
+function customConfirm(message){
+  return new Promise(resolve=>{
+    const bg=document.getElementById('customConfirmBg');
+    document.getElementById('customConfirmMsg').textContent=message;
+    const okBtn=document.getElementById('customConfirmOkBtn');
+    const cancelBtn=document.getElementById('customConfirmCancelBtn');
+    const cleanup=(result)=>{
+      bg.classList.remove('open');
+      okBtn.onclick=null; cancelBtn.onclick=null;
+      resolve(result);
+    };
+    okBtn.onclick=()=>cleanup(true);
+    cancelBtn.onclick=()=>cleanup(false);
+    bg.classList.add('open');
+  });
+}
+window.customConfirm=customConfirm;
+
 // ── RENDER ALL ──
 function renderAll(){renderDashboard();renderStockAll();renderAnalytics();renderObjectif();}
 
@@ -3307,7 +3344,7 @@ function republishDoneKey(){ return 'republish_done_'+currentUser.id+'_'+today()
 // soit connectée au compte Vinted correspondant à ce moment-là.
 window.republishNow = async (vintedItemId, btn) => {
   if (!selectedVintedAccountId && vintedAccounts.length > 1) {
-    alert('Sélectionnez un compte Vinted précis (en haut de la sidebar) avant de republier.');
+    showToast('Sélectionnez un compte Vinted précis (en haut de la sidebar) avant de republier.', 'warning');
     return;
   }
   const original = btn.textContent;
@@ -3327,16 +3364,19 @@ window.republishNow = async (vintedItemId, btn) => {
 
 // Même endpoint que republishNow() ci-dessus, mais pour le petit bouton rond
 // des cartes Stock (2026-07-21) — feedback en icône seule (✓/✕) plutôt qu'en
-// texte, pour rester dans la taille compacte de la pastille.
+// texte, pour rester dans la taille compacte de la pastille. Popups natives
+// du navigateur (alert/confirm) remplacées par les équivalents custom de
+// l'app (showToast/customConfirm) — signalé le 2026-07-23.
 window.quickRepublish = async (vintedItemId, btn) => {
   if (!selectedVintedAccountId && vintedAccounts.length > 1) {
-    alert('Sélectionnez un compte Vinted précis (en haut de la sidebar) avant de republier.');
+    showToast('Sélectionnez un compte Vinted précis (en haut de la sidebar) avant de republier.', 'warning');
     return;
   }
   // Confirmation avant de lancer, vu que ça supprime puis recrée l'annonce
   // sur Vinted (perd vues/favoris accumulés) — pas anodin pour un clic
   // aussi accessible que ce petit bouton (signalé le 2026-07-21).
-  if (!confirm("Republier cet article maintenant ? L'annonce actuelle sera supprimée puis recréée à l'identique sur Vinted (vues et favoris repartent à zéro).")) return;
+  const ok = await customConfirm("Republier cet article maintenant ? L'annonce actuelle sera supprimée puis recréée à l'identique sur Vinted (vues et favoris repartent à zéro).");
+  if (!ok) return;
   const original = btn.innerHTML;
   const originalTitle = btn.title;
   btn.innerHTML = '…'; btn.disabled = true;

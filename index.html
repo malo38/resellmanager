@@ -1174,6 +1174,20 @@
   </div>
 </div>
 
+<!-- TOASTS (remplacent alert() natif du navigateur — voir showToast() dans app.js) -->
+<div id="toastContainer"></div>
+
+<!-- CONFIRMATION GÉNÉRIQUE (remplace confirm() natif — voir customConfirm() dans app.js) -->
+<div class="modal-bg" id="customConfirmBg">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-body"><p id="customConfirmMsg" style="color:var(--text);font-size:14px;line-height:1.6;"></p></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="customConfirmCancelBtn" data-i18n="common.cancel">Annuler</button>
+      <button class="btn-confirm" id="customConfirmOkBtn" data-i18n="common.confirm">Confirmer</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/i18n.js?v=3"></script>
 <script src="js/calc.js?v=15"></script>
 <script src="js/app.js?v=59"></script>
