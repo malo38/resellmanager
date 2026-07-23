@@ -16,6 +16,20 @@ function today(){
 
 function daysBetween(d1,d2){if(!d1||!d2)return null;return Math.round((new Date(d2)-new Date(d1))/86400000);}
 
+// Recherche insensible aux accents et à l'ordre des mots (repéré chez
+// Vinteer le 2026-07-23) : "jean levis" retrouve "Levis Jean bleu". Chaque
+// mot de la recherche doit apparaître quelque part dans le texte, dans
+// n'importe quel ordre — pas de correspondance exacte de sous-chaîne.
+function normalizeSearch(s){
+  return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function matchesSearch(text, term){
+  if(!term) return true;
+  const normText=normalizeSearch(text);
+  const words=normalizeSearch(term).split(/\s+/).filter(Boolean);
+  return words.every(w=>normText.includes(w));
+}
+
 function fmtPrice(v){return parseFloat(v||0).toFixed(2).replace('.',',')+' €';}
 
 function fmtDate(d){ if(!d) return '—'; const dt=new Date(d); return isNaN(dt)?'—':dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}); }

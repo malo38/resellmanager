@@ -756,6 +756,44 @@ html { scroll-behavior: smooth; }
   .reveal-on-scroll { opacity: 1; transform: none; }
 }
 
+/* ── MODE DISCRET ── (repéré chez Vinteer le 2026-07-23) : floute noms et
+   montants pour partager une capture d'écran sans tout dévoiler. Cible les
+   classes déjà utilisées partout dans l'app plutôt que d'en ajouter une
+   nouvelle sur chaque tuile. Survol = démasque temporairement. */
+body.discreet-mode .kpi-val,
+body.discreet-mode .article-name,
+body.discreet-mode .search-result-name,
+body.discreet-mode .tile-big-name,
+body.discreet-mode .tile-big-stat-val,
+body.discreet-mode .tile-list-name,
+body.discreet-mode .ministat-val,
+body.discreet-mode .replay-name,
+body.discreet-mode .replay-flow-val,
+body.discreet-mode .msg-name,
+body.discreet-mode .article-profit,
+body.discreet-mode .tile-list-price,
+body.discreet-mode .replay-profit,
+body.discreet-mode .goal-big {
+  filter: blur(6px);
+  transition: filter 0.15s ease;
+}
+body.discreet-mode .kpi-val:hover,
+body.discreet-mode .article-name:hover,
+body.discreet-mode .search-result-name:hover,
+body.discreet-mode .tile-big-name:hover,
+body.discreet-mode .tile-big-stat-val:hover,
+body.discreet-mode .tile-list-name:hover,
+body.discreet-mode .ministat-val:hover,
+body.discreet-mode .replay-name:hover,
+body.discreet-mode .replay-flow-val:hover,
+body.discreet-mode .msg-name:hover,
+body.discreet-mode .article-profit:hover,
+body.discreet-mode .tile-list-price:hover,
+body.discreet-mode .replay-profit:hover,
+body.discreet-mode .goal-big:hover {
+  filter: none;
+}
+
 .btn-back-landing { background: none; border: none; color: var(--muted); font-size: 12px; cursor: pointer; margin-bottom: 18px; font-family: inherit; }
 .btn-back-landing:hover { color: var(--text); }
 

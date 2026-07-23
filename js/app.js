@@ -20,6 +20,22 @@ let currentFilter = { stockall: 'Tous', replay: 'Tous' };
 let selectMode = { stockall: false };
 let selectedIds = { stockall: new Set() };
 
+// ── PERSISTANCE DES FILTRES/TRI PAR PAGE ── (repéré chez Vinteer le
+// 2026-07-23 : chaque page retrouve exactement sa vue précédente). Le texte
+// de recherche n'est volontairement PAS conservé — un filtre invisible qui
+// continue de s'appliquer d'une visite à l'autre est une source de
+// confusion connue (ex: liste qui semble incomplète sans raison visible).
+function saveFilterState(page,state){
+  localStorage.setItem('filters_'+page+'_'+currentUser.id, JSON.stringify(state));
+}
+function loadFilterState(page){
+  try{ return JSON.parse(localStorage.getItem('filters_'+page+'_'+currentUser.id)||'{}'); }
+  catch(e){ return {}; }
+}
+function clearFilterState(page){
+  localStorage.removeItem('filters_'+page+'_'+currentUser.id);
+}
+
 // Les 3 dernières étapes sont fixes : les calculs du dashboard (profit, ROI,
 // capital bloqué...) dépendent de ces statuts précis, contrairement aux
 // étapes de préparation qui précèdent la mise en stock (personnalisables,
@@ -57,6 +73,17 @@ function setTheme(t) {
   document.getElementById('btnLight')?.classList.toggle('active', t==='light');
 }
 window.setTheme = setTheme;
+
+// ── MODE DISCRET ── (repéré chez Vinteer le 2026-07-23) : floute noms et
+// montants pour permettre de partager une capture d'écran sans tout
+// dévoiler. Ciblé via les classes déjà en place partout dans l'app (pas de
+// nouvelle classe à poser sur chaque tuile) — voir la règle CSS body.discreet-mode.
+window.toggleDiscreetMode=(checked)=>{
+  document.body.classList.toggle('discreet-mode',checked);
+  localStorage.setItem('discreetMode_'+currentUser.id,checked?'1':'0');
+  const label=document.getElementById('discreetModeLabel');
+  if(label){ label.textContent=checked?'Activé':'Désactivé'; label.classList.toggle('active',checked); }
+};
 function initTheme() {
   // Bascule tout le monde une seule fois vers le nouveau défaut "sombre", pour rester
   // cohérent avec la landing page et l'écran de connexion (thème sombre façon Vinteer).
@@ -165,6 +192,12 @@ function loginAs(user) {
   const t=localStorage.getItem('theme')||'light';
   document.getElementById('btnDark')?.classList.toggle('active',t==='dark');
   document.getElementById('btnLight')?.classList.toggle('active',t==='light');
+  const discreet=localStorage.getItem('discreetMode_'+user.id)==='1';
+  document.body.classList.toggle('discreet-mode',discreet);
+  const discreetToggle=document.getElementById('discreetModeToggle');
+  if(discreetToggle) discreetToggle.checked=discreet;
+  const discreetLabel=document.getElementById('discreetModeLabel');
+  if(discreetLabel){ discreetLabel.textContent=discreet?'Activé':'Désactivé'; discreetLabel.classList.toggle('active',discreet); }
   // loadVintedAccounts() restaure d'abord le compte sélectionné en mémoire
   // (localStorage) avant que loadArticles() ne l'utilise pour filtrer —
   // sinon le premier chargement ignorerait la préférence sauvegardée et
@@ -1544,9 +1577,9 @@ function statusLabel(s){
 }
 window.handleGlobalSearch = (query) => {
   const resultsEl=document.getElementById('searchResults');
-  const q=query.trim().toLowerCase();
+  const q=query.trim();
   if(!q){ resultsEl.style.display='none'; resultsEl.innerHTML=''; return; }
-  const matches=allArticles.filter(a=>a.name.toLowerCase().includes(q)).slice(0,8);
+  const matches=allArticles.filter(a=>matchesSearch(a.name,q)).slice(0,8);
   resultsEl.innerHTML = matches.length ? matches.map(a=>`
     <div class="search-result-item" onclick="editArticle('${a.id}');document.getElementById('searchResults').style.display='none';document.getElementById('globalSearch').value='';">
       <div class="search-result-name">${a.name}</div>
@@ -1792,7 +1825,15 @@ window.filterStockQuality=(key,btn)=>{
 };
 
 window.onStockSearch=(value)=>{
-  stockSearchTerm=value.trim().toLowerCase();
+  stockSearchTerm=value.trim();
+  renderStockAll();
+};
+window.resetStockFilters=()=>{
+  stockCategoryFilter='Tous'; stockQualityFilter=null; stockSortMode='recent';
+  currentFilter.stockall='Tous'; stockSearchTerm='';
+  const searchInput=document.getElementById('stockSearchInput');
+  if(searchInput) searchInput.value='';
+  clearFilterState('stockall');
   renderStockAll();
 };
 
@@ -1916,6 +1957,11 @@ function renderStockAll(){
   if(!renderStockAll._viewRestored){
     const storedView=localStorage.getItem('stockViewMode_'+currentUser.id);
     if(storedView==='list') stockViewMode='list';
+    const saved=loadFilterState('stockall');
+    if(saved.category) stockCategoryFilter=saved.category;
+    if(saved.quality!==undefined) stockQualityFilter=saved.quality;
+    if(saved.sort) stockSortMode=saved.sort;
+    if(saved.platform) currentFilter.stockall=saved.platform;
     renderStockAll._viewRestored=true;
   }
 
@@ -1980,7 +2026,7 @@ function renderStockAll(){
   let shown=stockCategoryFilter==='Tous'?activeArts:byPlatform(allArticles.filter(a=>a.status===stockCategoryFilter));
   if(stockQualityFilter==='no_photo') shown=shown.filter(a=>!a.photo_url);
   else if(stockQualityFilter==='no_buy_price') shown=shown.filter(a=>!a.buy_price);
-  if(stockSearchTerm) shown=shown.filter(a=>a.name.toLowerCase().includes(stockSearchTerm));
+  if(stockSearchTerm) shown=shown.filter(a=>matchesSearch(a.name,stockSearchTerm));
   shown=sortStockArticles(shown);
   const gridEl=document.getElementById('stockallGrid');
   gridEl.classList.toggle('view-list', stockViewMode==='list');
@@ -1992,6 +2038,8 @@ function renderStockAll(){
         ?stockGroups.map(g=>g.length>1?groupListRowHTML(g):articleListRowHTML(g[0])).join('')
         :stockGroups.map(g=>g.length>1?groupTileHTML(g):articleTileHTML(g[0],{showMove:true,selectSection:'stockall'})).join(''))
     :`<p class="stockall-empty">Aucun article.</p>`;
+
+  saveFilterState('stockall',{category:stockCategoryFilter,quality:stockQualityFilter,sort:stockSortMode,platform:currentFilter.stockall});
 }
 
 // ── DÉTECTEUR DE DOUBLONS ──
@@ -2310,17 +2358,35 @@ function renderHallOfFame(){
 }
 
 let ventesSearchTerm='';
-window.onVentesSearch=(value)=>{ ventesSearchTerm=value.trim().toLowerCase(); renderReplay(); };
+window.onVentesSearch=(value)=>{ ventesSearchTerm=value.trim(); renderReplay(); };
+window.resetVentesFilters=()=>{
+  currentFilter.replay='Tous'; ventesSearchTerm='';
+  const searchInput=document.getElementById('ventesSearchInput');
+  if(searchInput) searchInput.value='';
+  const sortSelect=document.getElementById('vendusSort');
+  if(sortSelect) sortSelect.value='recent';
+  clearFilterState('replay');
+  renderReplay();
+};
 
 function renderReplay(){
+  // Filtre plateforme + tri mémorisés (2026-07-23), restaurés une seule fois.
+  if(!renderReplay._viewRestored){
+    const saved=loadFilterState('replay');
+    if(saved.platform) currentFilter.replay=saved.platform;
+    const sortSelectInit=document.getElementById('vendusSort');
+    if(sortSelectInit&&saved.sort) sortSelectInit.value=saved.sort;
+    renderReplay._viewRestored=true;
+  }
   // "À expédier" (2026-07-21) : fusionné dans la même liste que les ventes
   // finalisées plutôt qu'affiché à part — ce sont déjà des ventes, juste pas
   // encore expédiées, donc un simple badge de couleur différente suffit à
   // les distinguer (voir tile-list-status ci-dessous) sans dédoubler la vue.
   let arts=allArticles.filter(a=>a.status==='vendu'||a.status==='expedition');
   if(currentFilter.replay!=='Tous') arts=arts.filter(a=>a.platform===currentFilter.replay);
-  if(ventesSearchTerm) arts=arts.filter(a=>a.name.toLowerCase().includes(ventesSearchTerm));
+  if(ventesSearchTerm) arts=arts.filter(a=>matchesSearch(a.name,ventesSearchTerm));
   const sortMode=document.getElementById('vendusSort')?.value||'recent';
+  saveFilterState('replay',{platform:currentFilter.replay,sort:sortMode});
   arts=[...arts].sort((a,b)=>{
     if(sortMode==='fastest'){
       const da=daysBetween(a.buy_date,a.sell_date), db=daysBetween(b.buy_date,b.sell_date);
@@ -2709,7 +2775,13 @@ window.deleteExpense = async (id) => {
 
 // ── ACHATS (page dédiée, séparée du Stock — comme "Achats" chez Vinteer) ──
 let achatsSearchTerm='';
-window.onAchatsSearch=(value)=>{ achatsSearchTerm=value.trim().toLowerCase(); renderAchats(); };
+window.onAchatsSearch=(value)=>{ achatsSearchTerm=value.trim(); renderAchats(); };
+window.resetAchatsFilters=()=>{
+  achatsSearchTerm='';
+  const searchInput=document.getElementById('achatsSearchInput');
+  if(searchInput) searchInput.value='';
+  renderAchats();
+};
 
 function renderAchats(){
   const list=document.getElementById('achatsList');
@@ -2781,7 +2853,7 @@ function renderAchats(){
       </div>`;
   }
 
-  let shown=achatsSearchTerm?arts.filter(p=>(p.title||'').toLowerCase().includes(achatsSearchTerm)):arts;
+  let shown=achatsSearchTerm?arts.filter(p=>matchesSearch(p.title,achatsSearchTerm)):arts;
   shown=[...shown].sort((a,b)=>new Date(b.purchase_date||0)-new Date(a.purchase_date||0));
   list.innerHTML=shown.length?shown.map(p=>`
     <div class="tile-list-row" onclick="window.open('https://www.vinted.fr','_blank')" title="${(p.status||'').replace(/"/g,'&quot;')}">

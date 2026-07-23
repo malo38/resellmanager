@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=30" />
+  <link rel="stylesheet" href="css/style.css?v=31" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -372,6 +372,7 @@
           <div class="stock-search-wrap">
             <input type="text" id="achatsSearchInput" class="stock-search" placeholder="🔎 Rechercher un achat..." oninput="onAchatsSearch(this.value)" />
           </div>
+          <button class="pf-btn" onclick="resetAchatsFilters()" title="Effacer la recherche">↺ Réinitialiser</button>
           <button class="pf-btn" style="margin-left:auto;" onclick="exportAchatsCSV()">⬇ CSV</button>
         </div>
         <div id="achatsPickupWrap"></div>
@@ -428,6 +429,7 @@
               <button onclick="openCsvImport();closeActionsMenu()" title="Créer plusieurs articles d'un coup depuis un fichier CSV">⬆ Import CSV</button>
               <button id="duplicatesBtn" onclick="openDuplicates();closeActionsMenu()" title="Repère les articles qui semblent être en double (même nom)">🧬 Doublons</button>
               <button id="resyncAllBtn" onclick="resyncAllFromVinted(this);closeActionsMenu()" title="Force tous vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min)">🔄 Tout réinitialiser depuis Vinted</button>
+              <button onclick="resetStockFilters();closeActionsMenu()" title="Efface catégorie, qualité, tri, plateforme et recherche">↺ Réinitialiser les filtres</button>
             </div>
           </div>
         </div>
@@ -470,6 +472,7 @@
             <option value="profit">Plus rentable</option>
             <option value="margin">Meilleure marge</option>
           </select>
+          <button class="pf-btn" onclick="resetVentesFilters()" title="Effacer filtres, tri et recherche">↺ Réinitialiser</button>
           <button class="pf-btn" style="margin-left:auto;" onclick="exportArticlesCSV('vendus')">⬇ CSV</button>
         </div>
         <div id="replayList"></div>
@@ -709,6 +712,16 @@
               <button class="lang-btn" data-lang="fr" onclick="setLang('fr')">FR</button>
               <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
             </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">🙈 Mode discret</div>
+              <div class="setting-sub">Floute les noms d'articles et les montants — pratique pour partager une capture d'écran sans tout dévoiler. Survolez un élément flouté pour le voir temporairement.</div>
+            </div>
+            <label class="theme-toggle" style="cursor:pointer;">
+              <input type="checkbox" id="discreetModeToggle" style="display:none;" onchange="toggleDiscreetMode(this.checked)">
+              <span class="theme-btn" id="discreetModeLabel" onclick="document.getElementById('discreetModeToggle').click()">Désactivé</span>
+            </label>
           </div>
         </div>
         <div class="settings-card" style="margin-top:16px;">
@@ -1159,7 +1172,7 @@
 </div>
 
 <script src="js/i18n.js?v=1"></script>
-<script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=54"></script>
+<script src="js/calc.js?v=15"></script>
+<script src="js/app.js?v=57"></script>
 </body>
 </html>
