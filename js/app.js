@@ -212,6 +212,7 @@ function loginAs(user) {
   restoreNavOrder();
   initNavDragDrop();
   initSidebarScrollCue();
+  enhanceAllSelects();
 }
 
 // Affiche une ombre en bas de la sidebar quand elle contient plus d'items que
@@ -802,6 +803,79 @@ function customConfirm(message){
   });
 }
 window.customConfirm=customConfirm;
+
+// ── DROPDOWN CUSTOM (remplace la liste native du navigateur, voir le
+// commentaire CSS associé) — signalé le 2026-07-23. Le <select> d'origine
+// reste dans le DOM, masqué mais fonctionnel : tout le code existant qui lit
+// ou fixe .value, écoute "change", ou re-remplit les <option> via innerHTML
+// continue de marcher sans aucune modification ailleurs dans ce fichier.
+function enhanceSelect(select){
+  if(select.dataset.enhanced) return;
+  select.dataset.enhanced='1';
+
+  const wrap=document.createElement('div');
+  wrap.className='custom-select-wrap';
+  if(select.closest('.field')) wrap.classList.add('field-style');
+  if(select.closest('.bulk-bar')) wrap.classList.add('bulkbar-style');
+  select.parentNode.insertBefore(wrap, select);
+  wrap.appendChild(select);
+  select.classList.add('custom-select-native-hidden');
+
+  const trigger=document.createElement('button');
+  trigger.type='button';
+  trigger.className='custom-select-trigger';
+  trigger.innerHTML='<span class="custom-select-trigger-label"></span>';
+  const label=trigger.querySelector('.custom-select-trigger-label');
+  const list=document.createElement('div');
+  list.className='custom-select-list';
+  wrap.appendChild(trigger);
+  wrap.appendChild(list);
+
+  function buildList(){
+    list.innerHTML='';
+    [...select.options].forEach(opt=>{
+      const item=document.createElement('div');
+      item.className='custom-select-item'+(opt.selected?' selected':'');
+      item.textContent=opt.textContent;
+      item.onclick=()=>{
+        select.value=opt.value;
+        select.dispatchEvent(new Event('change',{bubbles:true}));
+        closeList();
+      };
+      list.appendChild(item);
+    });
+  }
+  function refreshTrigger(){
+    label.textContent=select.selectedOptions[0]?.textContent ?? '';
+    trigger.disabled=select.disabled;
+  }
+  function openList(){ buildList(); list.classList.add('open'); trigger.classList.add('open'); }
+  function closeList(){ list.classList.remove('open'); trigger.classList.remove('open'); }
+  trigger.onclick=(e)=>{ e.stopPropagation(); list.classList.contains('open')?closeList():openList(); };
+  document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) closeList(); });
+
+  // Intercepte toute affectation programmatique de .value (fait un peu
+  // partout dans app.js pour restaurer un filtre/tri sauvegardé) afin de
+  // resynchroniser le libellé affiché — sans avoir à modifier chacun de ces
+  // appels existants un par un.
+  const nativeDesc=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value');
+  Object.defineProperty(select,'value',{
+    get(){ return nativeDesc.get.call(select); },
+    set(v){ nativeDesc.set.call(select,v); refreshTrigger(); },
+    configurable:true,
+  });
+
+  // <option> souvent re-remplis via innerHTML à chaque rendu (ex: années
+  // dispo, statuts de préparation personnalisés, sélection en masse...) —
+  // observé plutôt que traqué site d'appel par site d'appel.
+  new MutationObserver(()=>{ refreshTrigger(); if(list.classList.contains('open')) buildList(); }).observe(select,{childList:true});
+
+  refreshTrigger();
+}
+function enhanceAllSelects(){
+  document.querySelectorAll('select:not([data-enhanced])').forEach(enhanceSelect);
+}
+window.enhanceAllSelects=enhanceAllSelects;
 
 // ── RENDER ALL ──
 function renderAll(){renderDashboard();renderStockAll();renderAnalytics();renderObjectif();}
