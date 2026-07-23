@@ -12,11 +12,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css?v=31" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/style.css?v=32" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
@@ -375,6 +377,7 @@
           <button class="pf-btn" onclick="resetAchatsFilters()" title="Effacer la recherche">↺ Réinitialiser</button>
           <button class="pf-btn" style="margin-left:auto;" onclick="exportAchatsCSV()">⬇ CSV</button>
         </div>
+        <div id="achatsDisputeWrap"></div>
         <div id="achatsPickupWrap"></div>
         <div id="achatsList"></div>
       </section>
@@ -1173,6 +1176,6 @@
 
 <script src="js/i18n.js?v=1"></script>
 <script src="js/calc.js?v=15"></script>
-<script src="js/app.js?v=57"></script>
+<script src="js/app.js?v=58"></script>
 </body>
 </html>

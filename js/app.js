@@ -2783,6 +2783,128 @@ window.resetAchatsFilters=()=>{
   renderAchats();
 };
 
+// pickup_since : date d'arrivée réelle au point relais (donnée fiable). La
+// date limite en revanche n'existe nulle part chez Vinted (vérifié le
+// 2026-07-16, jusque dans son suivi de colis le plus détaillé) — on ESTIME
+// donc un délai à partir des durées habituelles par transporteur
+// (connaissance générale, pas une donnée Vinted), toujours annoncée comme
+// approximative pour ne jamais faire rater un vrai colis. Un délai dépassé
+// est un signal fort (pas une certitude) de colis perdu/à réclamer.
+const CARRIER_HOLD_DAYS={CHRONOPOST:10,MONDIAL_RELAY:10,COLISSIMO:15,UPS:7,DPD:7,GLS:7};
+const CARRIER_LABELS={CHRONOPOST:'Chronopost',MONDIAL_RELAY:'Mondial Relay',COLISSIMO:'Colissimo',UPS:'UPS',DPD:'DPD',GLS:'GLS'};
+function pickupDeadlineInfo(p){
+  const since=p.pickup_since?daysBetween(p.pickup_since,today()):null;
+  let deadline=null, remaining=null;
+  if(p.pickup_since&&p.pickup_carrier&&CARRIER_HOLD_DAYS[p.pickup_carrier]){
+    deadline=new Date(p.pickup_since);
+    deadline.setDate(deadline.getDate()+CARRIER_HOLD_DAYS[p.pickup_carrier]);
+    remaining=daysBetween(today(),deadline);
+  }
+  return {since, deadline, remaining, overdue: remaining!==null && remaining<=0};
+}
+// p.pickup_location est la phrase Vinted complète ("Ton colis a été livré
+// dans le Point Relais X, ADRESSE. Tu peux dès maintenant...") — on n'en
+// garde que le nom + l'adresse, plus lisible dans la liste.
+function shortLocation(loc){
+  const m=(loc||'').match(/(?:Point Relais|Bureau de Poste|point de retrait)[^.]*/i);
+  return m?m[0].trim():(loc||'');
+}
+// Pour le géocodage en revanche, le nom du point relais en préfixe fait
+// CHUTER le score de confiance de l'API Adresse même sur une correspondance
+// par ailleurs parfaite (vérifié le 2026-07-23 sur une vraie adresse : 0.49
+// avec le nom en préfixe vs 0.95 sans) — on ne garde donc que les 2 derniers
+// segments séparés par une virgule (rue + code postal/ville), qui portent
+// la vraie adresse dans "Point Relais X, RUE, CODE VILLE".
+function geocodeQuery(shortLoc){
+  const parts=(shortLoc||'').split(',').map(s=>s.trim()).filter(Boolean);
+  return parts.length>=3 ? parts.slice(-2).join(', ') : shortLoc;
+}
+const DISPUTE_LABELS={litige:'🚩 En litige',rembourse:'✅ Remboursé',compense:'💶 Compensé'};
+function disputeBadge(p){
+  if(!p.dispute_status) return '';
+  const cls=p.dispute_status==='litige'?'dispute-badge dispute-badge-litige':'dispute-badge dispute-badge-resolved';
+  const amount=p.dispute_amount?` (${fmtPrice(p.dispute_amount)})`:'';
+  return `<span class="${cls}">${DISPUTE_LABELS[p.dispute_status]}${amount}</span>`;
+}
+window.setDisputeStatus=async(purchaseId,status)=>{
+  const p=allPurchases.find(x=>x.id===purchaseId);
+  if(!p) return;
+  let amount=null;
+  if(status==='rembourse'||status==='compense'){
+    const label=status==='rembourse'?'Montant remboursé par Vinted (€) :':'Montant de la compensation reçue (€) :';
+    const raw=prompt(label, p.price||'');
+    if(raw===null) return;
+    amount=parseFloat(String(raw).replace(',','.'))||0;
+  }
+  const patch={dispute_status:status, dispute_amount:amount, dispute_updated_at:new Date().toISOString()};
+  const {error}=await sb.from('vinted_purchases').update(patch).eq('id',purchaseId).eq('user_id',currentUser.id);
+  if(error){ alert('Erreur : '+error.message); return; }
+  Object.assign(p,patch);
+  renderAchats();
+};
+window.clearDisputeStatus=async(purchaseId)=>{
+  const p=allPurchases.find(x=>x.id===purchaseId);
+  if(!p) return;
+  const patch={dispute_status:null, dispute_amount:null, dispute_updated_at:new Date().toISOString()};
+  const {error}=await sb.from('vinted_purchases').update(patch).eq('id',purchaseId).eq('user_id',currentUser.id);
+  if(error){ alert('Erreur : '+error.message); return; }
+  Object.assign(p,patch);
+  renderAchats();
+};
+
+// ── Carte des points relais (colis en attente de retrait) ──
+// Vinted ne fournit aucune coordonnée GPS, seulement le texte du point
+// relais (nom + adresse, voir shortLocation). On géocode ce texte via
+// l'API Adresse (api-adresse.data.gouv.fr, gratuite, sans clé, pensée pour
+// du texte d'adresse bruité) et on met le résultat en cache en base
+// (pickup_lat/pickup_lon) pour ne jamais re-géocoder le même point relais.
+let achatsLeafletMap=null;
+function renderPickupMap(items){
+  const el=document.getElementById('achatsPickupMapEl');
+  if(!el) return;
+  if(achatsLeafletMap){ achatsLeafletMap.remove(); achatsLeafletMap=null; }
+  const points=items.filter(p=>p.pickup_lat!=null && p.pickup_lon!=null);
+  if(!points.length || typeof L==='undefined'){ el.style.display='none'; return; }
+  el.style.display='block';
+  achatsLeafletMap=L.map(el,{scrollWheelZoom:false});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',
+    maxZoom:19,
+  }).addTo(achatsLeafletMap);
+  const markers=points.map(p=>{
+    const overdue=pickupDeadlineInfo(p).overdue;
+    return L.circleMarker([p.pickup_lat,p.pickup_lon],{
+      radius:8, color:overdue?'#ef4444':'#00e5a0', fillColor:overdue?'#ef4444':'#00e5a0', fillOpacity:0.8, weight:2,
+    }).bindPopup(`<b>${(p.title||'(sans titre)').replace(/</g,'&lt;')}</b><br>${shortLocation(p.pickup_location).replace(/</g,'&lt;')}`).addTo(achatsLeafletMap);
+  });
+  if(points.length===1){ achatsLeafletMap.setView([points[0].pickup_lat,points[0].pickup_lon],14); }
+  else { achatsLeafletMap.fitBounds(L.featureGroup(markers).getBounds().pad(0.2)); }
+}
+async function geocodePendingPickups(items){
+  const todo=items.filter(p=>p.pickup_lat==null && p.pickup_location).slice(0,15);
+  if(!todo.length) return;
+  let any=false;
+  for(const p of todo){
+    const query=geocodeQuery(shortLocation(p.pickup_location));
+    if(!query) continue;
+    try{
+      const res=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=1`);
+      const json=await res.json();
+      const feat=json.features&&json.features[0];
+      // Un score bas signifie que l'API n'a pas trouvé de correspondance
+      // fiable (texte trop différent d'une vraie adresse) — mieux vaut
+      // n'afficher aucun pin qu'un pin au mauvais endroit.
+      if(feat && feat.properties && feat.properties.score>=0.5){
+        const [lon,lat]=feat.geometry.coordinates;
+        p.pickup_lat=lat; p.pickup_lon=lon;
+        await sb.from('vinted_purchases').update({pickup_lat:lat,pickup_lon:lon}).eq('id',p.id).eq('user_id',currentUser.id);
+        any=true;
+      }
+    }catch(e){ /* géocodage best-effort : un échec n'empêche jamais l'affichage de la liste */ }
+  }
+  if(any) renderAchats();
+}
+
 function renderAchats(){
   const list=document.getElementById('achatsList');
   if(!list) return;
@@ -2792,11 +2914,18 @@ function renderAchats(){
   const totalToday=arts.filter(p=>isToday(p.purchase_date)).reduce((s,p)=>s+(parseFloat(p.price)||0),0);
   const totalMonth=arts.filter(p=>isThisMonth(p.purchase_date)).reduce((s,p)=>s+(parseFloat(p.price)||0),0);
   const totalAll=arts.reduce((s,p)=>s+(parseFloat(p.price)||0),0);
+  // Argent récupéré via un remboursement/une compensation Vinted suite à un
+  // litige — un compteur À PART, jamais soustrait du "Total achats" : ce
+  // dernier doit rester la dépense brute réelle (même principe que le
+  // profit affiché sur une vente remboursée, voir calcProfit).
+  const isResolved=p=>p.dispute_status==='rembourse'||p.dispute_status==='compense';
+  const totalRecupere=arts.filter(isResolved).reduce((s,p)=>s+(parseFloat(p.dispute_amount)||0),0);
   document.getElementById('achatsMinistats').innerHTML=`
     <div class="ministat"><div class="ministat-label">Achats aujourd'hui</div><div class="ministat-val">${fmtPrice(totalToday)}</div></div>
     <div class="ministat"><div class="ministat-label">Achats ce mois-ci</div><div class="ministat-val">${fmtPrice(totalMonth)}</div></div>
     <div class="ministat"><div class="ministat-label">Total achats</div><div class="ministat-val">${fmtPrice(totalAll)}</div></div>
     <div class="ministat"><div class="ministat-label">Nombre d'achats</div><div class="ministat-val">${arts.length}</div></div>
+    ${totalRecupere>0?`<div class="ministat"><div class="ministat-label">Récupéré (litiges)</div><div class="ministat-val" style="color:var(--accent);">${fmtPrice(totalRecupere)}</div></div>`:''}
   `;
 
   // "Colis à récupérer" : Vinted décrit déjà ça en texte dans le statut de
@@ -2804,37 +2933,57 @@ function renderAchats(){
   // besoin d'un champ structuré séparé, un simple mot-clé suffit. Inspiré
   // d'une carte équivalente repérée chez Vinteer le 2026-07-16.
   const toPickup=arts.filter(p=>/point relais|bureau de poste|point de retrait/i.test(p.status||''));
+  const overdueUnresolved=toPickup.filter(p=>pickupDeadlineInfo(p).overdue && !isResolved(p));
+  const activePickups=toPickup.filter(p=>!pickupDeadlineInfo(p).overdue && !isResolved(p));
+  // Litiges signalés manuellement (bouton 🚩 depuis la liste) sur un achat
+  // qui n'est pas forcément un colis en attente de retrait (ex: objet reçu
+  // mais non conforme, litige ouvert après coup) — dédupliqué avec les
+  // colis auto-détectés en retard pour ne jamais afficher la même ligne
+  // deux fois dans le panneau.
+  const manualDisputes=arts.filter(p=>p.dispute_status==='litige' && !overdueUnresolved.includes(p));
+
+  const disputeWrap=document.getElementById('achatsDisputeWrap');
+  if(disputeWrap){
+    const disputeRow=(p,auto)=>{
+      const info=pickupDeadlineInfo(p);
+      const location=shortLocation(p.pickup_location);
+      return `<div class="pickup-item">
+        ${p.photo_url?`<img class="pickup-photo" src="${p.photo_url}">`:'<div class="pickup-photo">🛍️</div>'}
+        <div class="pickup-info">
+          <div class="pickup-title">${p.title||'(sans titre)'}</div>
+          ${location?`<div class="pickup-location" title="${location.replace(/"/g,'&quot;')}">📍 ${location}</div>`:''}
+          <div class="pickup-badges">
+            ${auto?`<span class="pickup-badge dispute-badge-litige" title="Délai habituel de retrait dépassé (estimation) — colis probablement retourné à l'expéditeur ou perdu.">⚠️ Délai de retrait dépassé${info.deadline?` depuis le ${fmtDate(info.deadline)}`:''}</span>`:''}
+            ${disputeBadge(p)}
+          </div>
+          <div class="dispute-actions">
+            ${!p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','litige')">🚩 Signaler un litige</button>`:''}
+            ${p.dispute_status==='litige'?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','rembourse')">✅ Remboursé</button><button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','compense')">💶 Compensé</button>`:''}
+            ${p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="clearDisputeStatus('${p.id}')" title="Retirer ce statut">↺ Annuler</button>`:''}
+          </div>
+        </div>
+      </div>`;
+    };
+    const rows=[...overdueUnresolved.map(p=>disputeRow(p,true)), ...manualDisputes.map(p=>disputeRow(p,false))];
+    disputeWrap.innerHTML=rows.length?`
+      <div class="checklist-card dispute-card">
+        <div class="checklist-title">⚠️ Litiges & colis à risque — ${rows.length}</div>
+        <div class="pickup-list">${rows.join('')}</div>
+      </div>`:'';
+  }
+
   const pickupWrap=document.getElementById('achatsPickupWrap');
   if(pickupWrap){
-    // pickup_since : date d'arrivée réelle au point relais (donnée fiable).
-    // La date limite en revanche n'existe nulle part chez Vinted (vérifié le
-    // 2026-07-16, jusque dans son suivi de colis le plus détaillé) — on
-    // ESTIME donc un délai à partir des durées habituelles par transporteur
-    // (connaissance générale, pas une donnée Vinted), toujours annoncée
-    // comme approximative pour ne jamais faire rater un vrai colis.
-    const CARRIER_HOLD_DAYS={CHRONOPOST:10,MONDIAL_RELAY:10,COLISSIMO:15,UPS:7,DPD:7,GLS:7};
-    const CARRIER_LABELS={CHRONOPOST:'Chronopost',MONDIAL_RELAY:'Mondial Relay',COLISSIMO:'Colissimo',UPS:'UPS',DPD:'DPD',GLS:'GLS'};
-    // p.pickup_location est la phrase Vinted complète ("Ton colis a été
-    // livré dans le Point Relais X, ADRESSE. Tu peux dès maintenant...") —
-    // on n'en garde que le nom + l'adresse, plus lisible sur une carte.
-    const shortLocation=loc=>{
-      const m=(loc||'').match(/(?:Point Relais|Bureau de Poste|point de retrait)[^.]*/i);
-      return m?m[0].trim():loc;
-    };
     const pickupRow=p=>{
-      const since=p.pickup_since?daysBetween(p.pickup_since,today()):null;
+      const info=pickupDeadlineInfo(p);
       // "Arrivé il y a" (écoulé) et "jours restants" (calculé à partir de la
       // MÊME date limite estimée) plutôt que deux badges indépendants — pour
       // que les deux nombres se recoupent sans ambiguïté (confusion signalée
       // le 2026-07-16 : "6 jours d'attente" lu comme "6 jours restants").
-      const waitBadge=since!==null?`<span class="pickup-badge">📦 Arrivé il y a ${since} jour${since>1?'s':''}</span>`:'';
+      const waitBadge=info.since!==null?`<span class="pickup-badge">📦 Arrivé il y a ${info.since} jour${info.since>1?'s':''}</span>`:'';
       let estBadge='';
-      if(p.pickup_since&&p.pickup_carrier&&CARRIER_HOLD_DAYS[p.pickup_carrier]){
-        const deadline=new Date(p.pickup_since);
-        deadline.setDate(deadline.getDate()+CARRIER_HOLD_DAYS[p.pickup_carrier]);
-        const remaining=daysBetween(today(),deadline);
-        const remainingLabel=remaining!==null?(remaining>0?`≈ ${remaining} jour${remaining>1?'s':''} restant${remaining>1?'s':''}`:'≈ délai probablement dépassé'):'';
-        estBadge=`<span class="pickup-badge pickup-badge-est" title="Estimation basée sur le délai habituel de ${CARRIER_LABELS[p.pickup_carrier]||p.pickup_carrier} — à vérifier, Vinted ne communique aucune date officielle.">${remainingLabel} (jusqu'au ${fmtDate(deadline)})</span>`;
+      if(info.deadline && info.remaining>0){
+        estBadge=`<span class="pickup-badge pickup-badge-est" title="Estimation basée sur le délai habituel de ${CARRIER_LABELS[p.pickup_carrier]||p.pickup_carrier} — à vérifier, Vinted ne communique aucune date officielle.">≈ ${info.remaining} jour${info.remaining>1?'s':''} restant${info.remaining>1?'s':''} (jusqu'au ${fmtDate(info.deadline)})</span>`;
       }
       const location=shortLocation(p.pickup_location)||p.status;
       return `<div class="pickup-item">
@@ -2848,9 +2997,11 @@ function renderAchats(){
     };
     pickupWrap.innerHTML=`
       <div class="checklist-card" style="margin-bottom:16px;">
-        <div class="checklist-title">📍 Colis à récupérer — ${toPickup.length}</div>
-        <div class="pickup-list">${toPickup.length?toPickup.map(pickupRow).join(''):'<p class="setting-sub">Aucun colis à récupérer pour le moment.</p>'}</div>
+        <div class="checklist-title">📍 Colis à récupérer — ${activePickups.length}</div>
+        <div id="achatsPickupMapEl" class="pickup-map"></div>
+        <div class="pickup-list">${activePickups.length?activePickups.map(pickupRow).join(''):'<p class="setting-sub">Aucun colis à récupérer pour le moment.</p>'}</div>
       </div>`;
+    renderPickupMap(activePickups.concat(overdueUnresolved));
   }
 
   let shown=achatsSearchTerm?arts.filter(p=>matchesSearch(p.title,achatsSearchTerm)):arts;
@@ -2859,10 +3010,13 @@ function renderAchats(){
     <div class="tile-list-row" onclick="window.open('https://www.vinted.fr','_blank')" title="${(p.status||'').replace(/"/g,'&quot;')}">
       <div class="tile-list-photo">${p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'🛍️'}</div>
       <div class="tile-list-name">${p.title||'(sans titre)'}</div>
+      ${p.dispute_status?disputeBadge(p):`<button class="litige-flag-btn" onclick="event.stopPropagation();setDisputeStatus('${p.id}','litige')" title="Signaler un litige">🚩</button>`}
       <span class="tile-list-status" style="background:#60a5fa;">${fmtDate(p.purchase_date)}</span>
       <div class="tile-list-price">${fmtPrice(p.price)}</div>
     </div>
   `).join(''):emptyState('Aucun achat pour le moment.');
+
+  geocodePendingPickups(toPickup);
 }
 
 // ── BOOST (articles avec un Boost Vinted payant actif — comme "Achats"/

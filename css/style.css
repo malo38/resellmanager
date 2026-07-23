@@ -466,6 +466,18 @@ select option { background: var(--surface2); color: var(--text); }
 .pickup-badges { display: flex; flex-wrap: wrap; gap: 6px; }
 .pickup-badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; background: var(--surface2); color: var(--muted); white-space: nowrap; }
 .pickup-badge-est { background: var(--warning-dim); color: var(--warning); cursor: help; }
+
+.pickup-map { height: 220px; border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; border: 1px solid var(--border); display: none; background: var(--surface2); }
+.pickup-map.leaflet-container { background: var(--surface2); }
+
+.dispute-card .checklist-title { color: var(--warning); }
+.dispute-badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.dispute-badge-litige { background: var(--warning-dim); color: var(--warning); }
+.dispute-badge-resolved { background: var(--accent-dim); color: var(--accent); }
+.dispute-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pf-btn-sm { padding: 3px 10px; font-size: 11px; }
+.litige-flag-btn { background: none; border: none; cursor: pointer; font-size: 13px; opacity: 0.5; padding: 0 4px; transition: opacity 0.15s; }
+.litige-flag-btn:hover { opacity: 1; }
 .sell-time { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 2px; }
 
 /* ── THEME LIGHT ── */
