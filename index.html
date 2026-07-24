@@ -1005,6 +1005,21 @@
   </div>
 </div>
 
+<!-- DÉTAIL D'UN ACHAT (clic sur une ligne Achats) -->
+<div class="modal-bg" id="achatDetailBg">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3 id="achatDetailTitle">Détail</h3>
+      <button class="modal-close" onclick="closeAchatDetail()">✕</button>
+    </div>
+    <div class="modal-body" id="achatDetailBody"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" style="color:var(--danger);border-color:var(--danger);" onclick="deleteAchat(document.getElementById('achatDetailBg').dataset.id)" id="achatDetailDeleteBtn" data-i18n="common.delete">Supprimer</button>
+      <button class="btn-cancel" onclick="closeAchatDetail()" data-i18n="common.close">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="duplicatesBg">
   <div class="modal" style="max-width:520px;">
     <div class="modal-header">

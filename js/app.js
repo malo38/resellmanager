@@ -1964,12 +1964,14 @@ function articleTileHTML(a, opts={}){
   const actionBtn=opts.showMove&&nextStep
     ?`<button class="tile-action-btn" style="background:${nextStep.color};" title="Passer à : ${nextStep.label}" aria-label="Passer à : ${nextStep.label}" onclick="event.stopPropagation();moveToStep('${a.id}','${nextStep.key}')">${nextStepIcon}</button>`
     :'';
-  // Republication en un clic depuis la carte Stock (2026-07-21) : seulement
-  // pour un article réellement en ligne sur Vinted ("stock", avec un vrai
-  // vinted_item_id) — republier une fiche pas encore publiée ou déjà vendue
-  // n'a pas de sens.
-  const republishBtn=opts.showMove&&a.vinted_item_id&&a.status==='stock'
-    ?`<button class="tile-action-btn tile-republish-btn" title="Republier maintenant" aria-label="Republier maintenant" onclick="event.stopPropagation();quickRepublish('${a.vinted_item_id}',this)">🔄</button>`
+  // Republication en un clic depuis la carte Stock : n'apparaît que si
+  // l'article a effectivement atteint le seuil configuré dans Republication
+  // (jours sans republier), plutôt que sur chaque article en stock sans
+  // distinction — pour qu'un coup d'œil sur Stock suffise à savoir QUOI
+  // republier (signalé le 2026-07-23 : la page Republication séparée faisait
+  // double emploi). Voir isDueForRepublish().
+  const republishBtn=opts.showMove&&isDueForRepublish(a)
+    ?`<button class="tile-action-btn tile-republish-btn due" title="À republier — ${daysSincePublished(a)}j sans republication" aria-label="Republier maintenant" onclick="event.stopPropagation();quickRepublish('${a.vinted_item_id}',this)">🔄</button>`
     :'';
   const days=a.status!=='vendu'?daysInStock(a):null;
   const ageBadge=(days!==null)?`<span class="tile-age${days>=30?' tile-age-warn':''}" title="En stock depuis ${days} jour${days>1?'s':''}">${days}j</span>`:'';
@@ -2024,12 +2026,16 @@ function articleListRowHTML(a){
   const status=statusMeta(a);
   const days=a.status!=='vendu'?daysInStock(a):null;
   const ageLabel=(days!==null)?`<span class="tile-list-age${days>=30?' tile-age-warn':''}">${days}j</span>`:'';
+  const republishBtn=isDueForRepublish(a)
+    ?`<button class="tile-action-btn tile-republish-btn due" style="position:static;flex-shrink:0;" title="À republier — ${daysSincePublished(a)}j sans republication" aria-label="Republier maintenant" onclick="event.stopPropagation();quickRepublish('${a.vinted_item_id}',this)">🔄</button>`
+    :'';
   return `<div class="tile-list-row" onclick="showDetail('${a.id}')">
     <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" alt="${a.name.replace(/"/g,'&quot;')}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
     <div class="tile-list-name">${a.name}</div>
     <span class="tile-list-sku" title="Cliquer pour copier — à coller en fin de titre Vinted" onclick="event.stopPropagation();copySku('${a.sku}',this)">#${a.sku}</span>
     <span class="tile-list-status" style="background:${status.color}">${status.label}</span>
     ${ageLabel}
+    ${republishBtn}
     <div class="tile-list-price ${priceClass}">${priceLabel}</div>
   </div>`;
 }
@@ -3058,11 +3064,9 @@ function geocodeQuery(shortLoc){
 }
 function disputeBadge(p){
   if(!p.dispute_status) return '';
-  const cls=p.dispute_status==='litige'?'dispute-badge dispute-badge-litige'
-    :p.dispute_status==='perdu'?'dispute-badge dispute-badge-lost'
-    :'dispute-badge dispute-badge-resolved';
+  const cls=p.dispute_status==='litige'?'dispute-badge dispute-badge-litige':'dispute-badge dispute-badge-resolved';
   const amount=p.dispute_amount?` (${fmtPrice(p.dispute_amount)})`:'';
-  const labels={litige:'🚩 '+t('achats.disputeStatusLitige'),rembourse:t('achats.markRefunded'),compense:t('achats.markCompensated'),perdu:'📭 '+t('achats.disputeStatusLost')};
+  const labels={litige:'🚩 '+t('achats.disputeStatusLitige'),rembourse:t('achats.markRefunded'),compense:t('achats.markCompensated')};
   return `<span class="${cls}">${labels[p.dispute_status]}${amount}</span>`;
 }
 window.setDisputeStatus=async(purchaseId,status)=>{
@@ -3091,30 +3095,70 @@ window.clearDisputeStatus=async(purchaseId)=>{
   renderAchats();
 };
 
-// Colis dont le délai estimé de retrait est dépassé : proposer de le
-// retirer, avec l'achat, plutôt que de le laisser traîner indéfiniment dans
-// le panneau litiges (signalé le 2026-07-23). Marqué "perdu" plutôt que
-// vraiment supprimé de la table : Vinted renvoie cette même commande à
-// chaque synchro (son historique ne s'efface jamais côté Vinted), un vrai
-// DELETE reviendrait donc tout seul au cycle suivant (≤5 min). dispute_status
-// n'est jamais touché par la synchro backend, donc "perdu" survit et retire
-// durablement l'achat des listes actives.
-window.deleteLostPurchase=async(purchaseId)=>{
+// ── DÉTAIL D'UN ACHAT (clic sur une ligne Achats) ──
+// Reprend le même principe que showDetail() côté Stock : un clic ouvre une
+// fiche complète (photo, prix, statut, retrait, litige) plutôt que de partir
+// directement sur Vinted — demandé le 2026-07-23 ("je veux qu'on puisse
+// supprimer un article qui est en achat et que quand on clique dessus on ait
+// les détails de l'achat"), en remplacement du bouton "colis perdu" dédié
+// ajouté un peu plus tôt (jugé trop spécifique/confus) : la suppression est
+// maintenant une action générique disponible sur n'importe quel achat, pas
+// seulement ceux en retard de retrait.
+window.showAchatDetail=(purchaseId)=>{
   const p=allPurchases.find(x=>x.id===purchaseId);
   if(!p) return;
-  if(!confirm(t('achats.confirmDeleteLost'))) return;
+  document.getElementById('achatDetailBg').dataset.id=purchaseId;
+  document.getElementById('achatDetailTitle').textContent=p.title||t('achats.noTitle');
+  const info=pickupDeadlineInfo(p);
+  const location=shortLocation(p.pickup_location);
+  const rows=[
+    detailRow(t('achats.detailPrice'), fmtPrice(p.price)),
+    detailRow(t('achats.detailDate'), fmtDate(p.purchase_date)),
+    detailRow(t('achats.detailStatus'), p.status||'—'),
+  ];
+  if(location) rows.push(detailRow(t('achats.detailPickup'), location));
+  if(info.deadline) rows.push(detailRow(t('achats.detailPickupDeadline'), fmtDate(info.deadline)));
+  document.getElementById('achatDetailBody').innerHTML=`
+    <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;">
+      ${p.photo_url?`<img src="${p.photo_url}" style="width:72px;height:72px;object-fit:cover;border-radius:10px;flex-shrink:0;">`:''}
+      <div style="flex:1;">${disputeBadge(p)}</div>
+    </div>
+    ${rows.join('')}
+    <div class="dispute-actions" style="margin-top:14px;">
+      ${!p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','litige');showAchatDetail('${p.id}')">${t('achats.signalDispute')}</button>`:''}
+      ${p.dispute_status==='litige'?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','rembourse');showAchatDetail('${p.id}')">${t('achats.markRefunded')}</button><button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','compense');showAchatDetail('${p.id}')">${t('achats.markCompensated')}</button>`:''}
+      ${p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="clearDisputeStatus('${p.id}');showAchatDetail('${p.id}')" title="${t('achats.clearDisputeTitle')}">${t('achats.clearDispute')}</button>`:''}
+    </div>
+  `;
+  document.getElementById('achatDetailBg').classList.add('open');
+};
+window.closeAchatDetail=()=>document.getElementById('achatDetailBg').classList.remove('open');
+
+// Suppression générique d'un achat (n'importe lequel, pas seulement un colis
+// en retard). Marqué plutôt que vraiment retiré de la table : Vinted renvoie
+// cette même commande à chaque synchro (son historique ne s'efface jamais
+// côté Vinted), un vrai DELETE reviendrait donc tout seul au cycle suivant
+// (≤5 min) — dispute_status n'est jamais touché par la synchro backend,
+// donc ce marquage survit et retire durablement l'achat de toutes les listes
+// (voir le filtre en tête de renderAchats).
+window.deleteAchat=async(purchaseId)=>{
+  const p=allPurchases.find(x=>x.id===purchaseId);
+  if(!p) return;
+  const ok=await customConfirm(t('achats.confirmDelete'));
+  if(!ok) return;
   try{
     // La fiche stock créée automatiquement à l'achat (via vinted_links,
-    // context "order_purchase") n'a plus lieu d'être : un colis jamais reçu
-    // n'a rien à laver/préparer/vendre.
+    // context "order_purchase") n'a plus lieu d'être si l'achat lui-même
+    // est supprimé.
     const link=await sb.from('vinted_links').select('sku').eq('context','order_purchase').eq('vinted_id',purchaseId).limit(1);
     const sku=link.data?.[0]?.sku;
     if(sku) await sb.from('articles').delete().eq('sku',sku).eq('user_id',currentUser.id);
   }catch(e){}
-  const patch={dispute_status:'perdu', dispute_amount:0, dispute_updated_at:new Date().toISOString()};
+  const patch={dispute_status:'supprime', dispute_amount:0, dispute_updated_at:new Date().toISOString()};
   const {error}=await sb.from('vinted_purchases').update(patch).eq('id',purchaseId).eq('user_id',currentUser.id);
-  if(error){ alert('Erreur : '+error.message); return; }
+  if(error){ showToast('Erreur : '+error.message, 'error'); return; }
   Object.assign(p,patch);
+  closeAchatDetail();
   renderAchats();
   renderStockAll();
 };
@@ -3175,7 +3219,11 @@ async function geocodePendingPickups(items){
 function renderAchats(){
   const list=document.getElementById('achatsList');
   if(!list) return;
-  const arts=selectedVintedAccountId?allPurchases.filter(p=>p.vinted_account_id===selectedVintedAccountId):allPurchases;
+  // Achats supprimés par l'utilisateur (voir deleteAchat) : marqués plutôt
+  // que retirés de la table (survit au resync), mais entièrement masqués
+  // partout ici — totaux, panneaux, liste — comme s'ils n'existaient plus.
+  const base=allPurchases.filter(p=>p.dispute_status!=='supprime'&&p.dispute_status!=='perdu');
+  const arts=selectedVintedAccountId?base.filter(p=>p.vinted_account_id===selectedVintedAccountId):base;
   const isToday=d=>d===today();
   const isThisMonth=d=>d&&d.slice(0,7)===today().slice(0,7);
   const totalToday=arts.filter(p=>isToday(p.purchase_date)).reduce((s,p)=>s+(parseFloat(p.price)||0),0);
@@ -3185,7 +3233,7 @@ function renderAchats(){
   // litige — un compteur À PART, jamais soustrait du "Total achats" : ce
   // dernier doit rester la dépense brute réelle (même principe que le
   // profit affiché sur une vente remboursée, voir calcProfit).
-  const isResolved=p=>p.dispute_status==='rembourse'||p.dispute_status==='compense'||p.dispute_status==='perdu';
+  const isResolved=p=>p.dispute_status==='rembourse'||p.dispute_status==='compense';
   const totalRecupere=arts.filter(isResolved).reduce((s,p)=>s+(parseFloat(p.dispute_amount)||0),0);
   document.getElementById('achatsMinistats').innerHTML=`
     <div class="ministat"><div class="ministat-label">${t('achats.today')}</div><div class="ministat-val">${fmtPrice(totalToday)}</div></div>
@@ -3227,7 +3275,7 @@ function renderAchats(){
             ${!p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','litige')">${t('achats.signalDispute')}</button>`:''}
             ${p.dispute_status==='litige'?`<button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','rembourse')">${t('achats.markRefunded')}</button><button class="pf-btn pf-btn-sm" onclick="setDisputeStatus('${p.id}','compense')">${t('achats.markCompensated')}</button>`:''}
             ${p.dispute_status?`<button class="pf-btn pf-btn-sm" onclick="clearDisputeStatus('${p.id}')" title="${t('achats.clearDisputeTitle')}">${t('achats.clearDispute')}</button>`:''}
-            ${auto?`<button class="pf-btn pf-btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteLostPurchase('${p.id}')" title="${t('achats.deleteLostTitle')}">${t('achats.deleteLost')}</button>`:''}
+            <button class="pf-btn pf-btn-sm" onclick="showAchatDetail('${p.id}')">${t('achats.viewDetail')}</button>
           </div>
         </div>
       </div>`;
@@ -3275,7 +3323,7 @@ function renderAchats(){
   let shown=achatsSearchTerm?arts.filter(p=>matchesSearch(p.title,achatsSearchTerm)):arts;
   shown=[...shown].sort((a,b)=>new Date(b.purchase_date||0)-new Date(a.purchase_date||0));
   list.innerHTML=shown.length?shown.map(p=>`
-    <div class="tile-list-row" onclick="window.open('https://www.vinted.fr','_blank')" title="${(p.status||'').replace(/"/g,'&quot;')}">
+    <div class="tile-list-row" onclick="showAchatDetail('${p.id}')" title="${(p.status||'').replace(/"/g,'&quot;')}">
       <div class="tile-list-photo">${p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'🛍️'}</div>
       <div class="tile-list-name">${p.title||t('achats.noTitle')}</div>
       ${p.dispute_status?disputeBadge(p):`<button class="litige-flag-btn" onclick="event.stopPropagation();setDisputeStatus('${p.id}','litige')" title="${t('achats.signalDisputeTitle')}">🚩</button>`}
@@ -3399,19 +3447,21 @@ async function renderAutoRepublishStatus(){
   el.textContent = `${config.republished_today}/${config.daily_limit} article(s) republié(s) automatiquement aujourd'hui.`;
 }
 
-function getArticlesToRepublish(){
-  const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
-  const stock = allArticles.filter(a => a.status==='stock' && a.platform==='Vinted');
-  return stock.filter(a => {
-    // published_at (date de mise en ligne réelle) prime sur buy_date : un
-    // article resté plusieurs jours en laver/photo avant d'être publié ne
-    // doit pas apparaître comme "à republier" dès sa mise en stock.
-    const d = daysBetween(a.published_at || a.buy_date || a.created_at?.split('T')[0], today());
-    return d !== null && d >= days;
-  });
+// published_at (date de mise en ligne réelle) prime sur buy_date : un article
+// resté plusieurs jours en laver/photo avant d'être publié ne doit pas
+// apparaître comme "à republier" dès sa mise en stock.
+function daysSincePublished(a){
+  return daysBetween(a.published_at || a.buy_date || a.created_at?.split('T')[0], today());
 }
-
-function republishDoneKey(){ return 'republish_done_'+currentUser.id+'_'+today(); }
+function isDueForRepublish(a){
+  if(a.status!=='stock' || !a.vinted_item_id) return false;
+  const days=parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
+  const d=daysSincePublished(a);
+  return d!==null && d>=days;
+}
+function getArticlesToRepublish(){
+  return allArticles.filter(a => a.status==='stock' && a.platform==='Vinted' && isDueForRepublish(a));
+}
 
 // Marque un article pour republication prioritaire : l'extension l'exécute
 // au tout prochain cycle de synchro (≤5 min, alarme chrome.alarms), qu'elle
@@ -3474,19 +3524,29 @@ async function renderRepublier() {
   }
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   document.getElementById('republishDays').value = days;
-  const toRepublish = getArticlesToRepublish();
-  const doneToday = JSON.parse(localStorage.getItem(republishDoneKey())||'[]');
-  document.getElementById('republierList').innerHTML = toRepublish.length
-    ? `<div class="checklist-card"><div class="checklist-title">✅ À republier aujourd'hui</div>${toRepublish.map(a=>{
-        const since=daysBetween(a.published_at||a.buy_date||a.created_at?.split('T')[0],today());
-        const overdue=since!==null?Math.max(0,since-days):0;
+  // File d'attente en lecture seule (2026-07-23) : l'action "republier
+  // maintenant" a déménagé directement sur les cartes Stock concernées (voir
+  // isDueForRepublish() dans articleTileHTML/articleListRowHTML) — cette page
+  // ne fait plus qu'afficher QUI est déjà éligible et QUI va bientôt l'être,
+  // sans dupliquer le bouton d'action ni la case "fait aujourd'hui" (qui
+  // n'avait plus de sens dès lors qu'il n'y a plus d'action à faire ici).
+  const queue = allArticles
+    .filter(a => a.status==='stock' && a.platform==='Vinted' && a.vinted_item_id)
+    .map(a => ({a, since: daysSincePublished(a)}))
+    .filter(x => x.since !== null)
+    .sort((x,y) => y.since - x.since) // le plus proche/dépassé de l'échéance en premier
+    .slice(0, 30);
+  document.getElementById('republierList').innerHTML = queue.length
+    ? `<div class="checklist-card"><div class="checklist-title">${t('republier.queueTitle')}</div>${queue.map(({a,since})=>{
+        const overdue=since-days;
+        const badge=overdue>=0
+          ?`<span class="badge" style="background:var(--warning-dim);color:var(--warning);flex-shrink:0;">${overdue>0?tf('republier.overdueBy',{n:overdue}):t('republier.dueToday')}</span>`
+          :`<span class="badge" style="background:var(--surface2);color:var(--muted);flex-shrink:0;">${tf('republier.dueIn',{n:-overdue})}</span>`;
         return `
       <div class="checklist-item">
-        <input type="checkbox" id="rep_${a.id}" ${doneToday.includes(a.id)?'checked':''} onchange="toggleRepublishDone('${a.id}',this)" />
-        <label for="rep_${a.id}" class="${doneToday.includes(a.id)?'done':''}">${a.name}</label>
-        <span class="badge" style="background:var(--warning-dim);color:var(--warning);flex-shrink:0;" title="Éligible depuis ${since}j, ${days}j visés">${overdue>0?`⏱ en retard de ${overdue}j`:'⏱ éligible aujourd\'hui'}</span>
-        ${a.vinted_item_id?`<button class="btn-edit" style="flex-shrink:0;" onclick="republishNow('${a.vinted_item_id}',this)">🔄 Republier maintenant</button>`:''}
-        ${a.vinted_item_id?`<a href="https://www.vinted.fr/items/${a.vinted_item_id}" target="_blank" rel="noopener" class="btn-edit" style="text-decoration:none;flex-shrink:0;">Voir sur Vinted →</a>`:''}
+        <span style="flex:1;">${a.name}</span>
+        ${badge}
+        <a href="https://www.vinted.fr/items/${a.vinted_item_id}" target="_blank" rel="noopener" class="btn-edit" style="text-decoration:none;flex-shrink:0;">${t('republier.viewOnVinted')}</a>
       </div>`;
       }).join('')}</div>`
     : emptyState(t('empty.noRepublish'));
@@ -3513,21 +3573,15 @@ async function renderRepublier() {
   updateRepublishBadge();
 }
 
-window.toggleRepublishDone = (id, el) => {
-  const key = republishDoneKey();
-  const done = new Set(JSON.parse(localStorage.getItem(key)||'[]'));
-  if(el.checked) done.add(id); else done.delete(id);
-  localStorage.setItem(key, JSON.stringify([...done]));
-  el.nextElementSibling?.classList.toggle('done', el.checked);
-  updateRepublishBadge();
-};
-
+// La case "fait aujourd'hui" n'a plus lieu d'être : l'action se fait
+// maintenant directement sur la carte Stock concernée (quickRepublish), qui
+// fait vraiment disparaître l'article de la file d'attente au prochain
+// rendu (published_at mis à jour) — pas besoin d'un suivi manuel séparé.
 function updateRepublishBadge(){
   const badge=document.getElementById('navRepublishBadge');
   if(!badge || !currentUser) return;
-  const doneToday = JSON.parse(localStorage.getItem(republishDoneKey())||'[]');
-  const remaining = getArticlesToRepublish().filter(a=>!doneToday.includes(a.id));
-  if(remaining.length>0){ badge.textContent=remaining.length; badge.style.display='inline-block'; }
+  const remaining = getArticlesToRepublish().length;
+  if(remaining>0){ badge.textContent=remaining; badge.style.display='inline-block'; }
   else { badge.style.display='none'; }
 }
 

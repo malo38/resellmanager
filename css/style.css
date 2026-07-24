@@ -328,6 +328,7 @@ select option { background: var(--surface2); color: var(--text); }
 .tile-action-btn:hover { opacity: 1; transform: scale(1.08); }
 .tile-action-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
 .tile-republish-btn { background: var(--surface2); border: 1px solid var(--border2); }
+.tile-republish-btn.due { background: var(--warning-dim); border-color: var(--warning); color: var(--warning); }
 .tile-age { position: absolute; top: 5px; left: 5px; padding: 2px 5px; border-radius: 8px; font-size: 9.5px; font-weight: 700; color: #fff; background: rgba(0,0,0,0.55); }
 .tile-age-warn { background: var(--warning); color: #000; }
 .tile-list-age { flex-shrink: 0; font-size: 11px; color: var(--muted); min-width: 26px; text-align: right; }
@@ -510,7 +511,6 @@ select option { background: var(--surface2); color: var(--text); }
 .dispute-badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
 .dispute-badge-litige { background: var(--warning-dim); color: var(--warning); }
 .dispute-badge-resolved { background: var(--accent-dim); color: var(--accent); }
-.dispute-badge-lost { background: rgba(239,68,68,0.15); color: var(--danger); }
 .dispute-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .pf-btn-sm { padding: 3px 10px; font-size: 11px; }
 .litige-flag-btn { background: none; border: none; cursor: pointer; font-size: 13px; opacity: 0.5; padding: 0 4px; transition: opacity 0.15s; }
