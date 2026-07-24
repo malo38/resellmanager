@@ -213,6 +213,37 @@ function loginAs(user) {
   initNavDragDrop();
   initSidebarScrollCue();
   enhanceAllSelects();
+  startPeriodicRefresh();
+}
+
+// L'extension synchronise en arrière-plan toutes les ~5 min, mais le site ne
+// rechargeait ses données QU'AU chargement de la page — un onglet resté
+// ouvert affichait un instantané de plus en plus périmé sans que rien ne
+// l'indique (signalé le 2026-07-24 : un achat pourtant bien synchronisé,
+// visible en base avec un synced_at du jour, restait invisible sur un onglet
+// ouvert avant la synchro). loadArticles() recharge déjà articles/achats/
+// dépenses/ventes non reliées et redessine Dashboard/Stock/Statistiques/
+// Objectifs (voir renderAll() qu'il appelle) — il ne reste qu'à aussi
+// redessiner la page actuellement affichée si elle n'en fait pas partie.
+function startPeriodicRefresh(){
+  if(window.__periodicRefreshStarted) return;
+  window.__periodicRefreshStarted=true;
+  setInterval(async ()=>{
+    if(!currentUser) return;
+    await loadArticles();
+    const active=document.querySelector('.page.active');
+    const id=active?.id?.replace('page-','');
+    if(id==='ventes') renderReplay();
+    else if(id==='achats') renderAchats();
+    else if(id==='boost') renderBoost();
+    else if(id==='calendrier') renderCalendar();
+    else if(id==='favoris') renderFavoris();
+    else if(id==='republier') renderRepublier();
+    else if(id==='messages') renderMessages();
+    else if(id==='depenses') renderDepenses();
+    else if(id==='comptabilite') renderComptabilite();
+    else if(id==='delegation') renderDelegationPage();
+  }, 120000);
 }
 
 // Affiche une ombre en bas de la sidebar quand elle contient plus d'items que
