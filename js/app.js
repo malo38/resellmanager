@@ -3514,6 +3514,43 @@ window.quickRepublish = async (vintedItemId, btn) => {
   setTimeout(() => { btn.innerHTML = original; btn.title = originalTitle; btn.disabled = false; }, 2500);
 };
 
+// File d'attente RÉELLE de la republication automatique (2026-07-23) : l'ordre
+// vient directement de config.eligible_vinted_item_ids (renvoyé par
+// /api/extension/republish-config, trié côté backend par ancienneté de
+// dernière republication/mise en stock — voir le commentaire équivalent dans
+// main.py) plutôt que d'un tri recalculé ici sur des données partielles. Ainsi
+// la position affichée correspond exactement à l'ordre que l'extension traitera
+// (batch_size articles environ toutes les 5 min, jusqu'à daily_limit/jour) —
+// demandé explicitement : "je voudrais que l'on voit lesquels passeront avant
+// lesquels".
+function renderRepublishQueue(config){
+  const el=document.getElementById('republierList');
+  if(!el) return;
+  if(!config){ el.innerHTML=emptyState(t('empty.noRepublish')); return; }
+  if(!config.enabled){ el.innerHTML=emptyState(t('republier.autoDisabled')); return; }
+  const ids=config.eligible_vinted_item_ids||[];
+  if(!ids.length){ el.innerHTML=emptyState(t('empty.noRepublish')); return; }
+  const batchSize=Math.max(1, config.batch_size||1);
+  const remainingToday=Math.max(0, (config.daily_limit||0)-(config.republished_today||0));
+  el.innerHTML=`<div class="checklist-card"><div class="checklist-title">${t('republier.queueTitle')}</div>${ids.map((vid,idx)=>{
+    const a=allArticles.find(x=>x.vinted_item_id===vid);
+    let eta;
+    if(idx<remainingToday){
+      const cycles=Math.floor(idx/batchSize);
+      const mins=cycles*5;
+      eta=cycles===0?t('republier.nextCycle'):(mins<60?tf('republier.etaMinutes',{n:mins}):tf('republier.etaHours',{n:Math.round(mins/60)}));
+    } else {
+      eta=t('republier.notToday');
+    }
+    return `<div class="checklist-item">
+      <span class="badge" style="background:var(--surface2);color:var(--muted);flex-shrink:0;">#${idx+1}</span>
+      <span style="flex:1;">${a?.name||vid}</span>
+      <span class="badge" style="background:var(--warning-dim);color:var(--warning);flex-shrink:0;">${eta}</span>
+      <a href="https://www.vinted.fr/items/${vid}" target="_blank" rel="noopener" class="btn-edit" style="text-decoration:none;flex-shrink:0;">${t('republier.viewOnVinted')}</a>
+    </div>`;
+  }).join('')}</div>`;
+}
+
 async function renderRepublier() {
   const warnEl = document.getElementById('republierAccountWarning');
   if(warnEl) warnEl.style.display = (!selectedVintedAccountId && vintedAccounts.length > 1) ? 'block' : 'none';
@@ -3524,32 +3561,6 @@ async function renderRepublier() {
   }
   const days = parseInt(localStorage.getItem('republishDays_'+currentUser.id) || '3');
   document.getElementById('republishDays').value = days;
-  // File d'attente en lecture seule (2026-07-23) : l'action "republier
-  // maintenant" a déménagé directement sur les cartes Stock concernées (voir
-  // isDueForRepublish() dans articleTileHTML/articleListRowHTML) — cette page
-  // ne fait plus qu'afficher QUI est déjà éligible et QUI va bientôt l'être,
-  // sans dupliquer le bouton d'action ni la case "fait aujourd'hui" (qui
-  // n'avait plus de sens dès lors qu'il n'y a plus d'action à faire ici).
-  const queue = allArticles
-    .filter(a => a.status==='stock' && a.platform==='Vinted' && a.vinted_item_id)
-    .map(a => ({a, since: daysSincePublished(a)}))
-    .filter(x => x.since !== null)
-    .sort((x,y) => y.since - x.since) // le plus proche/dépassé de l'échéance en premier
-    .slice(0, 30);
-  document.getElementById('republierList').innerHTML = queue.length
-    ? `<div class="checklist-card"><div class="checklist-title">${t('republier.queueTitle')}</div>${queue.map(({a,since})=>{
-        const overdue=since-days;
-        const badge=overdue>=0
-          ?`<span class="badge" style="background:var(--warning-dim);color:var(--warning);flex-shrink:0;">${overdue>0?tf('republier.overdueBy',{n:overdue}):t('republier.dueToday')}</span>`
-          :`<span class="badge" style="background:var(--surface2);color:var(--muted);flex-shrink:0;">${tf('republier.dueIn',{n:-overdue})}</span>`;
-        return `
-      <div class="checklist-item">
-        <span style="flex:1;">${a.name}</span>
-        ${badge}
-        <a href="https://www.vinted.fr/items/${a.vinted_item_id}" target="_blank" rel="noopener" class="btn-edit" style="text-decoration:none;flex-shrink:0;">${t('republier.viewOnVinted')}</a>
-      </div>`;
-      }).join('')}</div>`
-    : emptyState(t('empty.noRepublish'));
 
   // Même cache-avant-réseau que renderFavoris (voir son commentaire) : évite
   // que la case "automatique" reste décochée par défaut 2-3s à chaque visite
@@ -3563,12 +3574,14 @@ async function renderRepublier() {
   };
   const cached=JSON.parse(localStorage.getItem(cacheKey)||'null');
   if(cached) applyRepublishConfig(cached);
+  renderRepublishQueue(cached); // affichage immédiat avec la dernière config connue, corrigé ensuite si besoin
 
   const config = await backendFetch('/api/extension/republish-config'+accountQueryParam());
   if(config){
     applyRepublishConfig(config);
     localStorage.setItem(cacheKey, JSON.stringify(config));
   }
+  renderRepublishQueue(config);
   renderAutoRepublishStatus();
   updateRepublishBadge();
 }
