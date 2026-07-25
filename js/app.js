@@ -3194,6 +3194,34 @@ window.deleteAchat=async(purchaseId)=>{
   renderStockAll();
 };
 
+// Liste de récupération des achats supprimés — sans ça, un achat marqué par
+// erreur (ou via une fonctionnalité retirée depuis, voir 'perdu' plus haut)
+// n'avait plus aucun moyen d'être ramené depuis l'interface, seulement par
+// une requête SQL manuelle (signalé le 2026-07-24).
+window.openDeletedAchats=()=>{
+  const isDeleted=p=>p.dispute_status==='supprime'||p.dispute_status==='perdu';
+  const deleted=allPurchases.filter(p=>isDeleted(p) && (!selectedVintedAccountId||p.vinted_account_id===selectedVintedAccountId));
+  document.getElementById('deletedAchatsBody').innerHTML=deleted.length
+    ? deleted.map(p=>`
+      <div class="checklist-item" style="justify-content:space-between;">
+        <span>${p.photo_url?`<img src="${p.photo_url}" style="width:28px;height:28px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;">`:''}${p.title||t('achats.noTitle')} — ${fmtPrice(p.price)}</span>
+        <button class="pf-btn pf-btn-sm" onclick="restoreAchat('${p.id}')">${t('achats.restore')}</button>
+      </div>`).join('')
+    : `<p class="setting-sub">${t('achats.noDeleted')}</p>`;
+  document.getElementById('deletedAchatsBg').classList.add('open');
+};
+window.closeDeletedAchats=()=>document.getElementById('deletedAchatsBg').classList.remove('open');
+window.restoreAchat=async(purchaseId)=>{
+  const p=allPurchases.find(x=>x.id===purchaseId);
+  if(!p) return;
+  const patch={dispute_status:null, dispute_amount:null, dispute_updated_at:new Date().toISOString()};
+  const {error}=await sb.from('vinted_purchases').update(patch).eq('id',purchaseId).eq('user_id',currentUser.id);
+  if(error){ showToast('Erreur : '+error.message, 'error'); return; }
+  Object.assign(p,patch);
+  openDeletedAchats();
+  renderAchats();
+};
+
 // ── Carte des points relais (colis en attente de retrait) ──
 // Vinted ne fournit aucune coordonnée GPS, seulement le texte du point
 // relais (nom + adresse, voir shortLocation). On géocode ce texte via
@@ -3253,8 +3281,14 @@ function renderAchats(){
   // Achats supprimés par l'utilisateur (voir deleteAchat) : marqués plutôt
   // que retirés de la table (survit au resync), mais entièrement masqués
   // partout ici — totaux, panneaux, liste — comme s'ils n'existaient plus.
-  const base=allPurchases.filter(p=>p.dispute_status!=='supprime'&&p.dispute_status!=='perdu');
+  // 'perdu' = ancien statut d'une fonctionnalité retirée le 2026-07-24 (gardé
+  // en compatibilité pour les lignes déjà marquées avant le retrait).
+  const isDeleted=p=>p.dispute_status==='supprime'||p.dispute_status==='perdu';
+  const base=allPurchases.filter(p=>!isDeleted(p));
   const arts=selectedVintedAccountId?base.filter(p=>p.vinted_account_id===selectedVintedAccountId):base;
+  const deletedCount=allPurchases.filter(p=>isDeleted(p) && (!selectedVintedAccountId||p.vinted_account_id===selectedVintedAccountId)).length;
+  const deletedBtn=document.getElementById('achatsDeletedBtn');
+  if(deletedBtn) deletedBtn.innerHTML=deletedCount?`🗑 ${t('achats.deletedBtn').replace('🗑 ','')} (${deletedCount})`:`🗑 ${t('achats.deletedBtn').replace('🗑 ','')}`;
   const isToday=d=>d===today();
   const isThisMonth=d=>d&&d.slice(0,7)===today().slice(0,7);
   const totalToday=arts.filter(p=>isToday(p.purchase_date)).reduce((s,p)=>s+(parseFloat(p.price)||0),0);

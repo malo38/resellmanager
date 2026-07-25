@@ -375,7 +375,8 @@
             <input type="text" id="achatsSearchInput" class="stock-search" placeholder="🔎 Rechercher un achat..." data-i18n-placeholder="achats.searchPlaceholder" oninput="onAchatsSearch(this.value)" />
           </div>
           <button class="pf-btn" onclick="resetAchatsFilters()" title="Effacer la recherche" data-i18n-title="achats.resetTitle" data-i18n="common.reset">↺ Réinitialiser</button>
-          <button class="pf-btn" style="margin-left:auto;" onclick="exportAchatsCSV()" data-i18n="common.csv">⬇ CSV</button>
+          <button class="pf-btn" id="achatsDeletedBtn" style="margin-left:auto;" onclick="openDeletedAchats()" data-i18n="achats.deletedBtn">🗑 Supprimés</button>
+          <button class="pf-btn" onclick="exportAchatsCSV()" data-i18n="common.csv">⬇ CSV</button>
         </div>
         <div id="achatsDisputeWrap"></div>
         <div id="achatsPickupWrap"></div>
@@ -1016,6 +1017,20 @@
     <div class="modal-actions">
       <button class="btn-cancel" style="color:var(--danger);border-color:var(--danger);" onclick="deleteAchat(document.getElementById('achatDetailBg').dataset.id)" id="achatDetailDeleteBtn" data-i18n="common.delete">Supprimer</button>
       <button class="btn-cancel" onclick="closeAchatDetail()" data-i18n="common.close">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACHATS SUPPRIMÉS (restauration) -->
+<div class="modal-bg" id="deletedAchatsBg">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3 data-i18n="achats.deletedTitle">Achats supprimés</h3>
+      <button class="modal-close" onclick="closeDeletedAchats()">✕</button>
+    </div>
+    <div class="modal-body" id="deletedAchatsBody"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDeletedAchats()" data-i18n="common.close">Fermer</button>
     </div>
   </div>
 </div>

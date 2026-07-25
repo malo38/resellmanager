@@ -187,6 +187,10 @@ const TRANSLATIONS = {
     'achats.detailStatus': 'Statut Vinted',
     'achats.detailPickup': 'Point relais',
     'achats.detailPickupDeadline': 'Délai estimé de retrait',
+    'achats.deletedBtn': '🗑 Supprimés',
+    'achats.deletedTitle': 'Achats supprimés',
+    'achats.restore': '↺ Restaurer',
+    'achats.noDeleted': 'Aucun achat supprimé.',
 
     'boost.searchPlaceholder': '🔎 Rechercher un article boosté...',
 
@@ -623,6 +627,10 @@ const TRANSLATIONS = {
     'achats.detailStatus': 'Vinted status',
     'achats.detailPickup': 'Pickup point',
     'achats.detailPickupDeadline': 'Estimated pickup deadline',
+    'achats.deletedBtn': '🗑 Deleted',
+    'achats.deletedTitle': 'Deleted purchases',
+    'achats.restore': '↺ Restore',
+    'achats.noDeleted': 'No deleted purchases.',
 
     'boost.searchPlaceholder': '🔎 Search a boosted item...',
 
