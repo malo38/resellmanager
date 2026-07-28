@@ -427,6 +427,25 @@ select option { background: var(--surface2); color: var(--text); }
 .detail-photo-thumb:hover, .detail-photo-thumb.active { opacity: 1; border-color: var(--accent); }
 .detail-info { flex: 1; min-width: 0; }
 
+/* Refonte du modal détail (2026-07-26, maquette Claude Design) : deux cartes
+   chiffres mises en avant (profit, délai/score) au lieu d'une simple liste
+   plate — pour qu'un coup d'œil suffise à voir si l'article a bien tourné,
+   avant même de lire le détail ligne par ligne en dessous. */
+.detail-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.detail-stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.detail-stat-card.accent { background: var(--accent-dim); border-color: rgba(0,229,160,0.3); }
+.detail-stat-card.negative { background: rgba(255,92,92,0.1); border-color: rgba(255,92,92,0.3); }
+.detail-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.detail-stat-val { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.detail-stat-card.accent .detail-stat-val { color: var(--accent); }
+.detail-stat-card.negative .detail-stat-val { color: var(--danger); }
+.detail-stat-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.detail-sku-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; cursor: pointer; transition: border-color 0.15s; }
+.detail-sku-row:hover { border-color: var(--accent); }
+.detail-sku-row-label { font-size: 12px; color: var(--muted); }
+.detail-sku-row-val { font-family: monospace; font-size: 12.5px; color: var(--text); }
+.detail-warning-box { font-size: 11.5px; color: var(--warning); margin-top: 12px; padding: 10px 12px; background: var(--warning-dim); border-radius: var(--radius); border: 1px solid rgba(245,166,35,0.3); line-height: 1.5; }
+
 /* ── CARTE DE VENTE PARTAGEABLE (téléchargeable via html2canvas) ── */
 .sale-card { background: linear-gradient(180deg, #fdf6ec, #ffffff); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 20px; text-align: center; color: #1a1a1a; }
 .sale-card-logo { height: 32px; width: auto; margin-bottom: 14px; }
@@ -822,7 +841,8 @@ body.discreet-mode .msg-name,
 body.discreet-mode .article-profit,
 body.discreet-mode .tile-list-price,
 body.discreet-mode .replay-profit,
-body.discreet-mode .goal-big {
+body.discreet-mode .goal-big,
+body.discreet-mode .detail-stat-val {
   filter: blur(6px);
   transition: filter 0.15s ease;
 }
@@ -839,7 +859,8 @@ body.discreet-mode .msg-name:hover,
 body.discreet-mode .article-profit:hover,
 body.discreet-mode .tile-list-price:hover,
 body.discreet-mode .replay-profit:hover,
-body.discreet-mode .goal-big:hover {
+body.discreet-mode .goal-big:hover,
+body.discreet-mode .detail-stat-val:hover {
   filter: none;
 }
 

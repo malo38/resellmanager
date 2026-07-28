@@ -3871,6 +3871,24 @@ window.showDetail = (id) => {
       <img class="detail-photo-main" id="detailMainPhoto" src="${photos[0]}" alt="">
       ${photos.length>1?`<div class="detail-photo-thumbs">${photos.map((url,i)=>`<img class="detail-photo-thumb${i===0?' active':''}" src="${url}" onclick="swapDetailPhoto('${url.replace(/'/g,"\\'")}',this)">`).join('')}</div>`:''}
     </div>`:'';
+  // Refonte 2026-07-26 (maquette Claude Design) : pour un article VENDU, deux
+  // cartes chiffres mises en avant (profit, délai+score) au lieu de tout
+  // aligner à plat — un coup d'œil suffit à voir si l'article a bien tourné.
+  // Pour un article pas encore vendu, ces chiffres n'existent pas encore :
+  // on garde la liste de lignes classique.
+  const statCardsHTML=a.status==='vendu'?`
+    <div class="detail-stat-grid">
+      <div class="detail-stat-card ${profit>=0?'accent':'negative'}">
+        <div class="detail-stat-label">Profit</div>
+        <div class="detail-stat-val">${profit>=0?'+':''}${fmtPrice(profit)}</div>
+        <div class="detail-stat-sub">ROI ${roi.toFixed(0)}%</div>
+      </div>
+      <div class="detail-stat-card">
+        <div class="detail-stat-label">${isRefunded?'Remboursé':'Vendu en'}</div>
+        <div class="detail-stat-val">${isRefunded?'—':(days!==null?days+'j':'—')}</div>
+        <div class="detail-stat-sub">${score!==null?'Score '+score+'/100':''}</div>
+      </div>
+    </div>`:'';
   document.getElementById('detailBody').innerHTML=`
     <div class="detail-layout">
       ${photosHTML}
@@ -3880,18 +3898,19 @@ window.showDetail = (id) => {
           ${stepBadge(a.status)}
           ${a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:''}
         </div>
-        ${detailRow('🏷️ SKU', `<span class="tile-sku" style="margin-bottom:0;" title="Cliquer pour copier — à coller en fin de titre Vinted pour un rattachement fiable" onclick="copySku('${a.sku}',this)">#${a.sku}</span>`)}
+        ${statCardsHTML}
+        <div class="detail-sku-row" title="Cliquer pour copier — à coller en fin de titre Vinted pour un rattachement fiable" onclick="copySku('${a.sku}',this)">
+          <span class="detail-sku-row-label">🏷️ SKU</span>
+          <span class="detail-sku-row-val">#${a.sku} <span style="color:var(--muted);">· copier</span></span>
+        </div>
         ${detailRow('🛒 Achat', fmtPrice(a.buy_price)+(a.buy_date?' · '+a.buy_date:''))}
         ${a.status==='vendu'?detailRow('💸 Vente', (isRefunded?fmtPrice(0):fmtPrice(a.sell_price))+(a.sell_date?' · '+a.sell_date:'')):''}
         ${a.extra_costs?detailRow('🧾 Frais annexes', fmtPrice(a.extra_costs)):''}
-        ${a.status==='vendu'?detailRow('📊 Profit', `<span class="${profit>=0?'profit-pos':'profit-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</span> · ROI ${roi.toFixed(0)}%`):''}
-        ${days!==null&&!isRefunded?detailRow('⏱ Délai', 'Vendu en '+days+' jour(s)'):''}
-        ${score!==null?detailRow('⭐ Score', score+'/100'):''}
         ${a.vinted_item_id&&a.status==='stock'?detailRow('👁️ Stats Vinted', `${a.vinted_vues||0} vues · ❤️ ${a.vinted_favoris||0} favoris`):''}
         ${a.vinted_item_id&&a.status==='stock'?detailRow('🚀 Boost', a.vinted_boosted?'Actif (payant, acheté sur Vinted)':'Aucun'):''}
         ${a.vinted_shipping_status?detailRow('📦 Statut Vinted', a.vinted_shipping_status):''}
         ${a.source?detailRow('🔗 Source', a.source):''}
-        ${a.vinted_item_id?`<p style="font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;">⚠️ Lié à Vinted — un changement manuel (statut, prix...) peut diverger de l'état réel de l'annonce tant qu'une synchro n'a pas eu lieu. Utilisez "Réinitialiser depuis Vinted" pour forcer la reprise du vrai statut au prochain cycle.</p>`:''}
+        ${a.vinted_item_id?`<div class="detail-warning-box">⚠️ Lié à Vinted — un changement manuel (statut, prix...) peut diverger de l'état réel de l'annonce tant qu'une synchro n'a pas eu lieu. Utilisez "Réinitialiser depuis Vinted" pour forcer la reprise du vrai statut au prochain cycle.</div>`:''}
       </div>
     </div>
   `;
