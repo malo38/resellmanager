@@ -23,6 +23,21 @@
 </head>
 <body>
 
+<!-- PAGE DE MAINTENANCE — bloque tout accès au site pendant la grosse mise à
+     jour en cours (demandé le 2026-08-04). Pour ROUVRIR le site : supprimer
+     ce bloc entier (ou changer style="display:flex" en style="display:none"
+     ci-dessous), rien d'autre à toucher. -->
+<div class="maintenance-screen" id="maintenanceScreen" style="display:flex;">
+  <div class="maintenance-card">
+    <div class="maintenance-icon">🚧</div>
+    <h1>VintControl fait peau neuve</h1>
+    <p>On a mis le site en pause le temps de déployer une grosse mise à jour — plein d'améliorations en préparation. On préfère fermer temporairement plutôt que de vous laisser tomber sur des bugs pendant qu'on travaille dessus.</p>
+    <div class="maintenance-eta">De retour d'ici environ une semaine</div>
+    <p>Envie de tester les nouveautés en avant-première ? Rejoignez le Discord pour devenir bêta-testeur.</p>
+    <a class="maintenance-discord" href="https://discord.gg/vXsrsVaVd" target="_blank" rel="noopener"><i class="ti ti-brand-discord"></i> Rejoindre le Discord</a>
+  </div>
+</div>
+
 <!-- LANDING -->
 <div id="landingScreen" class="landing">
   <header class="landing-header">

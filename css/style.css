@@ -1,5 +1,18 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── PAGE DE MAINTENANCE ──
+   Bloque tout accès au site pendant une grosse mise à jour — voir le
+   commentaire sur #maintenanceScreen dans index.html pour l'activer/
+   désactiver (un seul endroit à toucher). */
+.maintenance-screen { position: fixed; inset: 0; z-index: 9999; background: #0f0f0f; background-image: radial-gradient(circle at 20% 20%, rgba(0,229,160,0.08), transparent 45%), radial-gradient(circle at 80% 80%, rgba(0,229,160,0.06), transparent 45%); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.maintenance-card { max-width: 480px; text-align: center; }
+.maintenance-icon { font-size: 44px; margin-bottom: 20px; }
+.maintenance-card h1 { color: #f0f0f0; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 14px; line-height: 1.25; }
+.maintenance-card p { color: #a8a8a8; font-size: 15px; line-height: 1.6; margin-bottom: 14px; }
+.maintenance-card .maintenance-eta { display: inline-block; background: rgba(0,229,160,0.12); color: #00e5a0; font-weight: 700; font-size: 13px; padding: 6px 16px; border-radius: 100px; margin-bottom: 24px; }
+.maintenance-discord { display: inline-flex; align-items: center; gap: 8px; background: #00e5a0; color: #0f0f0f; font-weight: 700; font-size: 14.5px; padding: 13px 26px; border-radius: 10px; text-decoration: none; transition: opacity 0.15s; }
+.maintenance-discord:hover { opacity: 0.88; }
+
 :root {
   --bg: #0f0f0f;
   --surface: #1a1a1a;
