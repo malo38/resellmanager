@@ -1493,9 +1493,66 @@ function comptaCharge(ca, margeBrute, info){
   const base = info.base==='marge' ? margeBrute : ca;
   return Math.max(0, base) * info.rate;
 }
+// Plafonds légaux 2024 micro-entrepreneur (indicatif, ne remplace pas l'avis
+// d'un comptable) — vente de marchandises vs prestations de services. Le
+// régime 'custom' est traité comme de la vente (cas le plus courant chez un
+// revendeur Vinted). Pas de plafond affiché en TVA sur marge : ce régime
+// suppose déjà une sortie du micro-entrepreneur (régime réel), le plafond ne
+// s'applique plus.
+const COMPTA_THRESHOLDS = {
+  micro_vente:   { label:'vente de marchandises', plafond:188700, seuilFranchise:85000 },
+  micro_service: { label:'prestations de services', plafond:77700, seuilFranchise:37500 },
+};
+function comptaThresholdsBarClass(pct){
+  if(pct>=100) return 'danger';
+  if(pct>=80) return 'warning';
+  return '';
+}
+function renderComptaThresholds(){
+  const el=document.getElementById('comptaThresholds');
+  if(!el) return;
+  const regime=document.getElementById('comptaRegime')?.value||'micro_vente';
+  const t = COMPTA_THRESHOLDS[regime] || (regime==='micro_service' ? COMPTA_THRESHOLDS.micro_service : COMPTA_THRESHOLDS.micro_vente);
+  if(regime==='tva_marge'){
+    el.innerHTML='';
+    return;
+  }
+  const year=new Date().getFullYear();
+  const yearStart=new Date(year,0,1), yearEnd=new Date(year+1,0,1);
+  const caAnnee=allArticles.filter(a=>{
+    if(a.status!=='vendu') return false;
+    const d=new Date(a.sell_date||a.created_at);
+    return d>=yearStart && d<yearEnd;
+  }).reduce((s,a)=>s+calcCA(a),0);
+  const pctPlafond=Math.min(100,(caAnnee/t.plafond)*100);
+  const pctFranchise=Math.min(100,(caAnnee/t.seuilFranchise)*100);
+  el.innerHTML=`
+    <div class="settings-card">
+      <h3>Seuils légaux ${year} (${t.label})</h3>
+      <p class="setting-sub">CA cumulé sur l'année civile en cours — indépendant de la période sélectionnée ci-dessous. Indicatif, ne remplace pas l'avis d'un comptable.</p>
+      <div style="margin:14px 0 10px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px;">
+          <span>Plafond micro-entrepreneur</span>
+          <span>${fmtPrice(caAnnee)} / ${fmtPrice(t.plafond)} (${pctPlafond.toFixed(0)}%)</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar ${comptaThresholdsBarClass(pctPlafond)}" style="width:${pctPlafond}%"></div></div>
+        ${pctPlafond>=100?`<p class="setting-sub" style="color:var(--danger);margin-top:5px;">⚠️ Plafond dépassé — sortie du régime micro-entrepreneur.</p>`:''}
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px;">
+          <span>Seuil de franchise TVA</span>
+          <span>${fmtPrice(caAnnee)} / ${fmtPrice(t.seuilFranchise)} (${pctFranchise.toFixed(0)}%)</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar ${comptaThresholdsBarClass(pctFranchise)}" style="width:${pctFranchise}%"></div></div>
+        ${pctFranchise>=100?`<p class="setting-sub" style="color:var(--danger);margin-top:5px;">⚠️ Seuil dépassé — TVA à facturer depuis le 1er jour du mois de dépassement.</p>`:''}
+      </div>
+    </div>
+  `;
+}
 window.renderComptabilite = () => {
   const el=document.getElementById('comptaKpi');
   if(!el) return;
+  renderComptaThresholds();
   const customWrap=document.getElementById('comptaCustomRateWrap');
   if(customWrap) customWrap.style.display = document.getElementById('comptaRegime')?.value==='custom' ? 'flex' : 'none';
   const info=comptaChargeInfo();

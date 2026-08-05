@@ -395,6 +395,8 @@ select option { background: var(--surface2); color: var(--text); }
 .goal-label { font-size: 13px; color: var(--muted); margin-top: 6px; margin-bottom: 20px; }
 .progress-track { height: 8px; background: var(--surface2); border-radius: 10px; overflow: hidden; }
 .progress-bar { height: 100%; background: var(--accent); border-radius: 10px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+.progress-bar.warning { background: var(--warning); }
+.progress-bar.danger { background: var(--danger); }
 .goal-limits { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
 .goal-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
 .goal-row { display: flex; gap: 8px; margin-top: 8px; }
