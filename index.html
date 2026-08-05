@@ -37,6 +37,22 @@
     <a class="maintenance-discord" href="https://discord.gg/vXsrsVaVd" target="_blank" rel="noopener"><i class="ti ti-brand-discord"></i> Rejoindre le Discord</a>
   </div>
 </div>
+<script>
+// Accès caché pour vérifier le site pendant la maintenance sans le rouvrir à
+// tout le monde : visiter une fois l'URL avec ?bypass=xxx (voir ci-dessous),
+// mémorisé ensuite dans localStorage sur ce navigateur uniquement. Retirer ce
+// bloc en même temps que le reste de l'écran de maintenance à la réouverture.
+(function () {
+  var KEY = 'vc_bypass_maintenance';
+  var SECRET = 'vc2026betatest';
+  var params = new URLSearchParams(location.search);
+  if (params.get('bypass') === SECRET) localStorage.setItem(KEY, '1');
+  if (localStorage.getItem(KEY) === '1') {
+    var el = document.getElementById('maintenanceScreen');
+    if (el) el.style.display = 'none';
+  }
+})();
+</script>
 
 <!-- LANDING -->
 <div id="landingScreen" class="landing">
@@ -675,6 +691,7 @@
             <button class="btn-confirm" onclick="exportComptabiliteExcel()" data-i18n="compta.exportExcel">⬇ Exporter (Excel)</button>
           </div>
         </div>
+        <div id="comptaThresholds"></div>
         <div class="kpi-grid" id="comptaKpi"></div>
         <div class="section-header" style="margin-top:24px;"><h2 data-i18n="compta.salesDetail">Détail des ventes</h2></div>
         <div id="comptaList"></div>
