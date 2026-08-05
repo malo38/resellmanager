@@ -309,7 +309,7 @@ select option { background: var(--surface2); color: var(--text); }
 .tile-stats-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: #fff; font-size: 10.5px; font-weight: 600; padding: 3px 7px; border-radius: 8px; white-space: nowrap; }
 .tile-big-top { display: flex; gap: 12px; align-items: flex-start; }
 .tile-photo { position: relative; width: 84px; height: 84px; flex-shrink: 0; border-radius: var(--radius); background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; }
-.tile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.tile-photo img { width: 100%; height: 100%; object-fit: contain; }
 .tile-big-info { min-width: 0; flex: 1; padding-top: 2px; }
 .tile-big-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
 .tile-big-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
@@ -436,7 +436,11 @@ select option { background: var(--surface2); color: var(--text); }
 @media (max-width: 640px) { .detail-layout { flex-direction: column; } }
 .detail-photos { flex: 0 0 300px; }
 @media (max-width: 640px) { .detail-photos { flex: none; } }
-.detail-photo-main { width: 100%; aspect-ratio: 1; border-radius: var(--radius-lg); object-fit: cover; background: var(--surface2); border: 1px solid var(--border); }
+.detail-photo-main-wrap { position: relative; width: 100%; aspect-ratio: 1; border-radius: var(--radius-lg); overflow: hidden; background: var(--surface2); border: 1px solid var(--border); }
+.detail-photo-main-wrap .img-skeleton { position: absolute; inset: 0; background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+@keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.detail-photo-main { position: relative; z-index: 1; width: 100%; height: 100%; border-radius: var(--radius-lg); object-fit: cover; opacity: 0; transition: opacity 0.25s ease; }
+.detail-photo-main.loaded { opacity: 1; }
 .detail-photo-thumbs { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 .detail-photo-thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid transparent; opacity: 0.7; transition: all 0.15s; }
 .detail-photo-thumb:hover, .detail-photo-thumb.active { opacity: 1; border-color: var(--accent); }

@@ -3649,15 +3649,23 @@ function renderRepublishQueue(config){
   const el=document.getElementById('republierList');
   if(!el) return;
   if(!config){ el.innerHTML=emptyState(t('empty.noRepublish')); return; }
-  if(!config.enabled){ el.innerHTML=emptyState(t('republier.autoDisabled')); return; }
   const ids=config.eligible_vinted_item_ids||[];
   if(!ids.length){ el.innerHTML=emptyState(t('empty.noRepublish')); return; }
+  // La liste reste visible même si l'automatisation est désactivée — sinon le
+  // badge de la sidebar (compté indépendamment, voir getArticlesToRepublish)
+  // annonce un nombre d'articles qu'il est impossible de consulter tant
+  // qu'on n'active pas l'automatisation, ce qui est trompeur (signalé
+  // 2026-08-05). Republication au cas par cas toujours possible via le
+  // bouton 🔄 sur chaque carte Stock, automatisation ou non.
+  const banner = !config.enabled ? `<p class="setting-sub" style="margin-bottom:10px;">${t('republier.autoDisabled')}</p>` : '';
   const batchSize=Math.max(1, config.batch_size||1);
   const remainingToday=Math.max(0, (config.daily_limit||0)-(config.republished_today||0));
-  el.innerHTML=`<div class="checklist-card"><div class="checklist-title">${t('republier.queueTitle')}</div>${ids.map((vid,idx)=>{
+  el.innerHTML=`${banner}<div class="checklist-card"><div class="checklist-title">${t('republier.queueTitle')}</div>${ids.map((vid,idx)=>{
     const a=allArticles.find(x=>x.vinted_item_id===vid);
     let eta;
-    if(idx<remainingToday){
+    if(!config.enabled){
+      eta=t('republier.manualOnly');
+    } else if(idx<remainingToday){
       const cycles=Math.floor(idx/batchSize);
       const mins=cycles*5;
       eta=cycles===0?t('republier.nextCycle'):(mins<60?tf('republier.etaMinutes',{n:mins}):tf('republier.etaHours',{n:Math.round(mins/60)}));
@@ -3925,7 +3933,10 @@ window.showDetail = (id) => {
   const photos=(a.photo_urls&&a.photo_urls.length)?a.photo_urls:(a.photo_url?[a.photo_url]:[]);
   const photosHTML=photos.length?`
     <div class="detail-photos">
-      <img class="detail-photo-main" id="detailMainPhoto" src="${photos[0]}" alt="">
+      <div class="detail-photo-main-wrap">
+        <div class="img-skeleton" id="detailPhotoSkeleton"></div>
+        <img class="detail-photo-main" id="detailMainPhoto" src="${photos[0]}" alt="" onload="this.classList.add('loaded');const s=document.getElementById('detailPhotoSkeleton');if(s)s.style.display='none';" onerror="const s=document.getElementById('detailPhotoSkeleton');if(s)s.style.display='none';">
+      </div>
       ${photos.length>1?`<div class="detail-photo-thumbs">${photos.map((url,i)=>`<img class="detail-photo-thumb${i===0?' active':''}" src="${url}" onclick="swapDetailPhoto('${url.replace(/'/g,"\\'")}',this)">`).join('')}</div>`:''}
     </div>`:'';
   // Refonte 2026-07-26 (maquette Claude Design) : pour un article VENDU, deux
@@ -3981,7 +3992,11 @@ window.showDetail = (id) => {
 };
 window.closeDetail = () => document.getElementById('detailBg').classList.remove('open');
 window.swapDetailPhoto = (url, thumbEl) => {
-  document.getElementById('detailMainPhoto').src = url;
+  const img=document.getElementById('detailMainPhoto');
+  const skel=document.getElementById('detailPhotoSkeleton');
+  if(skel) skel.style.display='block';
+  img.classList.remove('loaded');
+  img.src = url;
   thumbEl.parentElement.querySelectorAll('.detail-photo-thumb').forEach(t=>t.classList.remove('active'));
   thumbEl.classList.add('active');
 };
