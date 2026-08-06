@@ -555,6 +555,14 @@ async function loadArticles(){
 }
 
 // ── MODAL ──
+// Normalise à 2 décimales à la perte de focus (ex: "7.5" -> "7.50"), pour ne
+// pas afficher un prix à une seule décimale quand l'utilisateur en saisit un
+// lui-même — même besoin que le formatage au chargement dans openModal().
+window.formatPriceField=(input)=>{
+  if(input.value==='') return;
+  const n=parseFloat(input.value.replace(',','.'));
+  if(!isNaN(n)) input.value=n.toFixed(2);
+};
 window.editArticle=(id)=>{ openModal(allArticles.find(a=>a.id===id)||null); };
 window.openModal=(article=null)=>{
   // Une seule liste ordonnée (photos déjà enregistrées + nouvelles en attente
@@ -576,9 +584,14 @@ window.openModal=(article=null)=>{
     skuField.style.display='none';
   }
   document.getElementById('mName').value=article?.name||'';
-  document.getElementById('mBuy').value=article?.buy_price||'';
-  document.getElementById('mSell').value=article?.sell_price||'';
-  document.getElementById('mExtraCosts').value=article?.extra_costs||'';
+  // .toFixed(2) : un article rechargé depuis la base affichait parfois "7,5"
+  // au lieu de "7,50" (ex: prix visé saisi/synchronisé sans 2e décimale) —
+  // un <input type=number> affiche fidèlement la chaîne qu'on lui donne, y
+  // compris le zéro final, tant qu'on la lui fournit déjà formatée (signalé
+  // 2026-08-06). Champ laissé vide (pas "0,00") si aucune valeur.
+  document.getElementById('mBuy').value=article?.buy_price?Number(article.buy_price).toFixed(2):'';
+  document.getElementById('mSell').value=article?.sell_price?Number(article.sell_price).toFixed(2):'';
+  document.getElementById('mExtraCosts').value=article?.extra_costs?Number(article.extra_costs).toFixed(2):'';
   document.getElementById('mPlatform').value=article?.platform||'Vinted';
   const prepStepsForModal=getPrepSteps();
   document.getElementById('mStatus').innerHTML=prepStepsForModal.map(s=>`<option value="${s.key}">${s.label}</option>`).join('')+`

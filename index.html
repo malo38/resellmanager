@@ -913,7 +913,7 @@
       </div>
       <div class="form-grid">
         <div class="field full"><label data-i18n="modal.name">Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" data-i18n-placeholder="modal.namePlaceholder" /></div>
-        <div class="field"><label data-i18n="modal.buyPrice">Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" /></div>
+        <div class="field"><label data-i18n="modal.buyPrice">Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" onblur="formatPriceField(this)" /></div>
         <div class="field"><label data-i18n="modal.platform">Plateforme</label>
           <select id="mPlatform"><option data-i18n="common.platform.vinted">Vinted</option><option data-i18n="common.platform.ebay">eBay</option><option data-i18n="common.platform.leboncoin">Leboncoin</option><option data-i18n="common.platform.autre">Autre</option></select>
         </div>
@@ -930,8 +930,8 @@
       <div class="form-advanced-body" id="advancedFields">
         <div class="form-grid">
           <div class="field" id="mQuantityField"><label><span data-i18n="modal.quantity">Quantité</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.quantityHint">(articles identiques, ex: revente en gros)</span></label><input type="number" id="mQuantity" min="1" value="1" /></div>
-          <div class="field"><label><span data-i18n="modal.targetSellPrice">Prix de vente visé (€)</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.optional">optionnel</span></label><input type="number" id="mSell" placeholder="ex: prix affiché sur l'annonce" data-i18n-placeholder="modal.targetSellPricePlaceholder" step="0.01" /></div>
-          <div class="field"><label data-i18n="modal.extraCosts">Frais annexes (€)</label><input type="number" id="mExtraCosts" placeholder="0,00" step="0.01" /></div>
+          <div class="field"><label><span data-i18n="modal.targetSellPrice">Prix de vente visé (€)</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.optional">optionnel</span></label><input type="number" id="mSell" placeholder="ex: prix affiché sur l'annonce" data-i18n-placeholder="modal.targetSellPricePlaceholder" step="0.01" onblur="formatPriceField(this)" /></div>
+          <div class="field"><label data-i18n="modal.extraCosts">Frais annexes (€)</label><input type="number" id="mExtraCosts" placeholder="0,00" step="0.01" onblur="formatPriceField(this)" /></div>
           <div class="field" id="sellDateField" style="display:none"><label data-i18n="modal.sellDate">Date de vente</label><input type="date" id="mSellDate" /></div>
           <div class="field full"><label data-i18n="modal.location">📍 Emplacement</label><input type="text" id="mLocation" placeholder="ex: Bac 3 · Étagère 2 · Sac bleu" data-i18n-placeholder="modal.locationPlaceholder" /></div>
           <div class="field full"><label data-i18n="modal.source">🛍️ Source d'achat</label>
@@ -1263,6 +1263,6 @@
 
 <script src="js/i18n.js?v=5"></script>
 <script src="js/calc.js?v=15"></script>
-<script src="js/app.js?v=65"></script>
+<script src="js/app.js?v=66"></script>
 </body>
 </html>
