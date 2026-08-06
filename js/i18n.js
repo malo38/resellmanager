@@ -109,6 +109,8 @@ const TRANSLATIONS = {
     'nav.delegation': 'Délégation',
     'nav.settings': 'Paramètres',
     'nav.aide': 'Aide & Support',
+    'sidebar.wallet': 'WALLET',
+    'sidebar.theme': 'Thème',
 
     'dashboard.editBtn': '✎ Modifier le tableau de bord',
     'dashboard.kpi.profitTotal': 'Profit total',
@@ -550,6 +552,8 @@ const TRANSLATIONS = {
     'nav.delegation': 'Delegation',
     'nav.settings': 'Settings',
     'nav.aide': 'Help & Support',
+    'sidebar.wallet': 'WALLET',
+    'sidebar.theme': 'Theme',
 
     'dashboard.editBtn': '✎ Edit dashboard',
     'dashboard.kpi.profitTotal': 'Total profit',

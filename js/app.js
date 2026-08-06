@@ -74,6 +74,8 @@ function setTheme(t) {
   document.querySelectorAll('.app-logo').forEach(el => el.src = logo);
   document.getElementById('btnDark')?.classList.toggle('active', t==='dark');
   document.getElementById('btnLight')?.classList.toggle('active', t==='light');
+  document.getElementById('sidebarBtnDark')?.classList.toggle('active', t==='dark');
+  document.getElementById('sidebarBtnLight')?.classList.toggle('active', t==='light');
 }
 window.setTheme = setTheme;
 
@@ -192,10 +194,13 @@ function loginAs(user) {
   document.getElementById('authScreen').style.display='none';
   document.getElementById('mainApp').style.display='flex';
   document.getElementById('userName').textContent=name;
-  document.getElementById('userAvatar').textContent=name.charAt(0).toUpperCase();
+  const avatarEl=document.getElementById('userAvatar');
+  if(avatarEl) avatarEl.textContent=name.charAt(0).toUpperCase();
   const t=localStorage.getItem('theme')||'light';
   document.getElementById('btnDark')?.classList.toggle('active',t==='dark');
   document.getElementById('btnLight')?.classList.toggle('active',t==='light');
+  document.getElementById('sidebarBtnDark')?.classList.toggle('active',t==='dark');
+  document.getElementById('sidebarBtnLight')?.classList.toggle('active',t==='light');
   const discreet=localStorage.getItem('discreetMode_'+user.id)==='1';
   document.body.classList.toggle('discreet-mode',discreet);
   const discreetToggle=document.getElementById('discreetModeToggle');
@@ -505,6 +510,15 @@ let allPurchases=[];
 let allExpenses=[];
 let allUnmatchedSales=[];
 let vintedWallet=null;
+// Carte "WALLET" en bas de la sidebar (inspirée d'une capture fournie le
+// 2026-08-06) — même donnée que le KPI "Solde Vinted" du dashboard
+// (vintedWallet, voir loadArticles), juste affichée en permanence dans la
+// sidebar plutôt que seulement sur la page Tableau de bord.
+function renderSidebarWallet(){
+  const el=document.getElementById('sidebarWalletAmount');
+  if(!el) return;
+  el.textContent = vintedWallet ? fmtPrice(vintedWallet.wallet_balance).replace(' €','') : '—';
+}
 async function loadArticles(){
   renderAccountSwitcher();
   const {data}=await applyAccountFilter(sb.from('articles').select('*').eq('user_id',currentUser.id)).order('created_at',{ascending:false});
@@ -527,6 +541,7 @@ async function loadArticles(){
     wallet_balance: relevantAccounts.reduce((s,a)=>s+(parseFloat(a.wallet_balance)||0),0),
     wallet_pending_balance: relevantAccounts.reduce((s,a)=>s+(parseFloat(a.wallet_pending_balance)||0),0),
   } : null;
+  renderSidebarWallet();
   renderAll();
   renderSyncBanner();
   updateMessagesBadge();
