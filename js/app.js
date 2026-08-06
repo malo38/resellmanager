@@ -2574,17 +2574,25 @@ function renderAnalytics(){
   // liste toutes les années où au moins une vente existe, plus l'année en
   // cours même si elle est encore vide.
   const allVendus=allArticles.filter(a=>a.status==='vendu');
-  const years=Array.from(new Set(allVendus.map(a=>new Date(a.sell_date||a.created_at).getFullYear())));
+  const yearsWithSales=Array.from(new Set(allVendus.map(a=>new Date(a.sell_date||a.created_at).getFullYear()))).sort((a,b)=>b-a);
   const currentYear=new Date().getFullYear();
+  const years=[...yearsWithSales];
   if(!years.includes(currentYear)) years.push(currentYear);
   years.sort((a,b)=>b-a);
+  // Défaut = la dernière année où il y a vraiment des ventes, pas forcément
+  // l'année civile en cours — sinon tous les KPIs affichent 0,00€ dès qu'un
+  // compte n'a encore rien vendu cette année, alors que Comptabilité (qui ne
+  // filtre pas par année en mode "Depuis le début") montre bien un vrai CA,
+  // donnant l'impression trompeuse d'une désynchronisation/bug (signalé
+  // 2026-08-06 — un compte réel n'avait que des ventes datées de 2023).
+  const defaultYear=yearsWithSales.length?yearsWithSales[0]:currentYear;
   const yearSelect=document.getElementById('analyticsYearSelect');
-  const selectedYear=yearSelect?.value?parseInt(yearSelect.value):currentYear;
+  const selectedYear=yearSelect?.value?parseInt(yearSelect.value):defaultYear;
   if(yearSelect){
     yearSelect.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
-    yearSelect.value=years.includes(selectedYear)?selectedYear:currentYear;
+    yearSelect.value=years.includes(selectedYear)?selectedYear:defaultYear;
   }
-  const activeYear=yearSelect?parseInt(yearSelect.value):currentYear;
+  const activeYear=yearSelect?parseInt(yearSelect.value):defaultYear;
   document.getElementById('monthDetailPanel').innerHTML='';
 
   const months=getMonthsForYear(activeYear);
