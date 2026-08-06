@@ -738,10 +738,18 @@ window.filterPlatform=(p,btn,section)=>{
 // calcProfit()/fmtPrice()/fmtDate() sont définies dans calc.js (chargé avant ce fichier).
 function platformBadgeClass(p){return{Vinted:'badge-vinted',eBay:'badge-ebay',Leboncoin:'badge-leboncoin'}[p]||'badge-autre';}
 
-function stepBadge(s){
-  const step=getAllSteps().find(p=>p.key===s);
-  if(!step) return '';
-  return `<span class="badge" style="background:${step.color}22;color:${step.color}">${step.label}</span>`;
+// Prend soit l'article complet (préféré — affine "À expédier" en "En cours
+// d'acheminement" via statusMeta(), voir plus bas), soit juste la clé de
+// statut pour compatibilité. Avant, ce badge et statusMeta() avaient chacun
+// leur propre logique : un même article "expedition" pouvait afficher deux
+// libellés différents selon l'endroit du site (Tableau de bord vs Ventes),
+// et le premier n'affinait jamais en "en cours d'acheminement" puisqu'il ne
+// recevait jamais l'article complet (signalé le 2026-08-06) — une seule
+// source de vérité maintenant : stepBadge délègue à statusMeta().
+function stepBadge(articleOrStatus){
+  const meta=statusMeta(articleOrStatus);
+  if(!meta || !meta.label) return '';
+  return `<span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.label}</span>`;
 }
 
 function heatBadge(a){
@@ -755,11 +763,18 @@ function photoEl(a){
 }
 
 function articleHTML(a, opts={}) {
-  const profit=a.status==='vendu'?calcProfit(a):0;
+  // "expedition" veut dire la vente a déjà eu lieu (sell_price/sell_date déjà
+  // connus), seul l'envoi physique reste à faire — le profit ne doit pas
+  // attendre le statut "vendu" pour s'afficher, sinon le widget Tableau de
+  // bord montre 0,00€ pour un article déjà vendu alors que la page Ventes
+  // (qui calcule le profit sans cette restriction) montre le vrai montant
+  // pour ce même article (signalé le 2026-08-06).
+  const isSold=a.status==='vendu'||a.status==='expedition';
+  const profit=isSold?calcProfit(a):0;
   const sellTime=sellTimeLabel(a);
   const heat=heatBadge(a);
   const locBadge=a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:'';
-  const scoreVal=a.status==='vendu'?calcScore(a):null;
+  const scoreVal=isSold?calcScore(a):null;
   const scoreRoi=a.buy_price>0?(profit/a.buy_price*100):0;
   const scoreDays=daysBetween(a.buy_date,a.sell_date);
   const scoreBadge=scoreVal!==null?`<span class="badge badge-clickable" style="background:${scoreVal>=70?'#00e5a022':'#f59e0b22'};color:${scoreVal>=70?'#00e5a0':'#f59e0b'}" onclick="showScoreInfo(${scoreVal},${profit},${scoreRoi},${scoreDays===null?'null':scoreDays})">⭐ ${scoreVal}/100</span>`:'';
@@ -781,12 +796,12 @@ function articleHTML(a, opts={}) {
       ${sellTime?`<div class="sell-time">${sellTime}</div>`:''}
       <div class="article-badges" onclick="event.stopPropagation()">
         <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
-        ${stepBadge(a.status)}
+        ${stepBadge(a)}
         ${heat}${locBadge}${scoreBadge}${vintedStatsBadge}${trendingBadge}${shippingBadge}
       </div>
     </div>
     <div class="article-right">
-      <div class="article-profit ${a.status!=='vendu'?'profit-neutral':(profit>=0?'profit-pos':'profit-neg')}">${a.status==='vendu'&&profit>=0?'+':''}${fmtPrice(profit)}</div>
+      <div class="article-profit ${!isSold?'profit-neutral':(profit>=0?'profit-pos':'profit-neg')}">${isSold&&profit>=0?'+':''}${fmtPrice(profit)}</div>
       <div class="article-actions" onclick="event.stopPropagation()">
         ${moveBtn}
         <button class="btn-edit" onclick="editArticle('${a.id}')">✎</button>
@@ -3933,10 +3948,15 @@ window.showDetail = (id) => {
   const a=allArticles.find(x=>x.id===id);
   if(!a) return;
   const isRefunded=a.vinted_transaction_status==='failed';
-  const profit=a.status==='vendu'?calcProfit(a):0;
+  // "expedition" = déjà vendu (sell_price/sell_date déjà connus), reste juste
+  // à expédier — même raison qu'articleHTML() (voir son commentaire), pour
+  // ne pas avoir une fiche détail qui contredit le widget Tableau de bord/la
+  // page Ventes pour ce même article.
+  const isSold=a.status==='vendu'||a.status==='expedition';
+  const profit=isSold?calcProfit(a):0;
   const roi=a.buy_price>0?(profit/a.buy_price*100):0;
   const days=daysBetween(a.buy_date,a.sell_date);
-  const score=a.status==='vendu'?calcScore(a):null;
+  const score=isSold?calcScore(a):null;
   document.getElementById('detailTitle').textContent=a.name;
   const photos=(a.photo_urls&&a.photo_urls.length)?a.photo_urls:(a.photo_url?[a.photo_url]:[]);
   const photosHTML=photos.length?`
@@ -3952,7 +3972,7 @@ window.showDetail = (id) => {
   // aligner à plat — un coup d'œil suffit à voir si l'article a bien tourné.
   // Pour un article pas encore vendu, ces chiffres n'existent pas encore :
   // on garde la liste de lignes classique.
-  const statCardsHTML=a.status==='vendu'?`
+  const statCardsHTML=isSold?`
     <div class="detail-stat-grid">
       <div class="detail-stat-card ${profit>=0?'accent':'negative'}">
         <div class="detail-stat-label">Profit</div>
@@ -3971,7 +3991,7 @@ window.showDetail = (id) => {
       <div class="detail-info">
         <div class="article-badges" style="margin-bottom:12px;">
           <span class="badge ${platformBadgeClass(a.platform)}">${a.platform}</span>
-          ${stepBadge(a.status)}
+          ${stepBadge(a)}
           ${a.location?`<span class="badge badge-autre">📍 ${a.location}</span>`:''}
         </div>
         ${statCardsHTML}
