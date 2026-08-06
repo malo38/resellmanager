@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/style.css?v=38" />
+  <link rel="stylesheet" href="css/style.css?v=39" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -913,6 +913,11 @@
       </div>
       <div class="form-grid">
         <div class="field full"><label data-i18n="modal.name">Nom de l'article</label><input type="text" id="mName" placeholder="ex: Nike Air Max 90" data-i18n-placeholder="modal.namePlaceholder" /></div>
+        <div class="field full">
+          <label><span data-i18n="modal.photos">Photos</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.photosHint">(la première est la principale — cliquez une vignette pour la mettre en avant)</span></label>
+          <div class="photo-gallery" id="photoGallery"></div>
+          <input type="file" id="mPhoto" accept="image/*" multiple style="display:none" onchange="addPhotos(event)" />
+        </div>
         <div class="field"><label data-i18n="modal.buyPrice">Prix d'achat (€)</label><input type="number" id="mBuy" placeholder="0,00" step="0.01" onblur="formatPriceField(this)" /></div>
         <div class="field"><label data-i18n="modal.platform">Plateforme</label>
           <select id="mPlatform"><option data-i18n="common.platform.vinted">Vinted</option><option data-i18n="common.platform.ebay">eBay</option><option data-i18n="common.platform.leboncoin">Leboncoin</option><option data-i18n="common.platform.autre">Autre</option></select>
@@ -944,12 +949,6 @@
             </select>
           </div>
         </div>
-      </div>
-
-      <div class="field full" style="margin-top:12px;">
-        <label><span data-i18n="modal.photos">Photos</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.photosHint">(la première est la principale — cliquez une vignette pour la mettre en avant)</span></label>
-        <div class="photo-gallery" id="photoGallery"></div>
-        <input type="file" id="mPhoto" accept="image/*" multiple style="display:none" onchange="addPhotos(event)" />
       </div>
     </div>
     <div class="modal-actions">
