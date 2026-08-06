@@ -40,21 +40,15 @@ function clearFilterState(page){
 // capital bloqué...) dépendent de ces statuts précis, contrairement aux
 // étapes de préparation qui précèdent la mise en stock (personnalisables,
 // voir getPrepSteps()).
-// Couleurs harmonisées avec le thème sombre/sobre (signalé 2026-08-06 : les
-// tons vifs façon Tailwind par défaut détonnaient) — un seul vert (celui de
-// l'accent, pas un deuxième vert différent pour "vendu"), et des tons
-// désaturés pour le reste plutôt que du bleu/orange/violet criards. Valeurs
-// en dur (pas var(--accent) etc.) car ces couleurs sont réutilisées avec un
-// suffixe alpha ("22") pour les fonds de badge — voir stepBadge()/heatBadge().
 const FIXED_STEPS = [
   { key: 'stock',      label: '📦 En stock',   color: '#00e5a0' },
-  { key: 'expedition', label: '🚚 À expédier', color: '#c9915f' },
-  { key: 'vendu',      label: '💰 Vendu',      color: '#00e5a0' },
+  { key: 'expedition', label: '🚚 À expédier', color: '#fb923c' },
+  { key: 'vendu',      label: '💰 Vendu',      color: '#34d399' },
 ];
 const DEFAULT_PREP_STEPS = [
-  { key: 'laver',   label: '🧺 À laver',        color: '#6b8cae' },
-  { key: 'photo',   label: '📸 À photographier', color: '#9081b8' },
-  { key: 'publier', label: '✍️ À publier',       color: '#f5a623' },
+  { key: 'laver',   label: '🧺 À laver',        color: '#60a5fa' },
+  { key: 'photo',   label: '📸 À photographier', color: '#a78bfa' },
+  { key: 'publier', label: '✍️ À publier',       color: '#f59e0b' },
 ];
 function getPrepSteps(){
   const raw=localStorage.getItem('prepSteps_'+currentUser.id);
@@ -465,8 +459,8 @@ function heatmapColor(a) {
   const days = daysBetween(a.buy_date || a.created_at?.split('T')[0], today());
   if(days===null) return null;
   if(days<=30) return {color:'#00e5a0', label:'🟢 Récent'};
-  if(days<=90) return {color:'#f5a623', label:'🟠 Moyen'};
-  return {color:'#ff5c5c', label:'🔴 Ancien'};
+  if(days<=90) return {color:'#f59e0b', label:'🟠 Moyen'};
+  return {color:'#ef4444', label:'🔴 Ancien'};
 }
 
 // isTrending()/calcScore() sont définies dans calc.js (chargé avant ce fichier).
@@ -811,10 +805,10 @@ function articleHTML(a, opts={}) {
   const scoreVal=isSold?calcScore(a):null;
   const scoreRoi=a.buy_price>0?(profit/a.buy_price*100):0;
   const scoreDays=daysBetween(a.buy_date,a.sell_date);
-  const scoreBadge=scoreVal!==null?`<span class="badge badge-clickable" style="background:${scoreVal>=70?'#00e5a022':'#f5a62322'};color:${scoreVal>=70?'#00e5a0':'#f5a623'}" onclick="showScoreInfo(${scoreVal},${profit},${scoreRoi},${scoreDays===null?'null':scoreDays})">⭐ ${scoreVal}/100</span>`:'';
+  const scoreBadge=scoreVal!==null?`<span class="badge badge-clickable" style="background:${scoreVal>=70?'#00e5a022':'#f59e0b22'};color:${scoreVal>=70?'#00e5a0':'#f59e0b'}" onclick="showScoreInfo(${scoreVal},${profit},${scoreRoi},${scoreDays===null?'null':scoreDays})">⭐ ${scoreVal}/100</span>`:'';
   const vintedStatsBadge=a.vinted_item_id&&a.status==='stock'
     ?`<span class="badge badge-vinted badge-clickable" title="Voir l'évolution" onclick="showHistory('${a.vinted_item_id}','${a.name.replace(/'/g,"\\'")}')">👁️ ${a.vinted_vues||0} · ❤️ ${a.vinted_favoris||0}</span>`:'';
-  const trendingBadge=isTrending(a)?`<span class="badge badge-clickable" style="background:#c9915f22;color:#c9915f;" onclick="showTrendingInfo()">🔥 Tendance</span>`:'';
+  const trendingBadge=isTrending(a)?`<span class="badge badge-clickable" style="background:#fb923c22;color:#fb923c;" onclick="showTrendingInfo()">🔥 Tendance</span>`:'';
   const shippingBadge=a.status==='vendu'&&a.vinted_shipping_status?orderStatusBadge(a.vinted_transaction_status,a.vinted_shipping_status):'';
   const allSteps=getAllSteps();
   const nextStep=allSteps[allSteps.findIndex(p=>p.key===a.status)+1];
@@ -1868,7 +1862,7 @@ function statusMeta(articleOrStatus){
   const isArticle=articleOrStatus&&typeof articleOrStatus==='object';
   const status=isArticle?articleOrStatus.status:articleOrStatus;
   if(status==='expedition'&&isArticle&&isInTransit(articleOrStatus)){
-    return {label:'📮 En cours d\'acheminement', color:'#5aa8b5'};
+    return {label:'📮 En cours d\'acheminement', color:'#38bdf8'};
   }
   return getAllSteps().find(p=>p.key===status) || {label:status, color:'#888'};
 }
@@ -2804,7 +2798,7 @@ function renderReplay(){
     const isExpedition=a.status==='expedition';
     const statusBadge=isExpedition
       ?`<span class="tile-list-status" style="background:${statusMeta(a).color};">${statusMeta(a).label}</span>`
-      :`<span class="tile-list-status" style="background:var(--border2);color:var(--text);">${fmtDate(a.sell_date)}</span>`;
+      :`<span class="tile-list-status" style="background:#60a5fa;">${fmtDate(a.sell_date)}</span>`;
     return `<div class="tile-list-row" onclick="openReplayDetail('${a.id}')">
       <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
       <div class="tile-list-name">${a.name}</div>
@@ -3109,8 +3103,8 @@ async function renderMessages(){
 function orderStatusBadge(statutCode, statutText){
   if(!statutText) return '';
   const style = statutCode==='completed' ? 'background:#00e5a022;color:#00e5a0;'
-    : statutCode==='failed' ? 'background:#ff5c5c22;color:#ff5c5c;'
-    : statutCode==='waiting' ? 'background:#f5a62322;color:#f5a623;'
+    : statutCode==='failed' ? 'background:#ef444422;color:#ef4444;'
+    : statutCode==='waiting' ? 'background:#f59e0b22;color:#f59e0b;'
     : 'background:var(--surface2);color:var(--muted);';
   return `<span class="badge" style="${style}" title="${statutText}">${statutText}</span>`;
 }
@@ -3358,7 +3352,7 @@ function renderPickupMap(items){
   const markers=points.map(p=>{
     const overdue=pickupDeadlineInfo(p).overdue;
     return L.circleMarker([p.pickup_lat,p.pickup_lon],{
-      radius:8, color:overdue?'#ff5c5c':'#00e5a0', fillColor:overdue?'#ff5c5c':'#00e5a0', fillOpacity:0.8, weight:2,
+      radius:8, color:overdue?'#ef4444':'#00e5a0', fillColor:overdue?'#ef4444':'#00e5a0', fillOpacity:0.8, weight:2,
     }).bindPopup(`<b>${(p.title||'(sans titre)').replace(/</g,'&lt;')}</b><br>${shortLocation(p.pickup_location).replace(/</g,'&lt;')}`).addTo(achatsLeafletMap);
   });
   if(points.length===1){ achatsLeafletMap.setView([points[0].pickup_lat,points[0].pickup_lon],14); }
@@ -3506,7 +3500,7 @@ function renderAchats(){
       <div class="tile-list-photo">${p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'🛍️'}</div>
       <div class="tile-list-name">${p.title||t('achats.noTitle')}</div>
       ${p.dispute_status?disputeBadge(p):`<button class="litige-flag-btn" onclick="event.stopPropagation();setDisputeStatus('${p.id}','litige')" title="${t('achats.signalDisputeTitle')}">🚩</button>`}
-      <span class="tile-list-status" style="background:var(--border2);color:var(--text);">${fmtDate(p.purchase_date)}</span>
+      <span class="tile-list-status" style="background:#60a5fa;">${fmtDate(p.purchase_date)}</span>
       <div class="tile-list-price">${fmtPrice(p.price)}</div>
     </div>
   `).join(''):emptyState(t('achats.noPurchase'));
@@ -3536,7 +3530,7 @@ function renderBoost(){
     <div class="tile-list-row" onclick="${a.vinted_item_id?`window.open('https://www.vinted.fr/items/${a.vinted_item_id}','_blank')`:`showDetail('${a.id}')`}">
       <div class="tile-list-photo">${a.photo_url?`<img src="${a.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'📦'}</div>
       <div class="tile-list-name">${a.name}</div>
-      <span class="tile-list-status" style="background:#f5a623;color:#1a1a18;">🚀 Boosté</span>
+      <span class="tile-list-status" style="background:#f97316;">🚀 Boosté</span>
       <div class="tile-list-price">${fmtPrice(a.sell_price)}</div>
     </div>
   `).join(''):emptyState(t('empty.noBoost'));
@@ -3815,7 +3809,7 @@ window.addPrepStep=()=>{
   const slug=label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
   const key='custom_'+(slug||Date.now());
   if(steps.some(s=>s.key===key)){ alert('Cette étape existe déjà.'); return; }
-  const colors=['#6b8cae','#9081b8','#f5a623','#c98a9e','#5aa8b5','#c9915f','#8fae6b'];
+  const colors=['#60a5fa','#a78bfa','#f59e0b','#f472b6','#38bdf8','#facc15','#4ade80'];
   steps.push({key, label:'📝 '+label, color:colors[steps.length%colors.length]});
   localStorage.setItem('prepSteps_'+currentUser.id, JSON.stringify(steps));
   input.value='';
@@ -3907,7 +3901,7 @@ async function renderVintedConnectionStatus() {
     if (!vintedAccounts.length) {
       listEl.innerHTML = `<div class="setting-row" style="margin-bottom:16px;">
         <div><div class="setting-label">Statut</div><div class="setting-sub">Aucun compte connecté</div></div>
-        <div style="font-size:13px;font-weight:700;"><span style="color:var(--danger);">● Déconnecté</span></div>
+        <div style="font-size:13px;font-weight:700;"><span style="color:#ef4444;">● Déconnecté</span></div>
       </div>`;
       return;
     }
@@ -3917,8 +3911,8 @@ async function renderVintedConnectionStatus() {
       const isStale = daysSinceSync !== null && daysSinceSync >= 3;
       const statusText = !acc.connected ? 'Compte enregistré mais extension inactive'
         : (isStale ? `Aucune synchro depuis ${daysSinceSync} jours` : 'Extension Chrome active');
-      const badgeHtml = !acc.connected ? '<span style="color:var(--warning);">● Inactif</span>'
-        : (isStale ? '<span style="color:var(--warning);">● Synchro en panne</span>' : '<span style="color:var(--accent);">● Connecté</span>');
+      const badgeHtml = !acc.connected ? '<span style="color:#f59e0b;">● Inactif</span>'
+        : (isStale ? '<span style="color:#f59e0b;">● Synchro en panne</span>' : '<span style="color:#00e5a0;">● Connecté</span>');
       return `<div class="setting-row" style="margin-bottom:8px;flex-wrap:wrap;gap:10px;">
         <div>
           <div class="setting-label">@${acc.vinted_login || '—'}</div>
