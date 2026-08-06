@@ -299,7 +299,12 @@ select option { background: var(--surface2); color: var(--text); }
 .custom-select-trigger-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .custom-select-wrap.field-style .custom-select-trigger { width: 100%; padding: 10px 12px; font-size: 14px; }
 .custom-select-wrap.bulkbar-style .custom-select-trigger { padding: 6px 10px; font-size: 12px; }
-.custom-select-list { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; min-width: 160px; max-height: 260px; overflow-y: auto; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 60; padding: 4px; }
+/* z-index 1003, pas 60 : dans une modale, ".modal select, .modal input" (plus
+   bas dans ce fichier) force position:relative;z-index:1002 sur TOUS les
+   champs — un input voisin (ex: "Prix de vente visé") passait donc PAR-DESSUS
+   la liste déroulante ouverte au lieu de rester dessous, illisible sur
+   mobile où les champs empilés se chevauchent (signalé le 2026-08-06). */
+.custom-select-list { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; min-width: 160px; max-height: 260px; overflow-y: auto; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 1003; padding: 4px; }
 .custom-select-list.open { display: block; }
 .custom-select-item { padding: 8px 10px; border-radius: 6px; font-size: 13px; color: var(--text); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .custom-select-item:hover { background: var(--surface2); }
