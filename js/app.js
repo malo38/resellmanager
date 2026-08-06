@@ -230,24 +230,34 @@ function loginAs(user) {
 // dépenses/ventes non reliées et redessine Dashboard/Stock/Statistiques/
 // Objectifs (voir renderAll() qu'il appelle) — il ne reste qu'à aussi
 // redessiner la page actuellement affichée si elle n'en fait pas partie.
+// renderAll() ne couvre que 4 pages (dashboard/stock/analytics/objectif) —
+// les autres (Ventes, Achats...) ne se rafraîchissaient donc qu'au prochain
+// passage du rafraîchissement périodique (jusqu'à 2 min d'attente après une
+// modification, signalé 2026-08-06 : "ça met du temps" après avoir modifié
+// un article depuis la page Ventes). Centralisé ici pour être appelé aussi
+// bien par le rafraîchissement périodique que juste après une sauvegarde,
+// pour un retour instantané quelle que soit la page affichée.
+function renderActivePage(){
+  const active=document.querySelector('.page.active');
+  const id=active?.id?.replace('page-','');
+  if(id==='ventes') renderReplay();
+  else if(id==='achats') renderAchats();
+  else if(id==='boost') renderBoost();
+  else if(id==='calendrier') renderCalendar();
+  else if(id==='favoris') renderFavoris();
+  else if(id==='republier') renderRepublier();
+  else if(id==='messages') renderMessages();
+  else if(id==='depenses') renderDepenses();
+  else if(id==='comptabilite') renderComptabilite();
+  else if(id==='delegation') renderDelegationPage();
+}
 function startPeriodicRefresh(){
   if(window.__periodicRefreshStarted) return;
   window.__periodicRefreshStarted=true;
   setInterval(async ()=>{
     if(!currentUser) return;
     await loadArticles();
-    const active=document.querySelector('.page.active');
-    const id=active?.id?.replace('page-','');
-    if(id==='ventes') renderReplay();
-    else if(id==='achats') renderAchats();
-    else if(id==='boost') renderBoost();
-    else if(id==='calendrier') renderCalendar();
-    else if(id==='favoris') renderFavoris();
-    else if(id==='republier') renderRepublier();
-    else if(id==='messages') renderMessages();
-    else if(id==='depenses') renderDepenses();
-    else if(id==='comptabilite') renderComptabilite();
-    else if(id==='delegation') renderDelegationPage();
+    renderActivePage();
   }, 120000);
 }
 
@@ -654,6 +664,20 @@ window.saveArticle=async()=>{
   const published_at=status==='stock'?(existing?.published_at||today()):(existing?.published_at||null);
 
   const payload={name,buy_price:buy,sell_price:sell,extra_costs,platform,status,buy_date,sell_date,photo_url:photoUrls[0]||null,photo_urls:photoUrls,location,source,published_at};
+  // Un changement de statut manuel (typiquement sur un article lié à un
+  // compte qu'on ne peut plus resynchroniser, ex: banni) laissait le badge
+  // "Commande expédiée..." affiché à côté du nouveau statut "Vendu" — ces
+  // deux champs sont un instantané brut de la dernière vraie synchro Vinted,
+  // jamais mis à jour par une modification manuelle du statut, donc
+  // contredisaient visuellement le nouveau statut (signalé 2026-08-06). On
+  // les efface dès que le statut change à la main : soit une vraie synchro
+  // les repeuplera plus tard avec des valeurs à jour, soit il n'y en aura
+  // plus jamais (compte banni) et il vaut mieux ne rien afficher qu'une
+  // info fausse.
+  if(existing && status!==existing.status){
+    payload.vinted_shipping_status=null;
+    payload.vinted_transaction_status=null;
+  }
 
   let saveError=null;
   if(id){
@@ -682,6 +706,7 @@ window.saveArticle=async()=>{
   // enregistré, alors que rien ne l'était (signalé le 2026-07-16).
   if(saveError){ alert("Échec de l'enregistrement : "+saveError.message); return; }
   closeModal(); renderAll();
+  renderActivePage();
 };
 
 // ── DELETE ──
@@ -692,6 +717,7 @@ window.confirmDelete=(id)=>{
     await sb.from('articles').delete().eq('id',deleteTargetId).eq('user_id',currentUser.id);
     allArticles=allArticles.filter(a=>a.id!==deleteTargetId);
     closeConfirm(); renderAll();
+    renderActivePage();
   };
 };
 window.closeConfirm=()=>{document.getElementById('confirmBg').classList.remove('open');deleteTargetId=null;};
@@ -707,6 +733,7 @@ window.moveToStep=async(id,step)=>{
   const {data}=await sb.from('articles').update(patch).eq('id',id).eq('user_id',currentUser.id).select();
   if(data){const idx=allArticles.findIndex(a=>a.id===id);if(idx>=0)allArticles[idx]=data[0];}
   renderAll();
+  renderActivePage();
 };
 
 // ── CONFIRMATION DE VENTE (prix réel, saisi au moment de la vente) ──
@@ -749,6 +776,7 @@ window.submitSellConfirm=async()=>{
   if(data){const idx=allArticles.findIndex(a=>a.id===id);if(idx>=0)allArticles[idx]=data[0];}
   closeSellConfirm();
   renderAll();
+  renderActivePage();
 };
 
 // ── FILTERS ──
@@ -1441,6 +1469,7 @@ window.confirmCsvImport=async()=>{
   allArticles.unshift(...data);
   closeCsvImport();
   renderAll();
+  renderActivePage();
 };
 
 window.exportArticlesCSV = (section) => {
@@ -2282,6 +2311,7 @@ window.linkUnmatchedSale=async(unmatchedId)=>{
   await sb.from('unmatched_sales').delete().eq('id',unmatchedId).eq('user_id',currentUser.id);
   await loadArticles();
   renderAll();
+  renderActivePage();
 };
 
 // Aucun article existant ne correspond : crée-en un nouveau directement
@@ -2302,6 +2332,7 @@ window.createFromUnmatchedSale=async(unmatchedId)=>{
   await sb.from('unmatched_sales').delete().eq('id',unmatchedId).eq('user_id',currentUser.id);
   await loadArticles();
   renderAll();
+  renderActivePage();
 };
 
 window.setStockView=(mode)=>{
@@ -2568,6 +2599,7 @@ window.applyBulkMove = async (section) => {
   document.getElementById('selectModeBtn-'+section).textContent = '☑ Sélection multiple';
   document.getElementById('bulkBar-'+section).style.display = 'none';
   renderAll();
+  renderActivePage();
 };
 
 window.toggleCheck=(id,el)=>{
