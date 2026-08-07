@@ -526,6 +526,8 @@ select option { background: var(--surface2); color: var(--text); }
 .detail-sku-row-label { font-size: 12px; color: var(--muted); }
 .detail-sku-row-val { font-family: monospace; font-size: 12.5px; color: var(--text); }
 .detail-warning-box { font-size: 11.5px; color: var(--warning); margin-top: 12px; padding: 10px 12px; background: var(--warning-dim); border-radius: var(--radius); border: 1px solid rgba(245,166,35,0.3); line-height: 1.5; }
+.detail-lot-section { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 4px; }
+.lot-progress-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
 
 /* ── CARTE DE VENTE PARTAGEABLE (téléchargeable via html2canvas) ── */
 .sale-card { background: linear-gradient(180deg, #fdf6ec, #ffffff); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 20px; text-align: center; color: #1a1a1a; }

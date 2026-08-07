@@ -520,6 +520,7 @@ let allPurchases=[];
 let allExpenses=[];
 let allUnmatchedSales=[];
 let allSuppliers=[];
+let allLots=[];
 let vintedWallet=null;
 let lotInvoiceFile=null;
 // Carte "WALLET" en bas de la sidebar (inspirée d'une capture fournie le
@@ -550,6 +551,8 @@ async function loadArticles(){
   // casser d'autre tant que la migration n'est pas faite.
   const {data:suppliersData}=await sb.from('suppliers').select('*').eq('user_id',currentUser.id).order('name');
   allSuppliers=suppliersData||[];
+  const {data:lotsData}=await sb.from('article_lots').select('*').eq('user_id',currentUser.id);
+  allLots=lotsData||[];
   // wallet_balance : pas de .single() possible dès qu'il y a 2+ comptes
   // connectés — on prend soit le compte sélectionné, soit la somme de tous
   // les comptes (les soldes Vinted s'additionnent naturellement).
@@ -4176,6 +4179,112 @@ window.closeHistory = () => document.getElementById('historyBg').classList.remov
 // ── DÉTAIL ARTICLE ──
 function detailRow(label,val){return `<div class="detail-row"><span class="detail-row-label">${label}</span><span class="detail-row-val">${val}</span></div>`;}
 
+// ── SECTION LOT (fiche article détaillée, #7) — visible seulement pour un
+// article créé via "Ajout en masse" (a.lot_id renseigné, voir saveBulkLot).
+// Valorisation FIFO : triviale ici (un seul lot = un seul coût unitaire pour
+// tous ses exemplaires), pas besoin de suivre plusieurs coûts d'achat
+// successifs pour le même article tant qu'un seul lot existe par nom.
+function renderLotSection(a){
+  if(!a.lot_id) return '';
+  const lot=allLots.find(l=>l.id===a.lot_id);
+  if(!lot) return '';
+  const siblings=allArticles.filter(x=>x.lot_id===a.lot_id);
+  const total=lot.quantity||siblings.length;
+  const soldCount=siblings.filter(x=>x.status==='vendu').length;
+  const pct=total>0?Math.round(soldCount/total*100):0;
+  const unitCost=total>0?(parseFloat(lot.total_cost)||0)/total:0;
+  const caEstime=total*(parseFloat(lot.target_sell_price)||0);
+  const margeEstimee=caEstime-(parseFloat(lot.total_cost)||0);
+  const remainingInStock=siblings.filter(x=>x.status!=='vendu').length;
+  const stockValue=remainingInStock*unitCost;
+  return `
+    <div class="detail-lot-section">
+      <div class="section-header" style="margin:18px 0 8px;"><h2 style="font-size:14px;">📦 Lot "${lot.name}"</h2></div>
+      <div class="lot-progress-row">
+        <div class="progress-track" style="flex:1;"><div class="progress-bar" style="width:${pct}%"></div></div>
+        <span>${soldCount} sur ${total} vendu(s) (${pct}%)</span>
+      </div>
+      <div class="detail-stat-grid" style="margin-top:12px;">
+        <div class="detail-stat-card accent">
+          <div class="detail-stat-label">Potentiel</div>
+          <div class="detail-stat-val">${fmtPrice(caEstime)}</div>
+          <div class="detail-stat-sub">Marge estimée ${fmtPrice(margeEstimee)}</div>
+        </div>
+        <div class="detail-stat-card">
+          <div class="detail-stat-label">Stock restant (FIFO)</div>
+          <div class="detail-stat-val">${fmtPrice(stockValue)}</div>
+          <div class="detail-stat-sub">${remainingInStock} exemplaire(s) × ${fmtPrice(unitCost)}</div>
+        </div>
+      </div>
+      ${detailRow('💰 Coût unitaire', fmtPrice(unitCost))}
+      ${detailRow('🎯 Prix de vente estimé', fmtPrice(lot.target_sell_price||0))}
+      <div class="field" style="margin-top:10px;">
+        <label>🏭 Fournisseur</label>
+        <select onchange="updateLotSupplier('${lot.id}',this.value)">
+          <option value="">—</option>
+          ${allSuppliers.map(s=>`<option value="${s.id}" ${s.id===lot.supplier_id?'selected':''}>${s.name}</option>`).join('')}
+        </select>
+      </div>
+      ${lot.invoice_url?`<div class="detail-row"><span class="detail-row-label">🧾 Facture</span><a href="${lot.invoice_url}" target="_blank" rel="noopener" class="detail-row-val" style="color:var(--accent);">Voir le PDF</a></div>`:''}
+      <div class="field" style="margin-top:10px;">
+        <label>📝 Note interne (lot)</label>
+        <textarea rows="2" style="width:100%;resize:vertical;" placeholder="Rien pour l'instant" onblur="saveLotNote('${lot.id}',this.value)">${lot.notes||''}</textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn-edit" onclick="printArticleLabel('${a.id}')">🏷️ Étiquette</button>
+        ${a.status!=='vendu'?`<button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="declareLotLoss('${a.id}')">⚠️ Déclarer une perte</button>`:''}
+        <button class="btn-edit" onclick="closeDetail();goPage('ventes',document.querySelector('.nav-btn[data-page=ventes]'))">🔗 Ventes externes</button>
+      </div>
+    </div>
+  `;
+}
+window.updateLotSupplier=async(lotId,supplierId)=>{
+  const {error}=await sb.from('article_lots').update({supplier_id:supplierId||null}).eq('id',lotId).eq('user_id',currentUser.id);
+  if(error){ showToast('Échec : '+error.message,'error'); return; }
+  const lot=allLots.find(l=>l.id===lotId); if(lot) lot.supplier_id=supplierId||null;
+  showToast('✓ Fournisseur mis à jour.','success');
+};
+window.saveLotNote=async(lotId,notes)=>{
+  const {error}=await sb.from('article_lots').update({notes}).eq('id',lotId).eq('user_id',currentUser.id);
+  if(error){ showToast('Échec : '+error.message,'error'); return; }
+  const lot=allLots.find(l=>l.id===lotId); if(lot) lot.notes=notes;
+};
+// Pas de statut "perdu" séparé à faire vivre partout dans le code (avait été
+// explicitement écarté le 2026-08-04 pour les achats) : on supprime la fiche
+// et on journalise la perte comme une dépense, réutilisant un mécanisme déjà
+// là et déjà pris en compte dans les totaux de Comptabilité/Dashboard.
+window.declareLotLoss=async(articleId)=>{
+  const a=allArticles.find(x=>x.id===articleId);
+  if(!a) return;
+  const ok=await customConfirm(`Déclarer "${a.name}" comme perte ? La fiche sera supprimée et ${fmtPrice(a.buy_price)} sera ajouté à vos dépenses.`);
+  if(!ok) return;
+  await sb.from('expenses').insert([{user_id:currentUser.id,label:`Perte : ${a.name}`,amount:a.buy_price||0,expense_date:today()}]);
+  await sb.from('articles').delete().eq('id',articleId).eq('user_id',currentUser.id);
+  allArticles=allArticles.filter(x=>x.id!==articleId);
+  const {data:expensesData}=await sb.from('expenses').select('*').eq('user_id',currentUser.id).order('expense_date',{ascending:false});
+  allExpenses=expensesData||[];
+  closeDetail(); renderAll();
+  showToast('✓ Perte déclarée.','success');
+};
+window.printArticleLabel=(articleId)=>{
+  const a=allArticles.find(x=>x.id===articleId);
+  if(!a) return;
+  const w=window.open('','_blank','width=400,height=300');
+  if(!w) return;
+  w.document.write(`<!DOCTYPE html><html><head><title>Étiquette</title><style>
+    body{font-family:sans-serif;padding:16px;text-align:center;}
+    .name{font-size:14px;font-weight:700;margin-bottom:10px;}
+    .sku{font-size:22px;font-weight:800;letter-spacing:2px;border:2px solid #000;border-radius:8px;padding:10px;margin-bottom:8px;}
+    .price{font-size:16px;}
+  </style></head><body>
+    <div class="name">${a.name.replace(/</g,'&lt;')}</div>
+    <div class="sku">#${a.sku}</div>
+    <div class="price">${fmtPrice(a.buy_price)}</div>
+    <script>window.print();</script>
+  </body></html>`);
+  w.document.close();
+};
+
 window.showDetail = (id) => {
   const a=allArticles.find(x=>x.id===id);
   if(!a) return;
@@ -4239,6 +4348,7 @@ window.showDetail = (id) => {
         ${a.vinted_shipping_status?detailRow('📦 Statut Vinted', a.vinted_shipping_status):''}
         ${a.source?detailRow('🔗 Source', a.source):''}
         ${a.vinted_item_id?`<div class="detail-warning-box">⚠️ Lié à Vinted — un changement manuel (statut, prix...) peut diverger de l'état réel de l'annonce tant qu'une synchro n'a pas eu lieu. Utilisez "Réinitialiser depuis Vinted" pour forcer la reprise du vrai statut au prochain cycle.</div>`:''}
+        ${renderLotSection(a)}
       </div>
     </div>
   `;
