@@ -219,6 +219,7 @@ function loginAs(user) {
   initSidebarScrollCue();
   enhanceAllSelects();
   startPeriodicRefresh();
+  renderNotifBadge();
 }
 
 // L'extension synchronise en arrière-plan toutes les ~5 min, mais le site ne
@@ -275,6 +276,43 @@ function initSidebarScrollCue(){
   nav.querySelectorAll('.nav-group-header').forEach(h=>h.addEventListener('click', ()=>setTimeout(update,200)));
   setTimeout(update,100);
 }
+
+// ── NOTIFICATIONS "NOUVEAUTÉS" (#19) ── Liste statique tenue à la main (pas
+// de backend dédié) — la plus récente entrée sert de repère de "déjà vu"
+// (localStorage par utilisateur). Pas de vraie roadmap publique pour
+// l'instant : le lien Discord en bas du panneau en tient lieu (c'est déjà là
+// que les mises à jour et la bêta sont annoncées).
+const CHANGELOG = [
+  { date: '2026-08-07', items: [
+    "🆕 Ajout en masse par lot : fournisseur, facture PDF, régime TVA (page Ajouter un article)",
+    '📦 Fiche article enrichie pour les lots : progression, potentiel, valorisation du stock',
+    "🗑️ Suppression en masse sur la page Stock",
+    '🔥 Nouveau widget "série d\'activité" sur le tableau de bord',
+    '🐛 Plusieurs correctifs : statuts désynchronisés, menus déroulants mobile, sidebar',
+  ]},
+];
+function renderNotifBadge(){
+  const badge=document.getElementById('notifBadge');
+  if(!badge || !currentUser) return;
+  const lastSeen=localStorage.getItem('changelogSeen_'+currentUser.id)||'';
+  const unseen=CHANGELOG.filter(c=>c.date>lastSeen).length;
+  if(unseen>0){ badge.textContent=unseen; badge.style.display='flex'; }
+  else badge.style.display='none';
+}
+window.toggleNotifMenu=(btn)=>{
+  toggleActionsMenu(btn);
+  const body=document.getElementById('notifMenuBody');
+  body.innerHTML=CHANGELOG.map(c=>`
+    <div class="notif-item">
+      <div class="notif-item-date">${fmtDate(c.date)}</div>
+      ${c.items.map(i=>`<div class="notif-item-text">${i}</div>`).join('')}
+    </div>`).join('')
+    + `<div class="notif-item"><a href="https://discord.gg/vXsrsVaVd" target="_blank" rel="noopener" style="color:var(--accent);font-size:12.5px;font-weight:600;text-decoration:none;">💬 Suggestions & roadmap sur le Discord →</a></div>`;
+  if(CHANGELOG.length){
+    localStorage.setItem('changelogSeen_'+currentUser.id, CHANGELOG[0].date);
+    document.getElementById('notifBadge').style.display='none';
+  }
+};
 
 // ── MULTICOMPTE VINTED ──
 // Un utilisateur VintControl peut avoir plusieurs comptes Vinted connectés en
