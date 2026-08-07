@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/style.css?v=40" />
+  <link rel="stylesheet" href="css/style.css?v=41" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -902,7 +902,12 @@
       <h3 id="modalTitle" data-i18n="modal.addArticle">Ajouter un article</h3>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-tabs" id="modalAddTabs" style="display:none;">
+      <button type="button" class="modal-tab active" id="tabSingle" onclick="switchAddTab('single')" data-i18n="modal.tabSingle">Article unique</button>
+      <button type="button" class="modal-tab" id="tabBulk" onclick="switchAddTab('bulk')" data-i18n="modal.tabBulk">Ajout en masse</button>
+      <button type="button" class="modal-tab" id="tabCsv" onclick="switchAddTab('csv')" data-i18n="modal.tabCsv">Import CSV</button>
+    </div>
+    <div class="modal-body" id="singleAddPanel">
       <input type="hidden" id="mId" />
       <div class="field full" id="mSkuField" style="display:none;margin-bottom:12px;">
         <label data-i18n="modal.sku">🏷️ SKU</label>
@@ -951,6 +956,52 @@
         </div>
       </div>
     </div>
+
+    <!-- AJOUT EN MASSE (lot) — crée N fiches article séparées (chacune garde
+         son propre SKU individuel, indispensable au rattachement fiable par
+         #SKU sur Vinted) reliées à une même commande/lot pour l'info commune
+         (fournisseur, facture, coût total). -->
+    <div class="modal-body" id="bulkAddPanel" style="display:none;">
+      <div class="form-grid">
+        <div class="field full"><label data-i18n="modal.lotName">Nom de la commande / du lot</label><input type="text" id="lotName" placeholder="ex: Lot 10 t-shirts Nike" data-i18n-placeholder="modal.lotNamePlaceholder" /></div>
+        <div class="field"><label data-i18n="modal.lotQuantity">Quantité</label><input type="number" id="lotQuantity" min="1" value="1" oninput="updateLotPreview()" /></div>
+        <div class="field"><label><span data-i18n="modal.lotAlreadySold">Déjà vendu ailleurs</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.optional">optionnel</span></label><input type="number" id="lotAlreadySold" min="0" value="0" oninput="updateLotPreview()" /></div>
+        <div class="field"><label data-i18n="modal.lotTotalCost">Coût total de la commande (€)</label><input type="number" id="lotTotalCost" placeholder="0,00" step="0.01" onblur="formatPriceField(this)" oninput="updateLotPreview()" /></div>
+        <div class="field"><label data-i18n="modal.lotTargetSell">Prix de vente estimé (unitaire, €)</label><input type="number" id="lotTargetSell" placeholder="0,00" step="0.01" onblur="formatPriceField(this)" /></div>
+        <div class="field">
+          <label data-i18n="modal.lotSupplier">Fournisseur</label>
+          <div style="display:flex;gap:6px;">
+            <select id="lotSupplier" style="flex:1;" onchange="if(this.value==='__new__'){this.value='';toggleAddSupplierRow(true);}"></select>
+            <button type="button" class="btn-edit" onclick="toggleAddSupplierRow()" title="Ajouter un fournisseur" data-i18n-title="modal.lotAddSupplier">+</button>
+          </div>
+          <div id="addSupplierRow" style="display:none;gap:6px;margin-top:6px;">
+            <input type="text" id="newSupplierName" placeholder="Nom du fournisseur" data-i18n-placeholder="modal.lotNewSupplierPlaceholder" style="flex:1;" />
+            <button type="button" class="btn-confirm" onclick="createSupplier()" data-i18n="common.add">Ajouter</button>
+          </div>
+        </div>
+        <div class="field"><label data-i18n="modal.lotVatRegime">Régime TVA d'achat</label>
+          <select id="lotVatRegime">
+            <option value="marge_pays" data-i18n="modal.lotVat.margePays">Marge selon pays de la société</option>
+            <option value="tva_normale" data-i18n="modal.lotVat.normale">TVA normale (achat pro)</option>
+            <option value="particulier" data-i18n="modal.lotVat.particulier">Achat auprès d'un particulier</option>
+            <option value="autre" data-i18n="common.platform.autre">Autre</option>
+          </select>
+        </div>
+        <div class="field"><label data-i18n="modal.lotPurchaseDate">Date d'achat</label><input type="date" id="lotPurchaseDate" /></div>
+        <div class="field full"><label><span data-i18n="modal.lotNotes">Notes</span> <span style="color:var(--muted);font-weight:400;" data-i18n="modal.optional">optionnel</span></label><textarea id="lotNotes" rows="2" style="width:100%;resize:vertical;" placeholder="ex: livraison en 2 fois, léger défaut sur 1 exemplaire..." data-i18n-placeholder="modal.lotNotesPlaceholder"></textarea></div>
+        <div class="field full">
+          <label data-i18n="modal.lotInvoice">🧾 Facture d'achat (PDF)</label>
+          <div class="invoice-drop-zone" id="lotInvoiceDropZone" onclick="document.getElementById('lotInvoiceFile').click()"
+               ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')"
+               ondrop="event.preventDefault();this.classList.remove('drag-over');handleLotInvoiceDrop(event)">
+            <span id="lotInvoiceLabel" data-i18n="modal.lotInvoiceHint">Glissez un PDF ici ou cliquez pour choisir un fichier</span>
+          </div>
+          <input type="file" id="lotInvoiceFile" accept="application/pdf" style="display:none" onchange="onLotInvoiceChange(event)" />
+        </div>
+        <div class="field full" id="lotPreview" style="background:var(--surface2);border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--muted);"></div>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()" data-i18n="common.cancel">Annuler</button>
       <button class="btn-confirm" id="btnSave" onclick="saveArticle()" data-i18n="common.save">Enregistrer</button>
@@ -1261,8 +1312,8 @@
   </div>
 </div>
 
-<script src="js/i18n.js?v=6"></script>
+<script src="js/i18n.js?v=7"></script>
 <script src="js/calc.js?v=15"></script>
-<script src="js/app.js?v=69"></script>
+<script src="js/app.js?v=70"></script>
 </body>
 </html>

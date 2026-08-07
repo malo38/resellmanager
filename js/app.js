@@ -519,7 +519,9 @@ async function uploadPhoto(file,articleId){
 let allPurchases=[];
 let allExpenses=[];
 let allUnmatchedSales=[];
+let allSuppliers=[];
 let vintedWallet=null;
+let lotInvoiceFile=null;
 // Carte "WALLET" en bas de la sidebar (inspirée d'une capture fournie le
 // 2026-08-06) — même donnée que le KPI "Solde Vinted" du dashboard
 // (vintedWallet, voir loadArticles), juste affichée en permanence dans la
@@ -542,6 +544,12 @@ async function loadArticles(){
   allUnmatchedSales=unmatchedData||[];
   const {data:expensesData}=await sb.from('expenses').select('*').eq('user_id',currentUser.id).order('expense_date',{ascending:false});
   allExpenses=expensesData||[];
+  // Erreur silencieuse (data=null) si supabase_lots.sql n'a pas encore été
+  // exécuté (table absente) — même comportement que les autres requêtes de
+  // cette fonction, l'ajout en masse reste juste indisponible sans rien
+  // casser d'autre tant que la migration n'est pas faite.
+  const {data:suppliersData}=await sb.from('suppliers').select('*').eq('user_id',currentUser.id).order('name');
+  allSuppliers=suppliersData||[];
   // wallet_balance : pas de .single() possible dès qu'il y a 2+ comptes
   // connectés — on prend soit le compte sélectionné, soit la somme de tous
   // les comptes (les soldes Vinted s'additionnent naturellement).
@@ -619,7 +627,142 @@ window.openModal=(article=null)=>{
   // dépliée d'office en modification, où des champs avancés (emplacement,
   // source...) ont déjà pu être renseignés et méritent d'être visibles.
   toggleAdvancedFields(!!article);
+  // Onglets Article unique / Ajout en masse / Import CSV : seulement à la
+  // création (éditer un article déjà là n'a pas de sens en masse/CSV).
+  document.getElementById('modalAddTabs').style.display=article?'none':'flex';
+  if(!article) switchAddTab('single');
   document.getElementById('modalBg').classList.add('open');
+};
+
+// ── AJOUT EN MASSE (lot) ──
+window.switchAddTab=(tabName)=>{
+  document.querySelectorAll('.modal-tab').forEach(b=>b.classList.remove('active'));
+  if(tabName==='csv'){
+    closeModal();
+    openCsvImport();
+    return;
+  }
+  document.getElementById('tab'+(tabName==='single'?'Single':'Bulk')).classList.add('active');
+  const isBulk=tabName==='bulk';
+  document.getElementById('singleAddPanel').style.display=isBulk?'none':'block';
+  document.getElementById('bulkAddPanel').style.display=isBulk?'block':'none';
+  document.getElementById('btnSave').onclick=isBulk?saveBulkLot:saveArticle;
+  document.getElementById('btnSave').textContent=isBulk?t('modal.lotCreate'):'Ajouter';
+  if(isBulk) resetBulkForm();
+};
+function resetBulkForm(){
+  document.getElementById('lotName').value='';
+  document.getElementById('lotQuantity').value='1';
+  document.getElementById('lotAlreadySold').value='0';
+  document.getElementById('lotTotalCost').value='';
+  document.getElementById('lotTargetSell').value='';
+  document.getElementById('lotVatRegime').value='marge_pays';
+  document.getElementById('lotPurchaseDate').value=today();
+  document.getElementById('lotNotes').value='';
+  document.getElementById('lotInvoiceFile').value='';
+  document.getElementById('lotInvoiceLabel').textContent=t('modal.lotInvoiceHint');
+  document.getElementById('lotInvoiceDropZone').classList.remove('has-file');
+  lotInvoiceFile=null;
+  toggleAddSupplierRow(false);
+  const sel=document.getElementById('lotSupplier');
+  sel.innerHTML=`<option value="">—</option>`+allSuppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  updateLotPreview();
+}
+window.toggleAddSupplierRow=(forceOpen)=>{
+  const row=document.getElementById('addSupplierRow');
+  const open=forceOpen!==undefined?forceOpen:row.style.display==='none';
+  row.style.display=open?'flex':'none';
+  if(open) document.getElementById('newSupplierName').focus();
+};
+window.createSupplier=async()=>{
+  const name=document.getElementById('newSupplierName').value.trim();
+  if(!name) return;
+  const {data,error}=await sb.from('suppliers').insert([{user_id:currentUser.id,name}]).select();
+  if(error){ showToast("Impossible d'ajouter le fournisseur : "+error.message,'error'); return; }
+  allSuppliers.push(data[0]);
+  allSuppliers.sort((a,b)=>a.name.localeCompare(b.name));
+  const sel=document.getElementById('lotSupplier');
+  sel.innerHTML=`<option value="">—</option>`+allSuppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  sel.value=data[0].id;
+  document.getElementById('newSupplierName').value='';
+  toggleAddSupplierRow(false);
+};
+window.updateLotPreview=()=>{
+  const el=document.getElementById('lotPreview');
+  if(!el) return;
+  const qty=Math.max(1,parseInt(document.getElementById('lotQuantity').value)||1);
+  const alreadySold=Math.max(0,Math.min(qty,parseInt(document.getElementById('lotAlreadySold').value)||0));
+  const totalCost=parseFloat(document.getElementById('lotTotalCost').value.replace(',','.'))||0;
+  const unitCost=qty>0?totalCost/qty:0;
+  const toCreate=qty-alreadySold;
+  el.innerHTML=`${tf('modal.lotPreview',{qty,unitCost:fmtPrice(unitCost),toCreate})}`;
+};
+function handleLotInvoiceDrop(event){
+  const file=event.dataTransfer?.files?.[0];
+  if(file) setLotInvoiceFile(file);
+}
+function onLotInvoiceChange(event){
+  const file=event.target.files?.[0];
+  if(file) setLotInvoiceFile(file);
+}
+function setLotInvoiceFile(file){
+  if(file.type!=='application/pdf'){ showToast('Seuls les fichiers PDF sont acceptés.','error'); return; }
+  lotInvoiceFile=file;
+  document.getElementById('lotInvoiceLabel').textContent='📄 '+file.name;
+  document.getElementById('lotInvoiceDropZone').classList.add('has-file');
+}
+window.saveBulkLot=async()=>{
+  const name=document.getElementById('lotName').value.trim();
+  const quantity=Math.max(1,parseInt(document.getElementById('lotQuantity').value)||1);
+  const alreadySold=Math.max(0,Math.min(quantity,parseInt(document.getElementById('lotAlreadySold').value)||0));
+  const totalCost=parseFloat(document.getElementById('lotTotalCost').value.replace(',','.'))||0;
+  const targetSell=parseFloat(document.getElementById('lotTargetSell').value.replace(',','.'))||0;
+  const supplierId=document.getElementById('lotSupplier').value||null;
+  const vatRegime=document.getElementById('lotVatRegime').value;
+  const purchaseDate=document.getElementById('lotPurchaseDate').value||today();
+  const notes=document.getElementById('lotNotes').value.trim();
+  if(!name){ showToast('Donnez un nom à ce lot.','error'); return; }
+
+  const btn=document.getElementById('btnSave');
+  btn.textContent='...'; btn.disabled=true;
+
+  const lotId=crypto.randomUUID();
+  let invoiceUrl=null;
+  if(lotInvoiceFile){
+    const path=`${currentUser.id}/${lotId}-${lotInvoiceFile.name}`;
+    const {error:upErr}=await sb.storage.from('invoices').upload(path,lotInvoiceFile,{upsert:false});
+    if(upErr){ showToast("Échec de l'upload de la facture : "+upErr.message,'error'); btn.disabled=false; btn.textContent=t('modal.lotCreate'); return; }
+    invoiceUrl=sb.storage.from('invoices').getPublicUrl(path).data.publicUrl;
+  }
+
+  const {error:lotError}=await sb.from('article_lots').insert([{
+    id:lotId, user_id:currentUser.id, name, quantity, already_sold_elsewhere:alreadySold,
+    total_cost:totalCost, target_sell_price:targetSell, supplier_id:supplierId,
+    vat_regime:vatRegime, purchase_date:purchaseDate, notes, invoice_url:invoiceUrl,
+  }]);
+  if(lotError){ showToast("Échec de la création du lot : "+lotError.message,'error'); btn.disabled=false; btn.textContent=t('modal.lotCreate'); return; }
+
+  const unitCost=quantity>0?totalCost/quantity:0;
+  const prepStepsForModal=getPrepSteps();
+  const defaultStatus=prepStepsForModal[0]?.key||'stock';
+  const rows=[];
+  for(let i=0;i<quantity;i++){
+    const isAlreadySold=i<alreadySold;
+    rows.push({
+      id:crypto.randomUUID(), user_id:currentUser.id, lot_id:lotId,
+      sku:crypto.randomUUID().replace(/-/g,'').slice(0,8),
+      name, buy_price:unitCost, sell_price:isAlreadySold?targetSell:0,
+      platform:'Vinted', status:isAlreadySold?'vendu':defaultStatus,
+      buy_date:purchaseDate, sell_date:isAlreadySold?purchaseDate:null,
+      source:supplierId?(allSuppliers.find(s=>s.id===supplierId)?.name||'Autre'):'Autre',
+    });
+  }
+  const {data,error}=await sb.from('articles').insert(rows).select();
+  btn.disabled=false; btn.textContent=t('modal.lotCreate');
+  if(error){ showToast("Lot créé, mais échec de la création des articles : "+error.message,'error'); return; }
+  if(data) allArticles.unshift(...data);
+  closeModal(); renderAll();
+  showToast(`✓ Lot "${name}" créé : ${quantity} article(s) ajouté(s)${alreadySold>0?` (dont ${alreadySold} déjà marqué(s) vendu(s))`:''}.`,'success');
 };
 window.toggleAdvancedFields=(forceOpen)=>{
   const body=document.getElementById('advancedFields');

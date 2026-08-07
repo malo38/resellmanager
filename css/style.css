@@ -465,6 +465,13 @@ select option { background: var(--surface2); color: var(--text); }
 .modal-header h3 { font-size: 16px; font-weight: 700; }
 .modal-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; padding: 4px; }
 .modal-close:hover { color: var(--text); }
+.modal-tabs { display: flex; gap: 4px; padding: 14px 20px 0; border-bottom: 1px solid var(--border); }
+.modal-tab { background: none; border: none; padding: 8px 4px 10px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; font-family: inherit; border-bottom: 2px solid transparent; margin-right: 14px; transition: all 0.15s; }
+.modal-tab:hover { color: var(--text); }
+.modal-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.invoice-drop-zone { border: 1px dashed var(--border2); border-radius: var(--radius); padding: 18px 12px; text-align: center; font-size: 12.5px; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+.invoice-drop-zone:hover, .invoice-drop-zone.drag-over { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+.invoice-drop-zone.has-file { border-style: solid; border-color: var(--accent); color: var(--accent); }
 /* Scrollbar visible/thématisée : la scrollbar système par défaut est fine et
    peu contrastée, on la remarque à peine sur un formulaire dense — donnait
    l'impression qu'il fallait "chercher" comment voir la suite/le bouton
