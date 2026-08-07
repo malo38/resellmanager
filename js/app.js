@@ -1026,6 +1026,8 @@ function renderDashboard(){
   if(vintedWallet){
     kpis.push({key:'kpi_wallet', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.wallet')}</div><div class="kpi-val green">${fmtPrice(vintedWallet.wallet_balance)}</div>${vintedWallet.wallet_pending_balance>0?`<div class="kpi-sub">+${fmtPrice(vintedWallet.wallet_pending_balance)} en attente</div>`:''}</div>`});
   }
+  const streak=computeActivityStreak();
+  kpis.push({key:'kpi_streak', html:`<div class="kpi-card"><div class="kpi-label">${t('dashboard.kpi.streak')}</div><div class="kpi-val ${streak.count>0?'green':''}">${streak.count>0?'🔥 ':''}${streak.count}j</div><div class="kpi-sub">${streak.count>0&&!streak.activeToday?t('dashboard.streak.nudge'):(streak.count>0?t('dashboard.streak.activeToday'):t('dashboard.streak.start'))}</div></div>`});
   const kpiPrefs=getDashboardWidgetPrefs();
   document.getElementById('kpiGrid').innerHTML=kpis.filter(k=>kpiPrefs[k.key]).map(k=>k.html).join('');
 
@@ -1110,8 +1112,35 @@ function renderAccountsBreakdown(){
   `;
 }
 
+// ── SÉRIE D'ACTIVITÉ (façon Duolingo, demandé le 2026-08-06) ── Nombre de
+// jours CONSÉCUTIFS avec au moins une action (vente, achat/ajout, dépense
+// enregistrée) — calculé uniquement à partir de données déjà chargées côté
+// client, aucun nouvel appel réseau. Le jour en cours n'interrompt pas la
+// série tant qu'il n'est pas terminé (comme Duolingo) : s'il n'y a encore
+// rien aujourd'hui, on compte à partir d'hier et on incite à agir aujourd'hui
+// pour ne pas la casser (voir activeToday dans le KPI).
+function computeActivityStreak(){
+  const dates=new Set();
+  allArticles.forEach(a=>{
+    if(a.sell_date) dates.add(a.sell_date);
+    if(a.buy_date) dates.add(a.buy_date);
+  });
+  allExpenses.forEach(e=>{ if(e.expense_date) dates.add(e.expense_date); });
+  const dateStr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const todayStr=today();
+  const activeToday=dates.has(todayStr);
+  let count=0;
+  const cursor=new Date();
+  if(!activeToday) cursor.setDate(cursor.getDate()-1);
+  while(dates.has(dateStr(cursor))){
+    count++;
+    cursor.setDate(cursor.getDate()-1);
+  }
+  return {count, activeToday};
+}
+
 // ── PERSONNALISATION DU TABLEAU DE BORD ──
-const DASH_WIDGETS=['kpi_profit_total','kpi_profit_mois','kpi_profit_net','kpi_stock','kpi_expedition','kpi_vendus','kpi_capital','kpi_achats','kpi_ca','kpi_roi','kpi_wallet','weekly','completeness','calc','recent','chart'];
+const DASH_WIDGETS=['kpi_profit_total','kpi_profit_mois','kpi_profit_net','kpi_stock','kpi_expedition','kpi_vendus','kpi_capital','kpi_achats','kpi_ca','kpi_roi','kpi_wallet','kpi_streak','weekly','completeness','calc','recent','chart'];
 function getDashboardWidgetPrefs(){
   const stored=JSON.parse(localStorage.getItem('dashWidgets_'+currentUser.id)||'{}');
   const prefs={};
