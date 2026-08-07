@@ -484,6 +484,7 @@
           <span id="bulkCount-stockall">0 sélectionné(s)</span>
           <select id="bulkTarget-stockall"></select>
           <button class="btn-confirm" onclick="applyBulkMove('stockall')" data-i18n="common.apply">Appliquer</button>
+          <button class="btn-danger" onclick="applyBulkDelete('stockall')" data-i18n="stock.bulkDelete">🗑️ Supprimer la sélection</button>
         </div>
 
         <!-- Chips fusionnées : catégorie (à laver, en stock...) + qualité de fiche (sans photo...), générées par renderStockAll() -->
@@ -1312,8 +1313,8 @@
   </div>
 </div>
 
-<script src="js/i18n.js?v=7"></script>
+<script src="js/i18n.js?v=8"></script>
 <script src="js/calc.js?v=15"></script>
-<script src="js/app.js?v=71"></script>
+<script src="js/app.js?v=72"></script>
 </body>
 </html>

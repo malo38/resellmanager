@@ -2777,6 +2777,30 @@ window.applyBulkMove = async (section) => {
   renderActivePage();
 };
 
+// Suppression en masse (#18) — pas de "republication en masse" volontairement :
+// republier plusieurs annonces d'un coup risque de ressembler à un
+// comportement automatisé aux yeux de Vinted (même avertissement que pour
+// batch_size > 1 dans les réglages), et le mécanisme "priority_item_id" côté
+// backend ne gère qu'un seul article prioritaire à la fois — en empiler
+// plusieurs écraserait silencieusement les précédents plutôt que de les
+// mettre en file.
+window.applyBulkDelete = async (section) => {
+  const ids = Array.from(selectedIds[section]);
+  if(!ids.length) return;
+  const ok = await customConfirm(`Supprimer définitivement ${ids.length} article(s) sélectionné(s) ? Cette action est irréversible.`);
+  if(!ok) return;
+  const {error} = await sb.from('articles').delete().in('id', ids).eq('user_id', currentUser.id);
+  if(error){ showToast('Échec de la suppression : '+error.message,'error'); return; }
+  allArticles = allArticles.filter(a=>!ids.includes(a.id));
+  selectedIds[section].clear();
+  selectMode[section] = false;
+  document.getElementById('selectModeBtn-'+section).textContent = '☑ Sélection multiple';
+  document.getElementById('bulkBar-'+section).style.display = 'none';
+  renderAll();
+  renderActivePage();
+  showToast(`✓ ${ids.length} article(s) supprimé(s).`,'success');
+};
+
 window.toggleCheck=(id,el)=>{
   const stored=JSON.parse(localStorage.getItem('checklist_'+currentUser.id)||'{}');
   stored[id]=el.checked;
