@@ -1519,7 +1519,7 @@ window.generateAccountantLink = async () => {
   renderAccountantLink();
 };
 window.revokeAccountantLink = async () => {
-  if(!confirm('Révoquer ce lien ? Votre comptable ne pourra plus y accéder.')) return;
+  if(!await customConfirm('Révoquer ce lien ? Votre comptable ne pourra plus y accéder.')) return;
   await sb.from('accountant_links').update({revoked:true}).eq('user_id',currentUser.id).eq('revoked',false);
   renderAccountantLink();
 };
@@ -2012,7 +2012,7 @@ window.addDelegate = async () => {
   renderDelegatesList();
 };
 window.deleteDelegation = async (id) => {
-  if(!confirm('Retirer ce délégué ?')) return;
+  if(!await customConfirm('Retirer ce délégué ?')) return;
   await sb.from('delegations').delete().eq('id',id).eq('owner_id',currentUser.id);
   renderDelegatesList();
 };
@@ -4249,7 +4249,7 @@ window.onServerModeToggle = async (accountId, checked) => {
 };
 
 window.disconnectVintedAccount = async (accountId) => {
-  if(!confirm('Déconnecter ce compte Vinted ? Ses données restent conservées, seule la synchro automatique s\'arrête.')) return;
+  if(!await customConfirm('Déconnecter ce compte Vinted ? Ses données restent conservées, seule la synchro automatique s\'arrête.')) return;
   await backendFetch(`/api/extension/accounts/${accountId}/disconnect`, { method: 'POST' });
   await loadVintedAccounts();
   renderVintedConnectionStatus();
@@ -4504,7 +4504,7 @@ window.resyncFromVinted = async (id, btn) => {
 // Même principe que resyncFromVinted() mais pour tout le stock Vinted du
 // compte sélectionné (ou de tous les comptes si "Tous les comptes").
 window.resyncAllFromVinted = async (btn) => {
-  if (!confirm('Forcer TOUS vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min) ? Toute modification manuelle récente sera écrasée par l\'état réel sur Vinted.')) return;
+  if (!await customConfirm('Forcer TOUS vos articles Vinted à reprendre leur vrai statut au prochain cycle de synchro (≤5 min) ? Toute modification manuelle récente sera écrasée par l\'état réel sur Vinted.')) return;
   const original = btn.textContent;
   btn.textContent = '...'; btn.disabled = true;
   const res = await backendFetch('/api/settings/resync-all', {
