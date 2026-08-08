@@ -3311,7 +3311,6 @@ async function renderFavoris() {
     document.getElementById('autoMsgDelayMax').value = config.delay_max_sec;
     document.getElementById('autoMsgBatchSize').value = config.batch_size || 1;
     toggleBatchWarning('autoMsgBatchSize','autoMsgBatchWarning');
-    document.getElementById('serverAutomationEnabled').checked = !!config.server_automation_enabled;
   };
   const cached=JSON.parse(localStorage.getItem(cacheKey)||'null');
   if(cached) applyAutoMsgConfig(cached);
@@ -3322,53 +3321,7 @@ async function renderFavoris() {
     localStorage.setItem(cacheKey, JSON.stringify(config));
   }
   renderAutoMsgStatus();
-
-  // L'automatisation serveur est un réglage par compte Vinted précis — pas de
-  // sens en vue agrégée ("Tous les comptes"), même logique que
-  // favorisAccountWarning ci-dessus.
-  // Masquée en attendant une vraie solution : testée le 2026-07-21, bloquée
-  // par la protection anti-bot de Vinted dès la première requête (redirection
-  // systématique vers /session-refresh, même avec un cookie fraîchement
-  // capturé) — le code backend/DB reste en place pour reprendre plus tard,
-  // mais l'option ne doit pas être proposée tant que ce n'est pas résolu.
-  const SERVER_AUTOMATION_LIVE = false;
-  const serverCardEl = document.getElementById('serverAutomationCard');
-  if(serverCardEl) serverCardEl.style.display = (SERVER_AUTOMATION_LIVE && (selectedVintedAccountId || vintedAccounts.length === 1)) ? 'block' : 'none';
 }
-
-// Texte affiché à l'utilisateur ET envoyé au backend comme snapshot de
-// consentement (traçabilité) — une seule source de vérité pour éviter tout
-// écart entre ce qui est affiché et ce qui est enregistré comme accepté.
-const SERVER_AUTOMATION_CONSENT_TEXT = "J'active l'automatisation serveur pour les messages aux favoris. Je comprends que les requêtes partiront de l'adresse IP du serveur VintControl (pas la mienne), ce qui peut augmenter le risque de détection et de restriction/bannissement de mon compte Vinted par leur système anti-fraude. Je choisis d'activer cette fonctionnalité expérimentale en connaissance de cause.";
-
-window.onServerAutomationToggle = async () => {
-  const checkbox = document.getElementById('serverAutomationEnabled');
-  const statusEl = document.getElementById('serverAutomationStatus');
-  const checked = checkbox.checked;
-
-  if (!selectedVintedAccountId && vintedAccounts.length > 1) {
-    checkbox.checked = false;
-    statusEl.textContent = '✕ Sélectionnez un compte Vinted précis (en haut de la sidebar) pour activer cette option.';
-    return;
-  }
-
-  if (checked && !confirm(SERVER_AUTOMATION_CONSENT_TEXT + "\n\nConfirmez-vous l'activation ?")) {
-    checkbox.checked = false;
-    return;
-  }
-
-  const res = await backendFetch('/api/settings/server-automation-optin', {
-    method: 'POST',
-    body: JSON.stringify({
-      enabled: checked,
-      vinted_account_id: selectedVintedAccountId || '',
-      consent_text: SERVER_AUTOMATION_CONSENT_TEXT,
-    }),
-  });
-  statusEl.textContent = res
-    ? (checked ? '✓ Automatisation serveur activée.' : 'Automatisation serveur désactivée.')
-    : '✕ Erreur, réessayez.';
-};
 
 // ── MESSAGES VINTED (synchronisés par l'extension) ──
 function timeAgo(iso){
@@ -4229,12 +4182,71 @@ async function renderVintedConnectionStatus() {
           <button class="btn-edit" style="color:var(--danger);border-color:var(--danger);" onclick="disconnectVintedAccount('${acc.id}')">Déconnecter</button>
         </div>
       </div>
+      <div class="server-mode-row" id="serverModeRow-${acc.id}">
+        <div>
+          <div class="setting-label" style="font-size:12px;">🖥️ Mode serveur <span style="font-weight:400;color:var(--muted);">— synchro et messages favoris tournent même ordinateur éteint (bêta)</span></div>
+          <div class="setting-sub" id="serverModeStatus-${acc.id}">Chargement...</div>
+        </div>
+        <label class="theme-toggle" style="cursor:pointer;flex-shrink:0;">
+          <input type="checkbox" id="serverModeToggle-${acc.id}" style="display:none;" onchange="onServerModeToggle('${acc.id}',this.checked)">
+          <span class="theme-btn" id="serverModeLabel-${acc.id}" onclick="document.getElementById('serverModeToggle-${acc.id}').click()">Désactivé</span>
+        </label>
+      </div>
       ${reputationGridHtml(acc)}`;
     }).join('<hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">');
+    vintedAccounts.forEach(acc => refreshServerModeStatus(acc.id));
   } catch(e) {
     listEl.innerHTML = '<p class="setting-sub">Erreur de chargement.</p>';
   }
 }
+
+// ── MODE SERVEUR (self-service, 2026-08-07) — synchro + messages favoris
+// sans extension (worker Playwright sur Railway), remplace le flag activé à
+// la main pour le tout premier compte de test. La republication reste sur
+// l'extension dans tous les cas (bloquée par l'anti-fraude Vinted côté
+// serveur, testé le 2026-08-05) — le texte de consentement le précise pour
+// ne pas laisser croire que TOUT devient indépendant de l'extension.
+const SERVER_MODE_CONSENT_TEXT = "J'active le mode serveur pour ce compte Vinted. Je comprends que la synchro et les messages aux favoris partiront alors du serveur VintControl (pas de mon ordinateur), ce qui peut légèrement augmenter le risque de détection par le système anti-fraude de Vinted. La republication automatique, elle, continue de nécessiter l'extension Chrome active dans tous les cas. Je choisis d'activer cette fonctionnalité bêta en connaissance de cause.";
+
+async function refreshServerModeStatus(accountId){
+  const status = await backendFetch(`/api/extension/server-mode-status?vinted_account_id=${accountId}`);
+  const statusEl = document.getElementById('serverModeStatus-'+accountId);
+  const toggleEl = document.getElementById('serverModeToggle-'+accountId);
+  const labelEl = document.getElementById('serverModeLabel-'+accountId);
+  if(!statusEl || !toggleEl || !labelEl || !status) return;
+  toggleEl.checked = !!status.server_mode_enabled;
+  labelEl.textContent = status.server_mode_enabled ? 'Activé' : 'Désactivé';
+  labelEl.classList.toggle('active', !!status.server_mode_enabled);
+  if(!status.server_mode_enabled){
+    statusEl.textContent = "Synchro et messages favoris tournent normalement via l'extension.";
+    return;
+  }
+  if(status.has_credentials && !status.invalidated_at){
+    statusEl.innerHTML = `<span style="color:var(--accent);">● Actif</span>${status.captured_at ? ' — session captée le '+new Date(status.captured_at).toLocaleDateString('fr-FR') : ''}`;
+  } else if(status.invalidated_at){
+    statusEl.innerHTML = `<span style="color:var(--danger);">● Session expirée</span> — gardez l'extension active un moment pour qu'elle en recapture une fraîche`;
+  } else {
+    statusEl.innerHTML = `<span style="color:var(--warning);">● En attente</span> — gardez l'extension active un moment pour qu'elle capture votre session`;
+  }
+}
+
+window.onServerModeToggle = async (accountId, checked) => {
+  if(checked){
+    const ok = await customConfirm(SERVER_MODE_CONSENT_TEXT);
+    if(!ok){ document.getElementById('serverModeToggle-'+accountId).checked = false; return; }
+  }
+  const res = await backendFetch('/api/settings/server-mode-optin', {
+    method: 'POST',
+    body: JSON.stringify({ enabled: checked, vinted_account_id: accountId, consent_text: SERVER_MODE_CONSENT_TEXT }),
+  });
+  if(!res){
+    showToast('Erreur, réessayez.','error');
+    document.getElementById('serverModeToggle-'+accountId).checked = !checked;
+    return;
+  }
+  showToast(checked ? '✓ Mode serveur activé.' : 'Mode serveur désactivé.','success');
+  refreshServerModeStatus(accountId);
+};
 
 window.disconnectVintedAccount = async (accountId) => {
   if(!confirm('Déconnecter ce compte Vinted ? Ses données restent conservées, seule la synchro automatique s\'arrête.')) return;

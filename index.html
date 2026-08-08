@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/style.css?v=43" />
+  <link rel="stylesheet" href="css/style.css?v=44" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -571,29 +571,6 @@
           <button class="btn-confirm" style="margin-top:12px;" onclick="saveFavMessage()" data-i18n="common.save">Enregistrer</button>
           <p id="favMsgSaved" class="success-msg"></p>
           <p class="setting-sub" id="autoMsgStatus" style="margin-top:8px;"></p>
-        </div>
-
-        <div class="settings-card" id="serverAutomationCard" style="display:none;border:1px solid var(--warning);">
-          <h2 class="settings-title" data-i18n="favoris.serverAutoTitle">⚠️ Automatisation côté serveur (bêta)</h2>
-          <p class="setting-sub" data-i18n="favoris.serverAutoDesc">
-            Par défaut, les messages automatiques ne partent que lorsque votre extension Chrome
-            tourne (ordinateur allumé, Chrome ouvert). En activant cette option, VintControl
-            enverra les messages depuis son propre serveur, même ordinateur éteint — en utilisant
-            votre session Vinted capturée par l'extension.
-          </p>
-          <p class="setting-sub" style="color:var(--warning);font-weight:600;" data-i18n="favoris.serverAutoRisk">
-            Risque : les requêtes partiront de l'adresse IP du serveur VintControl (pas la
-            vôtre), ce qui peut augmenter le risque de détection et de restriction/bannissement
-            de votre compte Vinted par leur système anti-fraude. Fonctionnalité expérimentale,
-            à activer en connaissance de cause.
-          </p>
-          <div class="checklist-item" style="margin-top:12px;">
-            <input type="checkbox" id="serverAutomationEnabled" onchange="onServerAutomationToggle()" />
-            <label for="serverAutomationEnabled" data-i18n="favoris.serverAutoCheckbox">
-              J'ai compris le risque et j'active l'envoi automatique depuis le serveur VintControl
-            </label>
-          </div>
-          <p class="setting-sub" id="serverAutomationStatus" style="margin-top:8px;"></p>
         </div>
 
         <div class="section-header" style="margin-top:20px;"><h2 data-i18n="favoris.historyTitle">Historique des messages auto-envoyés</h2></div>
@@ -1321,6 +1298,6 @@
 
 <script src="js/i18n.js?v=8"></script>
 <script src="js/calc.js?v=15"></script>
-<script src="js/app.js?v=74"></script>
+<script src="js/app.js?v=75"></script>
 </body>
 </html>
