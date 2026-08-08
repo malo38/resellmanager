@@ -768,12 +768,12 @@ window.saveBulkLot=async()=>{
   btn.textContent='...'; btn.disabled=true;
 
   const lotId=crypto.randomUUID();
-  let invoiceUrl=null;
+  let invoiceUrl=null, invoicePath=null;
   if(lotInvoiceFile){
-    const path=`${currentUser.id}/${lotId}-${lotInvoiceFile.name}`;
-    const {error:upErr}=await sb.storage.from('invoices').upload(path,lotInvoiceFile,{upsert:false});
+    invoicePath=`${currentUser.id}/${lotId}-${lotInvoiceFile.name}`;
+    const {error:upErr}=await sb.storage.from('invoices').upload(invoicePath,lotInvoiceFile,{upsert:false});
     if(upErr){ showToast("Échec de l'upload de la facture : "+upErr.message,'error'); btn.disabled=false; btn.textContent=t('modal.lotCreate'); return; }
-    invoiceUrl=sb.storage.from('invoices').getPublicUrl(path).data.publicUrl;
+    invoiceUrl=sb.storage.from('invoices').getPublicUrl(invoicePath).data.publicUrl;
   }
 
   const {error:lotError}=await sb.from('article_lots').insert([{
@@ -786,21 +786,39 @@ window.saveBulkLot=async()=>{
   const unitCost=quantity>0?totalCost/quantity:0;
   const prepStepsForModal=getPrepSteps();
   const defaultStatus=prepStepsForModal[0]?.key||'stock';
-  const rows=[];
-  for(let i=0;i<quantity;i++){
+  const buildRows=()=>Array.from({length:quantity},(_,i)=>{
     const isAlreadySold=i<alreadySold;
-    rows.push({
+    return {
       id:crypto.randomUUID(), user_id:currentUser.id, lot_id:lotId,
       sku:crypto.randomUUID().replace(/-/g,'').slice(0,8),
       name, buy_price:unitCost, sell_price:isAlreadySold?targetSell:0,
       platform:'Vinted', status:isAlreadySold?'vendu':defaultStatus,
       buy_date:purchaseDate, sell_date:isAlreadySold?purchaseDate:null,
       source:supplierId?(allSuppliers.find(s=>s.id===supplierId)?.name||'Autre'):'Autre',
-    });
+    };
+  });
+  // Retry avec de nouveaux SKU sur collision (code Postgres 23505 = unique
+  // violation) : même risque déjà rencontré et géré côté backend pour
+  // resolve_sku() (SKU sur 8 caractères, contrainte UNIQUE globale tous
+  // utilisateurs confondus) — le batch entier échouait avant sans aucun
+  // recours, laissant le lot déjà créé orphelin, sans aucun article
+  // (signalé le 2026-08-07).
+  let data=null, error=null;
+  for(let attempt=0; attempt<3; attempt++){
+    const res=await sb.from('articles').insert(buildRows()).select();
+    data=res.data; error=res.error;
+    if(!error || error.code!=='23505') break;
   }
-  const {data,error}=await sb.from('articles').insert(rows).select();
   btn.disabled=false; btn.textContent=t('modal.lotCreate');
-  if(error){ showToast("Lot créé, mais échec de la création des articles : "+error.message,'error'); return; }
+  if(error){
+    // Nettoyage : sans ça, le lot et sa facture déjà uploadée restaient
+    // orphelins (invisibles, ne pouvaient plus jamais être rattachés à des
+    // articles) sans aucune façon de réessayer.
+    await sb.from('article_lots').delete().eq('id',lotId).eq('user_id',currentUser.id);
+    if(invoicePath) await sb.storage.from('invoices').remove([invoicePath]);
+    showToast("Échec de la création des articles, le lot a été annulé — réessayez : "+error.message,'error');
+    return;
+  }
   if(data) allArticles.unshift(...data);
   closeModal(); renderAll();
   showToast(`✓ Lot "${name}" créé : ${quantity} article(s) ajouté(s)${alreadySold>0?` (dont ${alreadySold} déjà marqué(s) vendu(s))`:''}.`,'success');
@@ -896,6 +914,18 @@ window.saveArticle=async()=>{
 // ── DELETE ──
 window.confirmDelete=(id)=>{
   deleteTargetId=id;
+  // "Irréversible" est vrai pour la fiche VintControl, mais peut laisser
+  // croire à tort que l'annonce Vinted elle-même est supprimée — si elle
+  // est encore active, resolve_sku la retrouvera au prochain sync (~5 min)
+  // et recréera une fiche pour elle, ce qui ressemble à un bug si on ne le
+  // sait pas (signalé le 2026-08-07).
+  const a=allArticles.find(x=>x.id===id);
+  const bodyEl=document.getElementById('confirmDeleteBody');
+  if(bodyEl){
+    bodyEl.textContent = a?.vinted_item_id
+      ? "Supprime uniquement le suivi dans VintControl — l'annonce reste en ligne sur Vinted. Si elle est toujours active, elle réapparaîtra ici au prochain sync."
+      : 'Cette action est irréversible.';
+  }
   document.getElementById('confirmBg').classList.add('open');
   document.getElementById('btnConfirmDelete').onclick=async()=>{
     await sb.from('articles').delete().eq('id',deleteTargetId).eq('user_id',currentUser.id);
@@ -2825,7 +2855,14 @@ window.applyBulkMove = async (section) => {
 window.applyBulkDelete = async (section) => {
   const ids = Array.from(selectedIds[section]);
   if(!ids.length) return;
-  const ok = await customConfirm(`Supprimer définitivement ${ids.length} article(s) sélectionné(s) ? Cette action est irréversible.`);
+  // Même clarification que confirmDelete() (suppression simple) : ne
+  // supprime que le suivi VintControl, pas les annonces Vinted encore
+  // actives (signalé le 2026-08-07).
+  const hasVintedLinked = ids.some(id=>allArticles.find(a=>a.id===id)?.vinted_item_id);
+  const msg = hasVintedLinked
+    ? `Supprimer le suivi VintControl de ${ids.length} article(s) sélectionné(s) ? Les annonces encore actives sur Vinted ne seront pas supprimées et pourront réapparaître au prochain sync.`
+    : `Supprimer définitivement ${ids.length} article(s) sélectionné(s) ? Cette action est irréversible.`;
+  const ok = await customConfirm(msg);
   if(!ok) return;
   const {error} = await sb.from('articles').delete().in('id', ids).eq('user_id', currentUser.id);
   if(error){ showToast('Échec de la suppression : '+error.message,'error'); return; }
